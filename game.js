@@ -1227,7 +1227,7 @@ class GameScene extends Phaser.Scene {
             fontSize: '14px', fontFamily: 'Arial', fill: '#EEEEEE', wordWrap: { width: boxW - 28 }, lineSpacing: 4,
         }).setScrollFactor(0).setDepth(201).setVisible(false);
 
-        this.dlgPrompt = this.add.text(boxX + boxW - 14, boxY + boxH - 16, '[E] Continue', {
+        this.dlgPrompt = this.add.text(boxX + boxW - 14, boxY + boxH - 16, 'Tap / [E]', {
             fontSize: '11px', fill: '#AAAAAA',
         }).setOrigin(1, 1).setScrollFactor(0).setDepth(201).setVisible(false);
     }
@@ -1246,7 +1246,9 @@ class GameScene extends Phaser.Scene {
 
         // Handle dialogue input separately
         if (this.dialogueActive) {
-            if (Phaser.Input.Keyboard.JustDown(this.interactKey) || Phaser.Input.Keyboard.JustDown(this.crowKey)) {
+            if (Phaser.Input.Keyboard.JustDown(this.interactKey) || Phaser.Input.Keyboard.JustDown(this.crowKey)
+                || this.dialogueTapped) {
+                this.dialogueTapped = false;
                 this.advanceDialogue();
             }
             return;
@@ -1473,8 +1475,13 @@ class GameScene extends Phaser.Scene {
     showDialogue(npc) {
         const def = npc.getData('npcDef');
         this.dialogueActive = true;
+        this.dialogueTapped = false;
         this.dialogueNPC = npc;
         this.player.setVelocity(0, 0);
+
+        // Tap anywhere to advance dialogue on mobile
+        this._dialogueTapHandler = () => { if (this.dialogueActive) this.dialogueTapped = true; };
+        this.input.on('pointerdown', this._dialogueTapHandler);
 
         // Activate quest if NPC has one and not already active/completed
         if (def.quest && !this.completedQuests[def.quest.id] && !this.activeQuests.find(q => q.id === def.quest.id)) {
@@ -1522,7 +1529,12 @@ class GameScene extends Phaser.Scene {
 
     closeDialogue() {
         this.dialogueActive = false;
+        this.dialogueTapped = false;
         this.dialogueNPC = null;
+        if (this._dialogueTapHandler) {
+            this.input.off('pointerdown', this._dialogueTapHandler);
+            this._dialogueTapHandler = null;
+        }
         this.dlgBox.setVisible(false);
         this.dlgName.setVisible(false);
         this.dlgText.setVisible(false);
