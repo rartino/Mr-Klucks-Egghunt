@@ -1,72 +1,90 @@
 /********************************************************************
- * game.js
- * Mr. Kluck's Egg Hunt — Enhanced Edition
+ * game.js — Mr. Kluck's Egg Hunt: Open World Edition
  *
- * Mr. Kluck the rooster has had his precious Easter eggs stolen by
- * the mischievous Easter Bunny! Help him hunt them all down across
- * a series of exciting levels before the Easter Bunny catches him!
+ * A scrollable open-world RPG where Mr. Kluck the rooster explores
+ * procedurally generated terrain — villages, forests, deserts, swamps,
+ * and snowy mountains — to reclaim his stolen Easter eggs.
  *
  * Controls:
- *   Movement: Arrow keys / WASD / on-screen D-pad
- *   Crow Power: SPACE / on-screen button (stun nearby bunnies)
- *   Dash: SHIFT / on-screen button (quick burst of speed)
+ *   WASD / Arrows  — Move
+ *   SPACE           — Crow Power (stun nearby bunnies)
+ *   SHIFT           — Dash (quick burst)
+ *   E               — Talk to NPCs
  *
  * Features:
- *  - 12 named levels with unique environmental hazards
- *  - Power-up system (speed, shield, magnet, freeze, extra life)
- *  - Combo multiplier for rapid egg collection
- *  - Dash ability with cooldown
- *  - Level timer with time bonus
- *  - Multiple enemy types (normal, fast, patrol, boss)
- *  - Special egg types (golden, chocolate, rotten)
- *  - Environmental hazards (mud, ice patches)
- *  - Boss encounters every 3rd level
- *  - Lives system, score, and leaderboard
- *  - Fully installable Progressive Web App
+ *  - 150×150 tile scrollable world with 7 biomes
+ *  - Procedural village & city generation with buildings & roads
+ *  - 12 NPCs with RPG-style typewriter dialogue & quests
+ *  - Minimap, quest tracker, combo system, power-ups
+ *  - 4 enemy types (normal, fast, patrol, boss)
+ *  - Environmental hazards (mud, ice, water)
  ********************************************************************/
 
 const APP_VERSION = window.APP_VERSION || '(Unknown)';
 
-// ---- Player constants ----
+// ===================================================================
+//  CONSTANTS
+// ===================================================================
+
+const TILE = 32;
+const WORLD_W = 150;
+const WORLD_H = 150;
+
+// Player
 const PLAYER_SPEED = 160;
 const INVINCIBLE_DURATION = 2000;
 const CROW_COOLDOWN = 5000;
 const CROW_STUN_RADIUS = 130;
 const CROW_STUN_DURATION = 2500;
-
-// ---- Dash constants ----
 const DASH_SPEED = 500;
 const DASH_DURATION = 180;
 const DASH_COOLDOWN = 3000;
 
-// ---- Combo constants ----
-const COMBO_WINDOW = 2000;     // ms to collect another egg to keep combo
-const COMBO_MAX_MULT = 5;      // max multiplier
-
-// ---- Level timer ----
-const BASE_LEVEL_TIME = 45;    // seconds for level 1
-const TIME_PER_EGG = 4;        // extra seconds per egg on the level
-const TIME_BONUS_MULTIPLIER = 5; // points per second remaining
-
-// ---- Egg point values ----
+// Eggs
 const EGG_POINTS = 10;
 const GOLDEN_EGG_POINTS = 50;
 const CHOCOLATE_EGG_POINTS = 15;
 const ROTTEN_EGG_PENALTY = -20;
 
-// ---- Power-up constants ----
-const POWERUP_SPAWN_INTERVAL = 8000;  // ms between power-up spawns
-const POWERUP_LIFETIME = 7000;        // ms before a power-up disappears
-const POWERUP_SPEED_DURATION = 6000;
-const POWERUP_SHIELD_DURATION = 5000;
-const POWERUP_MAGNET_DURATION = 6000;
-const POWERUP_MAGNET_RADIUS = 150;
-const POWERUP_FREEZE_DURATION = 4000;
-const POWERUP_SPEED_MULT = 1.6;
+// Combo
+const COMBO_WINDOW = 2000;
+const COMBO_MAX = 5;
 
-const POWERUP_TYPES = ['speed', 'shield', 'magnet', 'freeze', 'extralife'];
+// NPC
+const NPC_INTERACT_DIST = 50;
+const DIALOGUE_CHAR_DELAY = 25;
 
-// ---- Egg colors ----
+// Bunny AI
+const BUNNY_LEASH = 350;
+const BUNNY_CHASE_RANGE = 250;
+
+// Ground tile indices
+const T_GRASS      = 0;
+const T_GRASS_DARK = 1;
+const T_DIRT       = 2;
+const T_STONE      = 3;
+const T_SAND       = 4;
+const T_SNOW       = 5;
+const T_WATER      = 6;
+const T_SWAMP      = 7;
+const T_FOREST     = 8;
+const T_ICE        = 9;
+const T_COBBLE     = 10;
+const T_WOOD       = 11;
+
+// Wall tile indices
+const W_TREE       = 12;
+const W_PINE       = 13;
+const W_STONE_WALL = 14;
+const W_WOOD_WALL  = 15;
+const W_ROCK       = 16;
+const W_CACTUS     = 17;
+const W_REEDS      = 18;
+const W_SNOW_ROCK  = 19;
+
+const TOTAL_TILES  = 20;
+
+// Egg colors
 const EGG_COLORS = [
     { hex: 0xff6b9d, name: 'pink'   },
     { hex: 0x7eb8ff, name: 'blue'   },
@@ -76,796 +94,816 @@ const EGG_COLORS = [
     { hex: 0x6bd4ff, name: 'cyan'   },
 ];
 
-// ---- Level configurations ----
-// Each level can specify: name, eggs, golden, chocolate, rotten, bunnies,
-// bunnySpeed, bushes, fastBunnies, patrolBunnies, boss, mud, ice
-const LEVEL_CONFIGS = [
-    { name: "The Barnyard",       eggs: 5,  golden: 1, chocolate: 0, rotten: 0, bunnies: 1, bunnySpeed: 65,  bushes: 3,  fastBunnies: 0, patrolBunnies: 0, boss: false, mud: 0, ice: 0 },
-    { name: "The Garden",         eggs: 7,  golden: 1, chocolate: 1, rotten: 0, bunnies: 1, bunnySpeed: 85,  bushes: 5,  fastBunnies: 0, patrolBunnies: 0, boss: false, mud: 0, ice: 0 },
-    { name: "The Mud Pit",        eggs: 8,  golden: 1, chocolate: 1, rotten: 1, bunnies: 1, bunnySpeed: 85,  bushes: 4,  fastBunnies: 1, patrolBunnies: 0, boss: true,  mud: 3, ice: 0 },
-    { name: "The Meadow",         eggs: 9,  golden: 2, chocolate: 1, rotten: 1, bunnies: 2, bunnySpeed: 90,  bushes: 6,  fastBunnies: 0, patrolBunnies: 1, boss: false, mud: 2, ice: 0 },
-    { name: "The Orchard",        eggs: 10, golden: 2, chocolate: 2, rotten: 1, bunnies: 2, bunnySpeed: 95,  bushes: 7,  fastBunnies: 1, patrolBunnies: 0, boss: false, mud: 1, ice: 0 },
-    { name: "The Frozen Pond",    eggs: 11, golden: 2, chocolate: 1, rotten: 2, bunnies: 2, bunnySpeed: 95,  bushes: 4,  fastBunnies: 0, patrolBunnies: 1, boss: true,  mud: 0, ice: 4 },
-    { name: "The Forest",         eggs: 12, golden: 2, chocolate: 2, rotten: 2, bunnies: 2, bunnySpeed: 105, bushes: 9,  fastBunnies: 1, patrolBunnies: 1, boss: false, mud: 2, ice: 0 },
-    { name: "The Swamp",          eggs: 13, golden: 3, chocolate: 1, rotten: 3, bunnies: 2, bunnySpeed: 105, bushes: 6,  fastBunnies: 1, patrolBunnies: 1, boss: false, mud: 5, ice: 0 },
-    { name: "The Ice Cave",       eggs: 14, golden: 3, chocolate: 2, rotten: 2, bunnies: 2, bunnySpeed: 110, bushes: 5,  fastBunnies: 1, patrolBunnies: 1, boss: true,  mud: 0, ice: 6 },
-    { name: "The Burrow",         eggs: 15, golden: 3, chocolate: 2, rotten: 3, bunnies: 3, bunnySpeed: 115, bushes: 8,  fastBunnies: 1, patrolBunnies: 2, boss: false, mud: 3, ice: 2 },
-    { name: "The Dark Thicket",   eggs: 16, golden: 3, chocolate: 3, rotten: 3, bunnies: 3, bunnySpeed: 120, bushes: 10, fastBunnies: 2, patrolBunnies: 1, boss: false, mud: 3, ice: 3 },
-    { name: "Easter HQ",          eggs: 18, golden: 4, chocolate: 3, rotten: 4, bunnies: 3, bunnySpeed: 125, bushes: 10, fastBunnies: 2, patrolBunnies: 2, boss: true,  mud: 3, ice: 3 },
-];
+// Village center coordinates (tile space)
+const V1_X = 75, V1_Y = 75;   // main village
+const V2_X = 35, V2_Y = 75;   // second village
 
-function getLevelConfig(level) {
-    if (level <= LEVEL_CONFIGS.length) {
-        return Object.assign({}, LEVEL_CONFIGS[level - 1]);
-    }
-    const last = LEVEL_CONFIGS[LEVEL_CONFIGS.length - 1];
-    const extra = level - LEVEL_CONFIGS.length;
-    return {
-        name: `Level ${level}`,
-        eggs:          last.eggs          + extra * 2,
-        golden:        Math.min(last.golden        + Math.floor(extra / 2), 6),
-        chocolate:     Math.min(last.chocolate      + Math.floor(extra / 3), 5),
-        rotten:        Math.min(last.rotten         + Math.floor(extra / 2), 6),
-        bunnies:       Math.min(last.bunnies        + Math.floor(extra / 3), 5),
-        bunnySpeed:    Math.min(last.bunnySpeed     + extra * 10, 200),
-        bushes:        Math.min(last.bushes         + extra, 15),
-        fastBunnies:   Math.min(last.fastBunnies    + Math.floor(extra / 2), 4),
-        patrolBunnies: Math.min(last.patrolBunnies  + Math.floor(extra / 3), 4),
-        boss:          extra % 3 === 0,
-        mud:           Math.min(last.mud + Math.floor(extra / 2), 6),
-        ice:           Math.min(last.ice + Math.floor(extra / 2), 6),
-    };
-}
-
-// ---- Helper: random position inside the play field ----
-function randomFieldPos(scene, margin) {
-    const m = margin || 60;
-    return {
-        x: Phaser.Math.Between(m, scene.scale.width  - m),
-        y: Phaser.Math.Between(m + 80, scene.scale.height - m),
-    };
-}
 
 // ===================================================================
-//  TEXTURE GENERATION (procedural pixel-art sprites)
+//  NOISE / UTILITY
+// ===================================================================
+
+function hash2D(ix, iy) {
+    let h = (ix * 374761393 + iy * 668265263) | 0;
+    h = ((h ^ (h >> 13)) * 1274126177) | 0;
+    h = (h ^ (h >> 16)) | 0;
+    return (h & 0x7fffffff) / 0x7fffffff;
+}
+
+function smoothNoise(x, y) {
+    const ix = Math.floor(x), iy = Math.floor(y);
+    const fx = x - ix, fy = y - iy;
+    const sx = fx * fx * (3 - 2 * fx);
+    const sy = fy * fy * (3 - 2 * fy);
+    const a = hash2D(ix, iy) * (1 - sx) + hash2D(ix + 1, iy) * sx;
+    const b = hash2D(ix, iy + 1) * (1 - sx) + hash2D(ix + 1, iy + 1) * sx;
+    return a * (1 - sy) + b * sy;
+}
+
+function fbm(x, y) {
+    let v = 0, a = 0.5;
+    for (let i = 0; i < 4; i++) { v += a * smoothNoise(x, y); x *= 2; y *= 2; a *= 0.5; }
+    return v;
+}
+
+
+// ===================================================================
+//  WORLD GENERATION
+// ===================================================================
+
+function getBiome(tx, ty) {
+    const dx = tx - V1_X, dy = ty - V1_Y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Main village
+    if (dist < 10) return 'village';
+    // Second village
+    if (Math.sqrt((tx - V2_X) ** 2 + (ty - V2_Y) ** 2) < 7) return 'village';
+
+    if (dist < 22) return 'farmland';
+
+    // Water pockets
+    const wn = fbm(tx * 0.07 + 50, ty * 0.07 + 50);
+    if (wn < 0.2 && dist > 25 && dist < 55) return 'water';
+
+    // Biome regions
+    if (ty < 22) return 'snow';
+    if (ty < 48 && tx > 25 && tx < 125) return 'forest';
+    if (tx > 108) return 'desert';
+    if (ty > 112) return 'swamp';
+    if (tx < 38 && dist > 15) return 'hills';
+
+    // Transition zones
+    const bn = fbm(tx * 0.05, ty * 0.05);
+    if (ty < 58) return bn > 0.5 ? 'forest' : 'farmland';
+    if (tx > 92) return bn > 0.45 ? 'desert' : 'farmland';
+    if (ty > 98) return bn > 0.45 ? 'swamp' : 'farmland';
+
+    return 'farmland';
+}
+
+function groundTileForBiome(biome, tx, ty) {
+    const n = hash2D(tx * 7, ty * 13);
+    switch (biome) {
+        case 'village':  return n < 0.4 ? T_COBBLE : T_GRASS;
+        case 'farmland': return n < 0.15 ? T_GRASS_DARK : n < 0.25 ? T_DIRT : T_GRASS;
+        case 'forest':   return n < 0.3 ? T_GRASS_DARK : T_FOREST;
+        case 'desert':   return T_SAND;
+        case 'snow':     return n < 0.15 ? T_ICE : T_SNOW;
+        case 'swamp':    return n < 0.3 ? T_WATER : T_SWAMP;
+        case 'hills':    return n < 0.2 ? T_DIRT : n < 0.3 ? T_GRASS_DARK : T_GRASS;
+        case 'water':    return T_WATER;
+        default:         return T_GRASS;
+    }
+}
+
+function wallTileForBiome(biome, tx, ty) {
+    const n = hash2D(tx * 3 + 99, ty * 5 + 77);
+    const density = {
+        village: 0, farmland: 0.01, forest: 0.14, desert: 0.03,
+        snow: 0.05, swamp: 0.06, hills: 0.04, water: 0,
+    };
+    if (n > (density[biome] || 0)) return -1;
+    switch (biome) {
+        case 'forest':   return n < 0.07 ? W_TREE : W_ROCK;
+        case 'desert':   return n < 0.015 ? W_CACTUS : W_ROCK;
+        case 'snow':     return n < 0.025 ? W_PINE : W_SNOW_ROCK;
+        case 'swamp':    return W_REEDS;
+        case 'hills':    return W_ROCK;
+        case 'farmland': return W_TREE;
+        default:         return -1;
+    }
+}
+
+// Village building definitions: { x, y, w, h } in tile offsets from village center
+const V1_BUILDINGS = [
+    { x: -6, y: -6, w: 5, h: 4 },
+    { x:  2, y: -6, w: 4, h: 4 },
+    { x: -6, y:  3, w: 4, h: 4 },
+    { x:  3, y:  3, w: 5, h: 4 },
+    { x: -3, y: -9, w: 3, h: 3 },
+    { x:  5, y: -1, w: 3, h: 3 },
+];
+const V2_BUILDINGS = [
+    { x: -4, y: -4, w: 4, h: 3 },
+    { x:  1, y: -4, w: 4, h: 3 },
+    { x: -3, y:  2, w: 3, h: 3 },
+    { x:  2, y:  2, w: 4, h: 3 },
+];
+
+function generateWorld() {
+    const ground = [], walls = [], biomeMap = [];
+    for (let y = 0; y < WORLD_H; y++) {
+        ground[y] = []; walls[y] = []; biomeMap[y] = [];
+        for (let x = 0; x < WORLD_W; x++) {
+            const b = getBiome(x, y);
+            biomeMap[y][x] = b;
+            ground[y][x] = groundTileForBiome(b, x, y);
+            walls[y][x] = wallTileForBiome(b, x, y);
+        }
+    }
+
+    // Place buildings
+    const placeBuildings = (cx, cy, list) => {
+        list.forEach(b => {
+            for (let dy = 0; dy < b.h; dy++) {
+                for (let dx = 0; dx < b.w; dx++) {
+                    const tx = cx + b.x + dx, ty = cy + b.y + dy;
+                    if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) continue;
+                    const isEdge = dx === 0 || dx === b.w - 1 || dy === 0 || dy === b.h - 1;
+                    const isDoor = dy === b.h - 1 && dx === Math.floor(b.w / 2);
+                    if (isEdge && !isDoor) {
+                        walls[ty][tx] = W_WOOD_WALL;
+                        ground[ty][tx] = T_WOOD;
+                    } else {
+                        walls[ty][tx] = -1;
+                        ground[ty][tx] = T_WOOD;
+                    }
+                }
+            }
+        });
+    };
+    placeBuildings(V1_X, V1_Y, V1_BUILDINGS);
+    placeBuildings(V2_X, V2_Y, V2_BUILDINGS);
+
+    // Village plaza cobblestone
+    for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+            const tx = V1_X + dx, ty = V1_Y + dy;
+            if (walls[ty][tx] < 0) ground[ty][tx] = T_COBBLE;
+        }
+    }
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            const tx = V2_X + dx, ty = V2_Y + dy;
+            if (walls[ty][tx] < 0) ground[ty][tx] = T_COBBLE;
+        }
+    }
+
+    // Roads
+    // Main village cross roads
+    for (let i = -9; i <= 9; i++) {
+        const tx1 = V1_X + i, ty1 = V1_Y;
+        const tx2 = V1_X, ty2 = V1_Y + i;
+        if (tx1 >= 0 && tx1 < WORLD_W && walls[ty1][tx1] < 0) ground[ty1][tx1] = T_COBBLE;
+        if (ty2 >= 0 && ty2 < WORLD_H && walls[ty2][tx2] < 0) ground[ty2][tx2] = T_COBBLE;
+    }
+    // Road between villages
+    for (let x = V2_X; x <= V1_X; x++) {
+        if (walls[V1_Y][x] < 0) ground[V1_Y][x] = T_DIRT;
+        if (V1_Y + 1 < WORLD_H && walls[V1_Y + 1][x] < 0) ground[V1_Y + 1][x] = T_DIRT;
+    }
+    // Roads out of main village (N, E, S)
+    for (let i = 0; i < 30; i++) {
+        const n = V1_Y - 10 - i, s = V1_Y + 10 + i, e = V1_X + 10 + i;
+        if (n >= 0 && walls[n][V1_X] < 0) ground[n][V1_X] = T_DIRT;
+        if (s < WORLD_H && walls[s][V1_X] < 0) ground[s][V1_X] = T_DIRT;
+        if (e < WORLD_W && walls[V1_Y][e] < 0) ground[V1_Y][e] = T_DIRT;
+    }
+
+    // Clear walls on roads
+    for (let y = 0; y < WORLD_H; y++) {
+        for (let x = 0; x < WORLD_W; x++) {
+            if (ground[y][x] === T_COBBLE || ground[y][x] === T_DIRT) {
+                walls[y][x] = -1;
+            }
+        }
+    }
+
+    // Generate egg positions
+    const eggs = [];
+    const eggBiomeCfg = {
+        farmland:  { normal: 12, golden: 2, chocolate: 2, rotten: 2 },
+        forest:    { normal: 15, golden: 3, chocolate: 2, rotten: 3 },
+        desert:    { normal: 14, golden: 3, chocolate: 2, rotten: 3 },
+        swamp:     { normal: 12, golden: 2, chocolate: 1, rotten: 5 },
+        snow:      { normal: 12, golden: 3, chocolate: 4, rotten: 2 },
+        hills:     { normal: 10, golden: 2, chocolate: 2, rotten: 1 },
+        village:   { normal: 5,  golden: 1, chocolate: 1, rotten: 0 },
+    };
+    Object.entries(eggBiomeCfg).forEach(([biome, cfg]) => {
+        const types = [];
+        for (let i = 0; i < cfg.normal; i++) types.push('normal');
+        for (let i = 0; i < cfg.golden; i++) types.push('golden');
+        for (let i = 0; i < cfg.chocolate; i++) types.push('chocolate');
+        for (let i = 0; i < cfg.rotten; i++) types.push('rotten');
+        let placed = 0, attempts = 0;
+        while (placed < types.length && attempts < 2000) {
+            const tx = Phaser.Math.Between(5, WORLD_W - 5);
+            const ty = Phaser.Math.Between(5, WORLD_H - 5);
+            if (biomeMap[ty][tx] === biome && walls[ty][tx] < 0 && ground[ty][tx] !== T_WATER) {
+                eggs.push({ tx, ty, type: types[placed] });
+                placed++;
+            }
+            attempts++;
+        }
+    });
+
+    // Generate bunny positions
+    const bunnies = [];
+    const bunnyBiomeCfg = {
+        farmland: { normal: 3, fast: 0, patrol: 0, boss: false },
+        forest:   { normal: 2, fast: 3, patrol: 1, boss: false },
+        desert:   { normal: 2, fast: 1, patrol: 1, boss: true  },
+        swamp:    { normal: 1, fast: 1, patrol: 3, boss: false },
+        snow:     { normal: 2, fast: 2, patrol: 1, boss: true  },
+        hills:    { normal: 2, fast: 1, patrol: 0, boss: false },
+    };
+    Object.entries(bunnyBiomeCfg).forEach(([biome, cfg]) => {
+        const types = [];
+        for (let i = 0; i < cfg.normal; i++) types.push('normal');
+        for (let i = 0; i < cfg.fast; i++) types.push('fast');
+        for (let i = 0; i < cfg.patrol; i++) types.push('patrol');
+        if (cfg.boss) types.push('boss');
+        let placed = 0, attempts = 0;
+        while (placed < types.length && attempts < 1000) {
+            const tx = Phaser.Math.Between(5, WORLD_W - 5);
+            const ty = Phaser.Math.Between(5, WORLD_H - 5);
+            if (biomeMap[ty][tx] === biome && walls[ty][tx] < 0 && ground[ty][tx] !== T_WATER) {
+                bunnies.push({ tx, ty, type: types[placed], biome });
+                placed++;
+            }
+            attempts++;
+        }
+    });
+
+    return { ground, walls, biomeMap, eggs, bunnies };
+}
+
+
+// ===================================================================
+//  NPC DEFINITIONS
+// ===================================================================
+
+const NPC_DEFS = [
+    {
+        id: 'elder', name: 'Elder Cluck',
+        body: 0x3344AA, hat: 0x6688DD, hatType: 'hood',
+        tx: V1_X, ty: V1_Y - 1,
+        dialogues: [
+            "Welcome, brave Mr. Kluck! The Easter Bunny's army has stolen all your eggs and scattered them across the land!",
+            "Explore the forests to the north, the desert to the east, the swamp to the south, and the snowy mountains beyond.",
+            "Beware of Boss Bunnies in the desert and snow — they require THREE crow stuns to defeat!",
+            "Collect 30 eggs and return to me. I shall reward your bravery!",
+        ],
+        quest: { id: 'elder_eggs', desc: 'Collect 30 eggs', type: 'eggs', target: 30, rewardType: 'life' },
+    },
+    {
+        id: 'farmer', name: 'Farmer Hen',
+        body: 0x886633, hat: 0xCCAA44, hatType: 'straw',
+        tx: V1_X + 5, ty: V1_Y + 6,
+        dialogues: [
+            "Those rascal bunnies trampled my crops and hid eggs everywhere!",
+            "Watch out for the GREEN eggs — those are rotten! They'll slow you down and cost you points.",
+            "The brown chocolate eggs give you a little speed boost when collected. Yum!",
+        ],
+    },
+    {
+        id: 'merchant', name: 'Merchant Peck',
+        body: 0x774488, hat: 0xDDAA22, hatType: 'cap',
+        tx: V1_X + 3, ty: V1_Y - 5,
+        dialogues: [
+            "Welcome to my shop! Well... I don't have much left after the bunnies raided the place.",
+            "Power-ups appear near landmarks around the world. Speed boots, shields, magnets — keep your eyes peeled!",
+            "I heard a golden egg is hidden deep in every region. They're worth 50 points each!",
+        ],
+    },
+    {
+        id: 'guard', name: 'Guard Roost',
+        body: 0x777788, hat: 0x555566, hatType: 'helmet',
+        tx: V1_X, ty: V1_Y - 9,
+        dialogues: [
+            "Halt! Oh, it's you, Mr. Kluck. The road north leads to the forest. Be careful — fast bunnies lurk there.",
+            "Use your Crow Power with SPACE to stun nearby bunnies. And SHIFT gives you a quick dash!",
+            "If you see a bunny with a crown, that's a Boss Bunny. You'll need to stun it three times to defeat it.",
+        ],
+    },
+    {
+        id: 'herbalist', name: 'Sage Feathers',
+        body: 0x338844, hat: 0x55AA66, hatType: 'hood',
+        tx: V1_X - 45, ty: V1_Y - 30,
+        dialogues: [
+            "Ah... a visitor in my forest glade. Few wander this deep.",
+            "The forest hides many eggs among the trees. Move carefully — the fast bunnies here are relentless.",
+            "Collect eggs quickly one after another to build a combo multiplier. Timing is everything!",
+        ],
+    },
+    {
+        id: 'nomad', name: 'Desert Nomad',
+        body: 0xBB8844, hat: 0xDDCC88, hatType: 'hood',
+        tx: V1_X + 38, ty: V1_Y + 3,
+        dialogues: [
+            "The desert sands stretch far. Eggs hide near the cacti and rocks.",
+            "A fearsome Boss Bunny rules the eastern reaches. Approach with caution!",
+            "Defeat the Desert Boss and you'll earn a massive score bonus.",
+        ],
+        quest: { id: 'desert_boss', desc: 'Defeat the Desert Boss', type: 'boss', target: 'desert', rewardType: 'score500' },
+    },
+    {
+        id: 'witch', name: 'Swamp Witch',
+        body: 0x553366, hat: 0x7744AA, hatType: 'pointed',
+        tx: V1_X + 5, ty: V1_Y + 42,
+        dialogues: [
+            "Heh heh... a brave little rooster ventures into my swamp...",
+            "Rotten eggs are EVERYWHERE here. The bunnies love to leave traps in the muck.",
+            "But if you're clever, you'll find golden eggs hidden where others fear to tread...",
+        ],
+    },
+    {
+        id: 'snowsage', name: 'Snow Sage',
+        body: 0xCCCCDD, hat: 0xAABBFF, hatType: 'hood',
+        tx: V1_X - 5, ty: V1_Y - 58,
+        dialogues: [
+            "Welcome to the frozen peaks, Mr. Kluck. The ice makes travel treacherous.",
+            "Chocolate eggs are plentiful up here — they'll warm your feathers and speed you up!",
+            "A Boss Bunny guards the highest reaches. Defeat it to prove your worth.",
+            "Collect 10 golden eggs across the land, and you shall be a true hero!",
+        ],
+        quest: { id: 'golden_hunt', desc: 'Collect 10 golden eggs', type: 'golden', target: 10, rewardType: 'speed' },
+    },
+    {
+        id: 'v2elder', name: 'Village Elder Bawk',
+        body: 0x886644, hat: 0xCCBB88, hatType: 'straw',
+        tx: V2_X, ty: V2_Y - 1,
+        dialogues: [
+            "Welcome to Westwick! Our little village has suffered from the bunny raids too.",
+            "The hills around here aren't as dangerous as the deep wilderness, but stay alert!",
+            "The road east leads back to Cluckville. Safe travels, friend.",
+        ],
+    },
+    {
+        id: 'blacksmith', name: 'Blacksmith Anvil',
+        body: 0x993322, hat: 0x444444, hatType: 'helmet',
+        tx: V2_X + 3, ty: V2_Y + 3,
+        dialogues: [
+            "I used to forge the finest plows. Now I sharpen my tools against those bunnies!",
+            "Your Dash ability is your best friend in tight spots. Use SHIFT while moving to burst forward!",
+            "You're invincible during a dash. Use it to escape bunny ambushes!",
+        ],
+    },
+    {
+        id: 'fisher', name: 'Old Fisher',
+        body: 0x4466AA, hat: 0xBBBB88, hatType: 'straw',
+        tx: V1_X - 18, ty: V1_Y + 12,
+        dialogues: [
+            "I sit here fishing, but there's no fish left... just eggs floating in the water.",
+            "Can't walk on water, of course. But you can find eggs on the shoreline!",
+            "Watch the minimap in the corner — it shows the whole world. Very handy for navigation.",
+        ],
+    },
+    {
+        id: 'scout', name: 'Scout Swift',
+        body: 0x558855, hat: 0x446644, hatType: 'cap',
+        tx: V1_X + 20, ty: V1_Y - 20,
+        dialogues: [
+            "I've been scouting the border between the farmland and the forest.",
+            "Patrol bunnies are the tricky ones — they walk in circles until you get close, then they CHARGE!",
+            "If you see an exclamation mark near someone, press E to talk. You never know what you'll learn!",
+        ],
+    },
+];
+
+
+// ===================================================================
+//  TEXTURE GENERATION
 // ===================================================================
 
 function generateAllTextures(scene) {
+    createTilesetTexture(scene);
     createPlayerTexture(scene);
     createPlayerStunnedTexture(scene);
-    createPlayerShieldTexture(scene);
-    createBunnyTexture(scene);
-    createBunnyStunnedTexture(scene);
-    createFastBunnyTexture(scene);
-    createFastBunnyStunnedTexture(scene);
-    createPatrolBunnyTexture(scene);
-    createPatrolBunnyStunnedTexture(scene);
-    createBossBunnyTexture(scene);
-    createBossBunnyStunnedTexture(scene);
-    EGG_COLORS.forEach(function(ec, i) {
-        createEggTexture(scene, ec.hex, 'egg' + i);
-    });
+    createShieldBubbleTexture(scene);
+    createBunnyTexture(scene, 'bunny', 0xF0F0FF, 0xFFFFFF, 0xFFAABB, 0xFF0044);
+    createBunnyTexture(scene, 'bunny_stunned', 0xCCCCDD, 0xDDDDEE, 0xCCAABB, 0x6666AA);
+    createBunnyTexture(scene, 'fast_bunny', 0x8888CC, 0x9999DD, 0xBB88CC, 0xFF0066);
+    createBunnyTexture(scene, 'fast_bunny_stunned', 0x666699, 0x7777AA, 0x9977AA, 0x6666AA);
+    createPatrolBunnyTexture(scene, 'patrol_bunny', false);
+    createPatrolBunnyTexture(scene, 'patrol_bunny_stunned', true);
+    createBossBunnyTexture(scene, 'boss_bunny', false);
+    createBossBunnyTexture(scene, 'boss_bunny_stunned', true);
+    EGG_COLORS.forEach((ec, i) => createEggTexture(scene, ec.hex, 'egg' + i));
     createGoldenEggTexture(scene);
     createChocolateEggTexture(scene);
     createRottenEggTexture(scene);
     createHeartTexture(scene);
     createCrowBurstTexture(scene);
-    createGrassTexture(scene);
-    createBushTexture(scene);
-    createFlowerTexture(scene);
-    createMudTexture(scene);
-    createIceTexture(scene);
-    createPowerupTextures(scene);
     createDashTrailTexture(scene);
+    createPowerupTextures(scene);
+    NPC_DEFS.forEach(d => createNPCTexture(scene, 'npc_' + d.id, d.body, d.hat, d.hatType));
+}
+
+function createTilesetTexture(scene) {
+    if (scene.textures.exists('tiles')) return;
+    const T = TILE, g = scene.make.graphics({ add: false });
+
+    const fill = (idx, color) => { g.fillStyle(color); g.fillRect(idx * T, 0, T, T); };
+    const detail = (idx, color, count) => {
+        for (let i = 0; i < count; i++) {
+            g.fillStyle(color);
+            g.fillRect(idx * T + Math.floor(hash2D(idx * 17 + i, i * 31) * (T - 2)), Math.floor(hash2D(i * 7, idx * 3 + i) * (T - 3)), 2, 3);
+        }
+    };
+
+    // 0: grass light
+    fill(0, 0x2D8C27); detail(0, 0x3A9D33, 6); detail(0, 0x247A1F, 4);
+    // 1: grass dark
+    fill(1, 0x247A1F); detail(1, 0x1A6B14, 5);
+    // 2: dirt
+    fill(2, 0x8B7355); detail(2, 0x7A6345, 4); detail(2, 0x9C8466, 3);
+    // 3: stone path
+    fill(3, 0x999999); g.lineStyle(1, 0x777777); g.lineBetween(3*T, T/2, 4*T, T/2); g.lineBetween(3*T+T/2, 0, 3*T+T/2, T);
+    // 4: sand
+    fill(4, 0xD4B896); detail(4, 0xC4A886, 4); detail(4, 0xE4C8A6, 3);
+    // 5: snow
+    fill(5, 0xE8E8FF); detail(5, 0xFFFFFF, 5); detail(5, 0xD0D0EE, 3);
+    // 6: water
+    fill(6, 0x2266AA); g.fillStyle(0x3377BB); g.fillRect(6*T+4, 10, 8, 2); g.fillRect(6*T+16, 20, 10, 2);
+    // 7: swamp
+    fill(7, 0x3D5C2E); detail(7, 0x2D4C1E, 5); g.fillStyle(0x4D6C3E, 0.5); g.fillRect(7*T+8, 8, 6, 4);
+    // 8: forest floor
+    fill(8, 0x1A5C14); detail(8, 0x0D4A0A, 4); detail(8, 0x2A6C24, 3);
+    // 9: ice
+    fill(9, 0xAADDFF); g.lineStyle(1, 0xFFFFFF, 0.4); g.lineBetween(9*T+4, 6, 9*T+20, 10); g.lineBetween(9*T+10, 22, 9*T+28, 18);
+    // 10: cobblestone
+    fill(10, 0x888888);
+    g.lineStyle(1, 0x666666);
+    g.lineBetween(10*T, T/2, 11*T, T/2);
+    g.lineBetween(10*T + T/3, 0, 10*T + T/3, T/2);
+    g.lineBetween(10*T + T*2/3, T/2, 10*T + T*2/3, T);
+    // 11: wood floor
+    fill(11, 0x9B7340); g.lineStyle(1, 0x8A6230); for (let i = 0; i < 4; i++) g.lineBetween(11*T, i*8+4, 12*T, i*8+4);
+
+    // Wall tiles (transparent backgrounds, just draw the obstacle)
+    // 12: tree
+    g.fillStyle(0x5C3317); g.fillRect(12*T+14, 20, 4, 12);
+    g.fillStyle(0x2D6B1E); g.fillCircle(12*T+16, 14, 11);
+    g.fillStyle(0x1A5C14); g.fillCircle(12*T+16, 11, 8);
+    // 13: pine tree
+    g.fillStyle(0x5C3317); g.fillRect(13*T+14, 22, 4, 10);
+    g.fillStyle(0x1A6B14); g.fillTriangle(13*T+16, 2, 13*T+4, 24, 13*T+28, 24);
+    g.fillStyle(0x0D5A0A); g.fillTriangle(13*T+16, 6, 13*T+8, 20, 13*T+24, 20);
+    // 14: stone wall
+    g.fillStyle(0x666666); g.fillRect(14*T+2, 2, 28, 28);
+    g.fillStyle(0x777777); g.fillRect(14*T+4, 4, 12, 12); g.fillRect(14*T+18, 4, 12, 12);
+    g.fillStyle(0x555555); g.fillRect(14*T+4, 18, 24, 10);
+    // 15: wood wall
+    g.fillStyle(0x7A5C30); g.fillRect(15*T+2, 2, 28, 28);
+    g.fillStyle(0x8B6D40); g.fillRect(15*T+4, 4, 10, 24); g.fillRect(15*T+16, 4, 12, 24);
+    g.lineStyle(1, 0x6A4C20); g.lineBetween(15*T+15, 2, 15*T+15, 30);
+    // 16: rock
+    g.fillStyle(0x888888); g.fillEllipse(16*T+16, 18, 22, 18);
+    g.fillStyle(0x999999); g.fillEllipse(16*T+14, 14, 14, 10);
+    // 17: cactus
+    g.fillStyle(0x2D8C27); g.fillRect(17*T+13, 6, 6, 24);
+    g.fillRect(17*T+6, 12, 7, 5); g.fillRect(17*T+19, 16, 7, 5);
+    g.fillStyle(0x3A9D33); g.fillRect(17*T+14, 8, 4, 20);
+    // 18: reeds/tall grass
+    g.fillStyle(0x4D6C3E); g.fillRect(18*T+6, 8, 3, 22); g.fillRect(18*T+14, 4, 3, 26); g.fillRect(18*T+22, 10, 3, 20);
+    g.fillStyle(0x5D7C4E); g.fillRect(18*T+10, 6, 3, 24); g.fillRect(18*T+18, 8, 3, 22);
+    // 19: snow rock
+    g.fillStyle(0xCCCCDD); g.fillEllipse(19*T+16, 18, 22, 18);
+    g.fillStyle(0xDDDDEE); g.fillEllipse(19*T+14, 14, 14, 10);
+    g.fillStyle(0xFFFFFF, 0.5); g.fillEllipse(19*T+12, 10, 8, 5);
+
+    g.generateTexture('tiles', TOTAL_TILES * T, T);
+    g.destroy();
 }
 
 function createPlayerTexture(scene) {
     if (scene.textures.exists('player')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 36;
-    g.fillStyle(0xCC4400);
-    g.fillEllipse(s / 2, s / 2 + 4, 22, 18);
-    g.fillStyle(0xDD5500);
-    g.fillCircle(s / 2, s / 2 - 5, 9);
-    g.fillStyle(0xFF6600);
-    g.fillTriangle(s / 2 - 14, s / 2, s / 2 - 8, s / 2 + 5, s / 2 - 17, s / 2 + 8);
-    g.fillStyle(0xFFAA00);
-    g.fillTriangle(s / 2 - 15, s / 2 + 3, s / 2 - 9, s / 2 + 8, s / 2 - 18, s / 2 + 11);
-    g.fillStyle(0xFF3300);
-    g.fillTriangle(s / 2 - 12, s / 2 - 2, s / 2 - 7, s / 2 + 4, s / 2 - 16, s / 2 + 4);
+    const g = scene.make.graphics({ add: false }), s = 36;
+    g.fillStyle(0xCC4400); g.fillEllipse(s/2, s/2+4, 22, 18);
+    g.fillStyle(0xDD5500); g.fillCircle(s/2, s/2-5, 9);
+    g.fillStyle(0xFF6600); g.fillTriangle(s/2-14, s/2, s/2-8, s/2+5, s/2-17, s/2+8);
+    g.fillStyle(0xFFAA00); g.fillTriangle(s/2-15, s/2+3, s/2-9, s/2+8, s/2-18, s/2+11);
+    g.fillStyle(0xFF3300); g.fillTriangle(s/2-12, s/2-2, s/2-7, s/2+4, s/2-16, s/2+4);
     g.fillStyle(0xFF2200);
-    g.fillTriangle(s / 2 - 2, s / 2 - 13, s / 2, s / 2 - 13, s / 2 - 1, s / 2 - 17);
-    g.fillTriangle(s / 2 + 1, s / 2 - 13, s / 2 + 3, s / 2 - 13, s / 2 + 2, s / 2 - 16);
-    g.fillTriangle(s / 2 + 3, s / 2 - 13, s / 2 + 5, s / 2 - 13, s / 2 + 4, s / 2 - 15);
-    g.fillStyle(0xFF3300);
-    g.fillEllipse(s / 2 + 7, s / 2 - 2, 5, 8);
-    g.fillStyle(0xFFAA00);
-    g.fillTriangle(s / 2 + 8, s / 2 - 7, s / 2 + 8, s / 2 - 4, s / 2 + 14, s / 2 - 5);
-    g.fillStyle(0xFFFFFF);
-    g.fillCircle(s / 2 + 3, s / 2 - 7, 3);
-    g.fillStyle(0x000000);
-    g.fillCircle(s / 2 + 4, s / 2 - 7, 1.5);
-    g.fillStyle(0xBB3300);
-    g.fillEllipse(s / 2 - 2, s / 2 + 4, 16, 10);
+    g.fillTriangle(s/2-2, s/2-13, s/2, s/2-13, s/2-1, s/2-17);
+    g.fillTriangle(s/2+1, s/2-13, s/2+3, s/2-13, s/2+2, s/2-16);
+    g.fillTriangle(s/2+3, s/2-13, s/2+5, s/2-13, s/2+4, s/2-15);
+    g.fillStyle(0xFF3300); g.fillEllipse(s/2+7, s/2-2, 5, 8);
+    g.fillStyle(0xFFAA00); g.fillTriangle(s/2+8, s/2-7, s/2+8, s/2-4, s/2+14, s/2-5);
+    g.fillStyle(0xFFFFFF); g.fillCircle(s/2+3, s/2-7, 3);
+    g.fillStyle(0x000000); g.fillCircle(s/2+4, s/2-7, 1.5);
+    g.fillStyle(0xBB3300); g.fillEllipse(s/2-2, s/2+4, 16, 10);
     g.fillStyle(0xFFBB00);
-    g.fillRect(s / 2 - 3, s / 2 + 13, 2, 6);
-    g.fillRect(s / 2 + 2, s / 2 + 13, 2, 6);
-    g.fillRect(s / 2 - 6, s / 2 + 18, 4, 2);
-    g.fillRect(s / 2 - 1, s / 2 + 18, 2, 2);
-    g.fillRect(s / 2 + 2, s / 2 + 18, 4, 2);
-    g.fillRect(s / 2 + 5, s / 2 + 18, 3, 2);
-    g.generateTexture('player', s, s);
-    g.destroy();
+    g.fillRect(s/2-3, s/2+13, 2, 6); g.fillRect(s/2+2, s/2+13, 2, 6);
+    g.fillRect(s/2-6, s/2+18, 4, 2); g.fillRect(s/2+2, s/2+18, 4, 2);
+    g.generateTexture('player', s, s); g.destroy();
 }
 
 function createPlayerStunnedTexture(scene) {
     if (scene.textures.exists('player_stunned')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 36;
-    g.fillStyle(0x886644);
-    g.fillEllipse(s / 2, s / 2 + 4, 22, 18);
-    g.fillStyle(0x997755);
-    g.fillCircle(s / 2, s / 2 - 5, 9);
-    g.fillStyle(0xAA8866);
-    g.fillEllipse(s / 2 - 2, s / 2 + 4, 16, 10);
-    g.fillStyle(0xBB3300);
-    g.fillTriangle(s / 2 - 2, s / 2 - 13, s / 2, s / 2 - 13, s / 2 - 1, s / 2 - 17);
-    g.fillStyle(0xFFAA00);
-    g.fillTriangle(s / 2 + 8, s / 2 - 7, s / 2 + 8, s / 2 - 4, s / 2 + 14, s / 2 - 5);
-    g.fillStyle(0xFFFFFF);
-    g.fillCircle(s / 2 + 3, s / 2 - 7, 3);
-    g.fillStyle(0x0000FF);
-    g.fillCircle(s / 2 + 4, s / 2 - 7, 1.5);
+    const g = scene.make.graphics({ add: false }), s = 36;
+    g.fillStyle(0x886644); g.fillEllipse(s/2, s/2+4, 22, 18);
+    g.fillStyle(0x997755); g.fillCircle(s/2, s/2-5, 9);
+    g.fillStyle(0xAA8866); g.fillEllipse(s/2-2, s/2+4, 16, 10);
+    g.fillStyle(0xBB3300); g.fillTriangle(s/2-2, s/2-13, s/2, s/2-13, s/2-1, s/2-17);
+    g.fillStyle(0xFFAA00); g.fillTriangle(s/2+8, s/2-7, s/2+8, s/2-4, s/2+14, s/2-5);
+    g.fillStyle(0xFFFFFF); g.fillCircle(s/2+3, s/2-7, 3);
+    g.fillStyle(0x0000FF); g.fillCircle(s/2+4, s/2-7, 1.5);
     g.fillStyle(0xFFFF00);
-    g.fillTriangle(s / 2 - 5, s / 2 - 22, s / 2 - 8, s / 2 - 18, s / 2 - 2, s / 2 - 18);
-    g.fillTriangle(s / 2 - 5, s / 2 - 14, s / 2 - 8, s / 2 - 18, s / 2 - 2, s / 2 - 18);
-    g.fillTriangle(s / 2 + 5, s / 2 - 24, s / 2 + 2, s / 2 - 20, s / 2 + 8, s / 2 - 20);
-    g.fillTriangle(s / 2 + 5, s / 2 - 16, s / 2 + 2, s / 2 - 20, s / 2 + 8, s / 2 - 20);
-    g.generateTexture('player_stunned', s, s);
-    g.destroy();
+    g.fillTriangle(s/2-5, s/2-22, s/2-8, s/2-18, s/2-2, s/2-18);
+    g.fillTriangle(s/2-5, s/2-14, s/2-8, s/2-18, s/2-2, s/2-18);
+    g.fillTriangle(s/2+5, s/2-24, s/2+2, s/2-20, s/2+8, s/2-20);
+    g.fillTriangle(s/2+5, s/2-16, s/2+2, s/2-20, s/2+8, s/2-20);
+    g.generateTexture('player_stunned', s, s); g.destroy();
 }
 
-function createPlayerShieldTexture(scene) {
-    if (scene.textures.exists('player_shield')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 44;
-    // Shield bubble
-    g.lineStyle(2, 0x44CCFF, 0.8);
-    g.strokeCircle(s / 2, s / 2, 20);
-    g.lineStyle(1, 0x88EEFF, 0.5);
-    g.strokeCircle(s / 2, s / 2, 18);
-    g.generateTexture('player_shield', s, s);
-    g.destroy();
+function createShieldBubbleTexture(scene) {
+    if (scene.textures.exists('shield_bubble')) return;
+    const g = scene.make.graphics({ add: false }), s = 44;
+    g.lineStyle(2, 0x44CCFF, 0.8); g.strokeCircle(s/2, s/2, 20);
+    g.lineStyle(1, 0x88EEFF, 0.5); g.strokeCircle(s/2, s/2, 18);
+    g.generateTexture('shield_bubble', s, s); g.destroy();
 }
 
-function createBunnyTexture(scene) {
-    if (scene.textures.exists('bunny')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 34;
-    g.fillStyle(0xF0F0FF);
-    g.fillEllipse(s / 2, s / 2 + 5, 20, 16);
-    g.fillStyle(0xFFFFFF);
-    g.fillCircle(s / 2, s / 2 - 3, 9);
-    g.fillStyle(0xFFFFFF);
-    g.fillEllipse(s / 2 - 5, s / 2 - 16, 6, 16);
-    g.fillEllipse(s / 2 + 5, s / 2 - 16, 6, 16);
-    g.fillStyle(0xFFAABB);
-    g.fillEllipse(s / 2 - 5, s / 2 - 16, 3, 12);
-    g.fillEllipse(s / 2 + 5, s / 2 - 16, 3, 12);
-    g.fillStyle(0xFF88AA);
-    g.fillCircle(s / 2, s / 2 - 1, 2);
-    g.fillStyle(0xFF0044);
-    g.fillCircle(s / 2 - 3, s / 2 - 5, 2);
-    g.fillCircle(s / 2 + 3, s / 2 - 5, 2);
-    g.fillStyle(0xFFFFFF);
-    g.fillCircle(s / 2 - 8, s / 2 + 8, 5);
-    g.fillStyle(0xFFBB00);
-    g.fillRect(s / 2 - 3, s / 2 + 12, 2, 4);
-    g.fillRect(s / 2 + 2, s / 2 + 12, 2, 4);
-    g.generateTexture('bunny', s, s);
-    g.destroy();
+function createBunnyTexture(scene, key, body, head, inner, eyes) {
+    if (scene.textures.exists(key)) return;
+    const g = scene.make.graphics({ add: false }), s = 34;
+    g.fillStyle(body); g.fillEllipse(s/2, s/2+5, 20, 16);
+    g.fillStyle(head); g.fillCircle(s/2, s/2-3, 9);
+    g.fillStyle(head); g.fillEllipse(s/2-5, s/2-16, 6, 16); g.fillEllipse(s/2+5, s/2-16, 6, 16);
+    g.fillStyle(inner); g.fillEllipse(s/2-5, s/2-16, 3, 12); g.fillEllipse(s/2+5, s/2-16, 3, 12);
+    g.fillStyle(eyes); g.fillCircle(s/2-3, s/2-5, 2); g.fillCircle(s/2+3, s/2-5, 2);
+    g.fillStyle(head); g.fillCircle(s/2-8, s/2+8, 5);
+    g.generateTexture(key, s, s); g.destroy();
 }
 
-function createBunnyStunnedTexture(scene) {
-    if (scene.textures.exists('bunny_stunned')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 34;
-    g.fillStyle(0xCCCCDD);
-    g.fillEllipse(s / 2, s / 2 + 5, 20, 16);
-    g.fillStyle(0xDDDDEE);
-    g.fillCircle(s / 2, s / 2 - 3, 9);
-    g.fillStyle(0xDDDDEE);
-    g.fillEllipse(s / 2 - 5, s / 2 - 16, 6, 16);
-    g.fillEllipse(s / 2 + 5, s / 2 - 16, 6, 16);
-    g.fillStyle(0xCCAABB);
-    g.fillEllipse(s / 2 - 5, s / 2 - 16, 3, 12);
-    g.fillEllipse(s / 2 + 5, s / 2 - 16, 3, 12);
-    g.fillStyle(0x6666AA);
-    g.fillCircle(s / 2 - 3, s / 2 - 5, 2);
-    g.fillCircle(s / 2 + 3, s / 2 - 5, 2);
-    g.generateTexture('bunny_stunned', s, s);
-    g.destroy();
+function createPatrolBunnyTexture(scene, key, stunned) {
+    if (scene.textures.exists(key)) return;
+    const g = scene.make.graphics({ add: false }), s = 36;
+    const c = stunned ? 0.6 : 1;
+    g.fillStyle(stunned ? 0xAA9977 : 0xDDCCAA); g.fillEllipse(s/2, s/2+5, 22, 18);
+    g.fillStyle(stunned ? 0xBBAA88 : 0xEEDDBB); g.fillCircle(s/2, s/2-3, 10);
+    g.fillStyle(stunned ? 0x665533 : 0x887744); g.fillEllipse(s/2, s/2-6, 18, 10);
+    g.fillStyle(stunned ? 0xBBAA88 : 0xEEDDBB);
+    g.fillEllipse(s/2-6, s/2-16, 6, 14); g.fillEllipse(s/2+6, s/2-16, 6, 14);
+    g.fillStyle(0xFFAABB); g.fillEllipse(s/2-6, s/2-16, 3, 10); g.fillEllipse(s/2+6, s/2-16, 3, 10);
+    g.fillStyle(stunned ? 0x6666AA : 0xFF2200);
+    g.fillCircle(s/2-3, s/2-4, 2); g.fillCircle(s/2+3, s/2-4, 2);
+    g.generateTexture(key, s, s); g.destroy();
 }
 
-// Fast bunny — sleek, darker, with speed lines
-function createFastBunnyTexture(scene) {
-    if (scene.textures.exists('fast_bunny')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 34;
-    g.fillStyle(0x8888CC);
-    g.fillEllipse(s / 2, s / 2 + 5, 18, 14);
-    g.fillStyle(0x9999DD);
-    g.fillCircle(s / 2, s / 2 - 3, 8);
-    g.fillStyle(0x9999DD);
-    g.fillEllipse(s / 2 - 5, s / 2 - 17, 5, 18);
-    g.fillEllipse(s / 2 + 5, s / 2 - 17, 5, 18);
-    g.fillStyle(0xBB88CC);
-    g.fillEllipse(s / 2 - 5, s / 2 - 17, 2, 14);
-    g.fillEllipse(s / 2 + 5, s / 2 - 17, 2, 14);
-    g.fillStyle(0xFF0066);
-    g.fillCircle(s / 2 - 3, s / 2 - 5, 2);
-    g.fillCircle(s / 2 + 3, s / 2 - 5, 2);
-    // Speed lines
-    g.lineStyle(1, 0xCCCCFF, 0.6);
-    g.lineBetween(s / 2 - 16, s / 2 + 2, s / 2 - 10, s / 2 + 2);
-    g.lineBetween(s / 2 - 17, s / 2 + 6, s / 2 - 11, s / 2 + 6);
-    g.lineBetween(s / 2 - 15, s / 2 + 10, s / 2 - 9, s / 2 + 10);
-    g.generateTexture('fast_bunny', s, s);
-    g.destroy();
-}
-
-function createFastBunnyStunnedTexture(scene) {
-    if (scene.textures.exists('fast_bunny_stunned')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 34;
-    g.fillStyle(0x666699);
-    g.fillEllipse(s / 2, s / 2 + 5, 18, 14);
-    g.fillStyle(0x7777AA);
-    g.fillCircle(s / 2, s / 2 - 3, 8);
-    g.fillStyle(0x7777AA);
-    g.fillEllipse(s / 2 - 5, s / 2 - 17, 5, 18);
-    g.fillEllipse(s / 2 + 5, s / 2 - 17, 5, 18);
-    g.fillStyle(0x6666AA);
-    g.fillCircle(s / 2 - 3, s / 2 - 5, 2);
-    g.fillCircle(s / 2 + 3, s / 2 - 5, 2);
-    g.generateTexture('fast_bunny_stunned', s, s);
-    g.destroy();
-}
-
-// Patrol bunny — armored look with helmet
-function createPatrolBunnyTexture(scene) {
-    if (scene.textures.exists('patrol_bunny')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 36;
-    g.fillStyle(0xDDCCAA);
-    g.fillEllipse(s / 2, s / 2 + 5, 22, 18);
-    g.fillStyle(0xEEDDBB);
-    g.fillCircle(s / 2, s / 2 - 3, 10);
-    // Helmet
-    g.fillStyle(0x887744);
-    g.fillEllipse(s / 2, s / 2 - 6, 18, 10);
-    // Ears
-    g.fillStyle(0xEEDDBB);
-    g.fillEllipse(s / 2 - 6, s / 2 - 16, 6, 14);
-    g.fillEllipse(s / 2 + 6, s / 2 - 16, 6, 14);
-    g.fillStyle(0xFFAABB);
-    g.fillEllipse(s / 2 - 6, s / 2 - 16, 3, 10);
-    g.fillEllipse(s / 2 + 6, s / 2 - 16, 3, 10);
-    // Stern eyes
-    g.fillStyle(0xFF2200);
-    g.fillCircle(s / 2 - 3, s / 2 - 4, 2);
-    g.fillCircle(s / 2 + 3, s / 2 - 4, 2);
-    // Shield emblem on body
-    g.fillStyle(0x665533);
-    g.fillTriangle(s / 2, s / 2 + 1, s / 2 - 4, s / 2 + 8, s / 2 + 4, s / 2 + 8);
-    g.generateTexture('patrol_bunny', s, s);
-    g.destroy();
-}
-
-function createPatrolBunnyStunnedTexture(scene) {
-    if (scene.textures.exists('patrol_bunny_stunned')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 36;
-    g.fillStyle(0xAA9977);
-    g.fillEllipse(s / 2, s / 2 + 5, 22, 18);
-    g.fillStyle(0xBBAA88);
-    g.fillCircle(s / 2, s / 2 - 3, 10);
-    g.fillStyle(0x665533);
-    g.fillEllipse(s / 2, s / 2 - 6, 18, 10);
-    g.fillStyle(0xBBAA88);
-    g.fillEllipse(s / 2 - 6, s / 2 - 16, 6, 14);
-    g.fillEllipse(s / 2 + 6, s / 2 - 16, 6, 14);
-    g.fillStyle(0x6666AA);
-    g.fillCircle(s / 2 - 3, s / 2 - 4, 2);
-    g.fillCircle(s / 2 + 3, s / 2 - 4, 2);
-    g.generateTexture('patrol_bunny_stunned', s, s);
-    g.destroy();
-}
-
-// Boss bunny — large with crown
-function createBossBunnyTexture(scene) {
-    if (scene.textures.exists('boss_bunny')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 50;
-    // Large body
-    g.fillStyle(0x333333);
-    g.fillEllipse(s / 2, s / 2 + 6, 30, 24);
-    g.fillStyle(0x444444);
-    g.fillCircle(s / 2, s / 2 - 4, 14);
-    // Ears
-    g.fillStyle(0x444444);
-    g.fillEllipse(s / 2 - 8, s / 2 - 22, 7, 18);
-    g.fillEllipse(s / 2 + 8, s / 2 - 22, 7, 18);
-    g.fillStyle(0xCC4444);
-    g.fillEllipse(s / 2 - 8, s / 2 - 22, 3, 14);
-    g.fillEllipse(s / 2 + 8, s / 2 - 22, 3, 14);
+function createBossBunnyTexture(scene, key, stunned) {
+    if (scene.textures.exists(key)) return;
+    const g = scene.make.graphics({ add: false }), s = 50;
+    g.fillStyle(stunned ? 0x222222 : 0x333333); g.fillEllipse(s/2, s/2+6, 30, 24);
+    g.fillStyle(stunned ? 0x333333 : 0x444444); g.fillCircle(s/2, s/2-4, 14);
+    g.fillStyle(stunned ? 0x333333 : 0x444444);
+    g.fillEllipse(s/2-8, s/2-22, 7, 18); g.fillEllipse(s/2+8, s/2-22, 7, 18);
+    g.fillStyle(0xCC4444); g.fillEllipse(s/2-8, s/2-22, 3, 14); g.fillEllipse(s/2+8, s/2-22, 3, 14);
     // Crown
-    g.fillStyle(0xFFD700);
-    g.fillRect(s / 2 - 10, s / 2 - 16, 20, 5);
-    g.fillTriangle(s / 2 - 10, s / 2 - 16, s / 2 - 6, s / 2 - 16, s / 2 - 8, s / 2 - 22);
-    g.fillTriangle(s / 2 - 2, s / 2 - 16, s / 2 + 2, s / 2 - 16, s / 2, s / 2 - 24);
-    g.fillTriangle(s / 2 + 6, s / 2 - 16, s / 2 + 10, s / 2 - 16, s / 2 + 8, s / 2 - 22);
-    // Gems on crown
-    g.fillStyle(0xFF0000);
-    g.fillCircle(s / 2, s / 2 - 14, 2);
-    // Evil eyes
-    g.fillStyle(0xFF0000);
-    g.fillCircle(s / 2 - 5, s / 2 - 6, 3);
-    g.fillCircle(s / 2 + 5, s / 2 - 6, 3);
-    g.fillStyle(0x000000);
-    g.fillCircle(s / 2 - 5, s / 2 - 6, 1.5);
-    g.fillCircle(s / 2 + 5, s / 2 - 6, 1.5);
-    g.generateTexture('boss_bunny', s, s);
-    g.destroy();
-}
-
-function createBossBunnyStunnedTexture(scene) {
-    if (scene.textures.exists('boss_bunny_stunned')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 50;
-    g.fillStyle(0x222222);
-    g.fillEllipse(s / 2, s / 2 + 6, 30, 24);
-    g.fillStyle(0x333333);
-    g.fillCircle(s / 2, s / 2 - 4, 14);
-    g.fillStyle(0x333333);
-    g.fillEllipse(s / 2 - 8, s / 2 - 22, 7, 18);
-    g.fillEllipse(s / 2 + 8, s / 2 - 22, 7, 18);
-    g.fillStyle(0xCCCC00);
-    g.fillRect(s / 2 - 10, s / 2 - 16, 20, 5);
-    g.fillStyle(0x6666AA);
-    g.fillCircle(s / 2 - 5, s / 2 - 6, 3);
-    g.fillCircle(s / 2 + 5, s / 2 - 6, 3);
-    g.generateTexture('boss_bunny_stunned', s, s);
-    g.destroy();
+    g.fillStyle(stunned ? 0xAAAA00 : 0xFFD700);
+    g.fillRect(s/2-10, s/2-16, 20, 5);
+    g.fillTriangle(s/2-10, s/2-16, s/2-6, s/2-16, s/2-8, s/2-22);
+    g.fillTriangle(s/2-2, s/2-16, s/2+2, s/2-16, s/2, s/2-24);
+    g.fillTriangle(s/2+6, s/2-16, s/2+10, s/2-16, s/2+8, s/2-22);
+    g.fillStyle(stunned ? 0x6666AA : 0xFF0000);
+    g.fillCircle(s/2-5, s/2-6, 3); g.fillCircle(s/2+5, s/2-6, 3);
+    if (!stunned) { g.fillStyle(0x000000); g.fillCircle(s/2-5, s/2-6, 1.5); g.fillCircle(s/2+5, s/2-6, 1.5); }
+    g.generateTexture(key, s, s); g.destroy();
 }
 
 function createEggTexture(scene, colorHex, key) {
     if (scene.textures.exists(key)) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 20;
-    g.fillStyle(colorHex);
-    g.fillEllipse(s / 2, s / 2 + 1, 14, 18);
-    // Highlight
-    g.fillStyle(0xFFFFFF, 0.4);
-    g.fillEllipse(s / 2 - 2, s / 2 - 3, 5, 7);
-    // Stripe
-    g.lineStyle(2, 0xFFFFFF, 0.3);
-    g.lineBetween(s / 2 - 5, s / 2 + 2, s / 2 + 5, s / 2 + 2);
-    g.generateTexture(key, s, s);
-    g.destroy();
+    const g = scene.make.graphics({ add: false }), s = 20;
+    g.fillStyle(colorHex); g.fillEllipse(s/2, s/2+1, 14, 18);
+    g.fillStyle(0xFFFFFF, 0.4); g.fillEllipse(s/2-2, s/2-3, 5, 7);
+    g.lineStyle(2, 0xFFFFFF, 0.3); g.lineBetween(s/2-5, s/2+2, s/2+5, s/2+2);
+    g.generateTexture(key, s, s); g.destroy();
 }
 
 function createGoldenEggTexture(scene) {
     if (scene.textures.exists('goldenegg')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 24;
-    g.fillStyle(0xFFD700);
-    g.fillEllipse(s / 2, s / 2 + 1, 16, 20);
-    g.fillStyle(0xFFF8CC, 0.5);
-    g.fillEllipse(s / 2 - 2, s / 2 - 4, 6, 8);
-    g.lineStyle(2, 0xFFA500, 0.6);
-    g.lineBetween(s / 2 - 6, s / 2, s / 2 + 6, s / 2);
-    g.lineBetween(s / 2 - 5, s / 2 + 4, s / 2 + 5, s / 2 + 4);
-    // Sparkle
-    g.fillStyle(0xFFFFFF);
-    g.fillCircle(s / 2 + 4, s / 2 - 5, 2);
-    g.generateTexture('goldenegg', s, s);
-    g.destroy();
+    const g = scene.make.graphics({ add: false }), s = 24;
+    g.fillStyle(0xFFD700); g.fillEllipse(s/2, s/2+1, 16, 20);
+    g.fillStyle(0xFFF8CC, 0.5); g.fillEllipse(s/2-2, s/2-4, 6, 8);
+    g.lineStyle(2, 0xFFA500, 0.6); g.lineBetween(s/2-6, s/2, s/2+6, s/2);
+    g.fillStyle(0xFFFFFF); g.fillCircle(s/2+4, s/2-5, 2);
+    g.generateTexture('goldenegg', s, s); g.destroy();
 }
 
 function createChocolateEggTexture(scene) {
     if (scene.textures.exists('chocolateegg')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 22;
-    g.fillStyle(0x5C3317);
-    g.fillEllipse(s / 2, s / 2 + 1, 14, 18);
-    g.fillStyle(0x7B4B2A, 0.5);
-    g.fillEllipse(s / 2 - 2, s / 2 - 3, 5, 7);
-    // Chocolate drizzle
-    g.lineStyle(2, 0x3B1F0B, 0.7);
-    g.lineBetween(s / 2 - 4, s / 2 - 2, s / 2 + 2, s / 2 + 1);
-    g.lineBetween(s / 2 + 2, s / 2 + 1, s / 2 - 2, s / 2 + 4);
-    g.generateTexture('chocolateegg', s, s);
-    g.destroy();
+    const g = scene.make.graphics({ add: false }), s = 22;
+    g.fillStyle(0x5C3317); g.fillEllipse(s/2, s/2+1, 14, 18);
+    g.fillStyle(0x7B4B2A, 0.5); g.fillEllipse(s/2-2, s/2-3, 5, 7);
+    g.lineStyle(2, 0x3B1F0B, 0.7); g.lineBetween(s/2-4, s/2-2, s/2+2, s/2+1);
+    g.generateTexture('chocolateegg', s, s); g.destroy();
 }
 
 function createRottenEggTexture(scene) {
     if (scene.textures.exists('rottenegg')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 20;
-    g.fillStyle(0x6B8E23);
-    g.fillEllipse(s / 2, s / 2 + 1, 14, 18);
-    g.fillStyle(0x556B2F, 0.5);
-    g.fillEllipse(s / 2 - 2, s / 2 - 3, 5, 7);
-    // Stink lines
+    const g = scene.make.graphics({ add: false }), s = 20;
+    g.fillStyle(0x6B8E23); g.fillEllipse(s/2, s/2+1, 14, 18);
+    g.fillStyle(0x556B2F, 0.5); g.fillEllipse(s/2-2, s/2-3, 5, 7);
     g.lineStyle(1, 0x9ACD32, 0.6);
-    g.lineBetween(s / 2 - 3, s / 2 - 8, s / 2 - 5, s / 2 - 12);
-    g.lineBetween(s / 2, s / 2 - 9, s / 2, s / 2 - 13);
-    g.lineBetween(s / 2 + 3, s / 2 - 8, s / 2 + 5, s / 2 - 12);
-    g.generateTexture('rottenegg', s, s);
-    g.destroy();
+    g.lineBetween(s/2-3, s/2-8, s/2-5, s/2-12);
+    g.lineBetween(s/2, s/2-9, s/2, s/2-13);
+    g.lineBetween(s/2+3, s/2-8, s/2+5, s/2-12);
+    g.generateTexture('rottenegg', s, s); g.destroy();
 }
 
 function createHeartTexture(scene) {
     if (scene.textures.exists('heart')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    g.fillStyle(0xFF2244);
-    g.fillCircle(8, 8, 6);
-    g.fillCircle(18, 8, 6);
+    const g = scene.make.graphics({ add: false });
+    g.fillStyle(0xFF2244); g.fillCircle(8, 8, 6); g.fillCircle(18, 8, 6);
     g.fillTriangle(2, 10, 24, 10, 13, 22);
-    g.generateTexture('heart', 26, 24);
-    g.destroy();
+    g.generateTexture('heart', 26, 24); g.destroy();
 }
 
 function createCrowBurstTexture(scene) {
     if (scene.textures.exists('crowburst')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 40;
-    g.fillStyle(0xFFDD00, 0.6);
-    g.fillCircle(s / 2, s / 2, 16);
-    g.fillStyle(0xFFAA00, 0.4);
-    g.fillCircle(s / 2, s / 2, 20);
+    const g = scene.make.graphics({ add: false }), s = 40;
+    g.fillStyle(0xFFDD00, 0.6); g.fillCircle(s/2, s/2, 16);
+    g.fillStyle(0xFFAA00, 0.4); g.fillCircle(s/2, s/2, 20);
     for (let i = 0; i < 8; i++) {
-        const a = (Math.PI * 2 / 8) * i;
-        const x1 = s / 2 + Math.cos(a) * 12;
-        const y1 = s / 2 + Math.sin(a) * 12;
-        const x2 = s / 2 + Math.cos(a) * 20;
-        const y2 = s / 2 + Math.sin(a) * 20;
+        const a = (Math.PI*2/8)*i;
         g.lineStyle(2, 0xFFFF00, 0.7);
-        g.lineBetween(x1, y1, x2, y2);
+        g.lineBetween(s/2+Math.cos(a)*12, s/2+Math.sin(a)*12, s/2+Math.cos(a)*20, s/2+Math.sin(a)*20);
     }
-    g.generateTexture('crowburst', s, s);
-    g.destroy();
-}
-
-function createGrassTexture(scene) {
-    if (scene.textures.exists('grass')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 64;
-    g.fillStyle(0x2D8C27);
-    g.fillRect(0, 0, s, s);
-    for (let i = 0; i < 30; i++) {
-        const gx = Math.random() * s;
-        const gy = Math.random() * s;
-        g.fillStyle(Phaser.Math.Between(0, 1) ? 0x3A9D33 : 0x247A1F);
-        g.fillRect(gx, gy, 2, 4);
-    }
-    g.generateTexture('grass', s, s);
-    g.destroy();
-}
-
-function createBushTexture(scene) {
-    if (scene.textures.exists('bush')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 36;
-    g.fillStyle(0x1A6B14);
-    g.fillCircle(s / 2 - 6, s / 2 + 2, 12);
-    g.fillCircle(s / 2 + 6, s / 2 + 2, 12);
-    g.fillCircle(s / 2, s / 2 - 6, 11);
-    g.fillStyle(0x228B1B);
-    g.fillCircle(s / 2 - 3, s / 2 - 3, 6);
-    g.fillCircle(s / 2 + 4, s / 2 + 1, 5);
-    g.generateTexture('bush', s, s);
-    g.destroy();
-}
-
-function createFlowerTexture(scene) {
-    if (scene.textures.exists('flower')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 16;
-    const colors = [0xFF6699, 0xFFCC33, 0xFFFFFF, 0xCC66FF];
-    const c = colors[Math.floor(Math.random() * colors.length)];
-    for (let i = 0; i < 5; i++) {
-        const a = (Math.PI * 2 / 5) * i;
-        g.fillStyle(c);
-        g.fillCircle(s / 2 + Math.cos(a) * 4, s / 2 + Math.sin(a) * 4, 3);
-    }
-    g.fillStyle(0xFFFF00);
-    g.fillCircle(s / 2, s / 2, 2);
-    g.generateTexture('flower', s, s);
-    g.destroy();
-}
-
-function createMudTexture(scene) {
-    if (scene.textures.exists('mud')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 48;
-    g.fillStyle(0x5C4033, 0.7);
-    g.fillEllipse(s / 2, s / 2, s - 4, s - 8);
-    g.fillStyle(0x4A3225, 0.5);
-    g.fillEllipse(s / 2 - 6, s / 2 + 2, 10, 8);
-    g.fillEllipse(s / 2 + 8, s / 2 - 2, 8, 6);
-    // Mud bubbles
-    g.fillStyle(0x6B5040, 0.6);
-    g.fillCircle(s / 2 - 4, s / 2 - 4, 3);
-    g.fillCircle(s / 2 + 6, s / 2 + 3, 2);
-    g.generateTexture('mud', s, s);
-    g.destroy();
-}
-
-function createIceTexture(scene) {
-    if (scene.textures.exists('ice')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const s = 48;
-    g.fillStyle(0xAADDFF, 0.5);
-    g.fillEllipse(s / 2, s / 2, s - 4, s - 8);
-    g.fillStyle(0xCCEEFF, 0.3);
-    g.fillEllipse(s / 2 - 5, s / 2 - 3, 12, 8);
-    // Shine lines
-    g.lineStyle(1, 0xFFFFFF, 0.4);
-    g.lineBetween(s / 2 - 8, s / 2 - 4, s / 2 + 4, s / 2 - 6);
-    g.lineBetween(s / 2 - 4, s / 2 + 2, s / 2 + 8, s / 2);
-    g.generateTexture('ice', s, s);
-    g.destroy();
-}
-
-function createPowerupTextures(scene) {
-    const s = 24;
-
-    // Speed power-up (lightning bolt - yellow)
-    if (!scene.textures.exists('powerup_speed')) {
-        const g = scene.make.graphics({ x: 0, y: 0, add: false });
-        g.fillStyle(0x00AA00, 0.4);
-        g.fillCircle(s / 2, s / 2, 11);
-        g.fillStyle(0xFFDD00);
-        g.fillTriangle(s / 2 + 2, s / 2 - 8, s / 2 - 4, s / 2 + 1, s / 2 + 1, s / 2 + 1);
-        g.fillTriangle(s / 2 - 1, s / 2, s / 2 + 5, s / 2, s / 2 - 1, s / 2 + 9);
-        g.generateTexture('powerup_speed', s, s);
-        g.destroy();
-    }
-
-    // Shield power-up (blue circle)
-    if (!scene.textures.exists('powerup_shield')) {
-        const g = scene.make.graphics({ x: 0, y: 0, add: false });
-        g.fillStyle(0x0044AA, 0.4);
-        g.fillCircle(s / 2, s / 2, 11);
-        g.fillStyle(0x44AAFF);
-        g.fillEllipse(s / 2, s / 2, 14, 16);
-        g.fillStyle(0x88CCFF);
-        g.fillEllipse(s / 2, s / 2 - 2, 8, 10);
-        g.generateTexture('powerup_shield', s, s);
-        g.destroy();
-    }
-
-    // Magnet power-up (red horseshoe shape)
-    if (!scene.textures.exists('powerup_magnet')) {
-        const g = scene.make.graphics({ x: 0, y: 0, add: false });
-        g.fillStyle(0xAA0000, 0.4);
-        g.fillCircle(s / 2, s / 2, 11);
-        g.lineStyle(4, 0xFF4444, 1.0);
-        g.beginPath();
-        g.arc(s / 2, s / 2 - 1, 7, Math.PI, 0, false);
-        g.strokePath();
-        g.fillStyle(0xFF4444);
-        g.fillRect(s / 2 - 8, s / 2 - 1, 4, 8);
-        g.fillRect(s / 2 + 4, s / 2 - 1, 4, 8);
-        g.fillStyle(0xCCCCCC);
-        g.fillRect(s / 2 - 8, s / 2 + 4, 4, 3);
-        g.fillRect(s / 2 + 4, s / 2 + 4, 4, 3);
-        g.generateTexture('powerup_magnet', s, s);
-        g.destroy();
-    }
-
-    // Freeze power-up (snowflake - cyan)
-    if (!scene.textures.exists('powerup_freeze')) {
-        const g = scene.make.graphics({ x: 0, y: 0, add: false });
-        g.fillStyle(0x004488, 0.4);
-        g.fillCircle(s / 2, s / 2, 11);
-        g.lineStyle(2, 0xCCEEFF, 1.0);
-        for (let i = 0; i < 6; i++) {
-            const a = (Math.PI / 3) * i;
-            g.lineBetween(
-                s / 2 + Math.cos(a) * 3, s / 2 + Math.sin(a) * 3,
-                s / 2 + Math.cos(a) * 9, s / 2 + Math.sin(a) * 9
-            );
-        }
-        g.fillStyle(0xFFFFFF);
-        g.fillCircle(s / 2, s / 2, 2);
-        g.generateTexture('powerup_freeze', s, s);
-        g.destroy();
-    }
-
-    // Extra life power-up (heart)
-    if (!scene.textures.exists('powerup_extralife')) {
-        const g = scene.make.graphics({ x: 0, y: 0, add: false });
-        g.fillStyle(0x880044, 0.4);
-        g.fillCircle(s / 2, s / 2, 11);
-        g.fillStyle(0xFF4488);
-        g.fillCircle(s / 2 - 3, s / 2 - 2, 4);
-        g.fillCircle(s / 2 + 3, s / 2 - 2, 4);
-        g.fillTriangle(s / 2 - 7, s / 2, s / 2 + 7, s / 2, s / 2, s / 2 + 7);
-        g.generateTexture('powerup_extralife', s, s);
-        g.destroy();
-    }
+    g.generateTexture('crowburst', s, s); g.destroy();
 }
 
 function createDashTrailTexture(scene) {
     if (scene.textures.exists('dashtrail')) return;
-    const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    g.fillStyle(0xFFAA00, 0.5);
-    g.fillCircle(8, 8, 6);
-    g.fillStyle(0xFFDD44, 0.3);
-    g.fillCircle(8, 8, 8);
-    g.generateTexture('dashtrail', 16, 16);
-    g.destroy();
+    const g = scene.make.graphics({ add: false });
+    g.fillStyle(0xFFAA00, 0.5); g.fillCircle(8, 8, 6);
+    g.fillStyle(0xFFDD44, 0.3); g.fillCircle(8, 8, 8);
+    g.generateTexture('dashtrail', 16, 16); g.destroy();
+}
+
+function createPowerupTextures(scene) {
+    const s = 24;
+    if (!scene.textures.exists('powerup_speed')) {
+        const g = scene.make.graphics({ add: false });
+        g.fillStyle(0x00AA00, 0.4); g.fillCircle(s/2, s/2, 11);
+        g.fillStyle(0xFFDD00);
+        g.fillTriangle(s/2+2, s/2-8, s/2-4, s/2+1, s/2+1, s/2+1);
+        g.fillTriangle(s/2-1, s/2, s/2+5, s/2, s/2-1, s/2+9);
+        g.generateTexture('powerup_speed', s, s); g.destroy();
+    }
+    if (!scene.textures.exists('powerup_shield')) {
+        const g = scene.make.graphics({ add: false });
+        g.fillStyle(0x0044AA, 0.4); g.fillCircle(s/2, s/2, 11);
+        g.fillStyle(0x44AAFF); g.fillEllipse(s/2, s/2, 14, 16);
+        g.fillStyle(0x88CCFF); g.fillEllipse(s/2, s/2-2, 8, 10);
+        g.generateTexture('powerup_shield', s, s); g.destroy();
+    }
+    if (!scene.textures.exists('powerup_magnet')) {
+        const g = scene.make.graphics({ add: false });
+        g.fillStyle(0xAA0000, 0.4); g.fillCircle(s/2, s/2, 11);
+        g.lineStyle(4, 0xFF4444); g.beginPath(); g.arc(s/2, s/2-1, 7, Math.PI, 0, false); g.strokePath();
+        g.fillStyle(0xFF4444); g.fillRect(s/2-8, s/2-1, 4, 8); g.fillRect(s/2+4, s/2-1, 4, 8);
+        g.generateTexture('powerup_magnet', s, s); g.destroy();
+    }
+    if (!scene.textures.exists('powerup_freeze')) {
+        const g = scene.make.graphics({ add: false });
+        g.fillStyle(0x004488, 0.4); g.fillCircle(s/2, s/2, 11);
+        g.lineStyle(2, 0xCCEEFF);
+        for (let i = 0; i < 6; i++) {
+            const a = (Math.PI/3)*i;
+            g.lineBetween(s/2+Math.cos(a)*3, s/2+Math.sin(a)*3, s/2+Math.cos(a)*9, s/2+Math.sin(a)*9);
+        }
+        g.fillStyle(0xFFFFFF); g.fillCircle(s/2, s/2, 2);
+        g.generateTexture('powerup_freeze', s, s); g.destroy();
+    }
+    if (!scene.textures.exists('powerup_extralife')) {
+        const g = scene.make.graphics({ add: false });
+        g.fillStyle(0x880044, 0.4); g.fillCircle(s/2, s/2, 11);
+        g.fillStyle(0xFF4488); g.fillCircle(s/2-3, s/2-2, 4); g.fillCircle(s/2+3, s/2-2, 4);
+        g.fillTriangle(s/2-7, s/2, s/2+7, s/2, s/2, s/2+7);
+        g.generateTexture('powerup_extralife', s, s); g.destroy();
+    }
+}
+
+function createNPCTexture(scene, key, bodyColor, hatColor, hatType) {
+    if (scene.textures.exists(key)) return;
+    const g = scene.make.graphics({ add: false }), s = 32;
+    // Body
+    g.fillStyle(bodyColor); g.fillEllipse(s/2, s/2+5, 16, 14);
+    // Head
+    const hr = ((bodyColor >> 16) & 0xFF), hg = ((bodyColor >> 8) & 0xFF), hb = (bodyColor & 0xFF);
+    const headColor = ((Math.min(255, hr + 30) << 16) | (Math.min(255, hg + 30) << 8) | Math.min(255, hb + 30));
+    g.fillStyle(headColor); g.fillCircle(s/2, s/2-5, 8);
+    // Eyes
+    g.fillStyle(0x000000); g.fillCircle(s/2-3, s/2-6, 1.5); g.fillCircle(s/2+3, s/2-6, 1.5);
+    // Mouth
+    g.lineStyle(1, 0x000000, 0.5); g.lineBetween(s/2-2, s/2-2, s/2+2, s/2-2);
+    // Hat
+    g.fillStyle(hatColor);
+    if (hatType === 'hood') {
+        g.fillEllipse(s/2, s/2-9, 20, 10);
+    } else if (hatType === 'pointed') {
+        g.fillTriangle(s/2-8, s/2-9, s/2+8, s/2-9, s/2, s/2-24);
+    } else if (hatType === 'helmet') {
+        g.fillEllipse(s/2, s/2-9, 20, 8);
+        g.fillRect(s/2-10, s/2-9, 20, 3);
+    } else if (hatType === 'straw') {
+        g.fillEllipse(s/2, s/2-11, 22, 6);
+        g.fillRect(s/2-6, s/2-16, 12, 5);
+    } else if (hatType === 'cap') {
+        g.fillEllipse(s/2+2, s/2-11, 18, 7);
+        g.fillRect(s/2, s/2-13, 10, 3);
+    }
+    // Feet
+    g.fillStyle(0x333333); g.fillRect(s/2-4, s/2+11, 3, 4); g.fillRect(s/2+1, s/2+11, 3, 4);
+    g.generateTexture(key, s, s); g.destroy();
 }
 
 
 // ===================================================================
-//  BOOT SCENE  (title + story + leaderboard)
+//  BOOT SCENE
 // ===================================================================
 
 class BootScene extends Phaser.Scene {
-    constructor() {
-        super('BootScene');
-    }
+    constructor() { super('BootScene'); }
 
-    preload() {
-        generateAllTextures(this);
-    }
+    preload() { generateAllTextures(this); }
 
     create() {
-        const W = this.scale.width;
-        const H = this.scale.height;
+        const W = this.scale.width, H = this.scale.height;
 
-        // Grass background
-        this.add.tileSprite(0, 0, W, H, 'grass').setOrigin(0, 0);
+        this.add.tileSprite(0, 0, W, H, 'tiles', T_GRASS).setOrigin(0);
 
-        // Decorative bushes and flowers
-        const decorPositions = [
-            { x: 40,  y: 40  }, { x: W - 40, y: 40  },
-            { x: 40,  y: H - 40 }, { x: W - 40, y: H - 40 },
-            { x: W / 2, y: 40 }, { x: W / 2, y: H - 40 },
-        ];
-        decorPositions.forEach(pos => {
-            this.add.image(pos.x, pos.y, 'bush').setScale(0.9).setAlpha(0.8);
-        });
-        for (let i = 0; i < 12; i++) {
-            this.add.image(
-                Phaser.Math.Between(30, W - 30),
-                Phaser.Math.Between(30, H - 30),
-                'flower'
-            ).setAlpha(0.6);
-        }
-
-        // Semi-transparent panel
         const panel = this.add.graphics();
-        panel.fillStyle(0x000000, 0.65);
-        panel.fillRoundedRect(W / 2 - 200, 30, 400, H - 60, 20);
+        panel.fillStyle(0x000000, 0.7);
+        panel.fillRoundedRect(W/2-210, 20, 420, H-40, 20);
 
-        // Title
-        this.add.text(W / 2, 70, "Mr. Kluck's", {
-            fontSize: '34px',
-            fontFamily: 'Georgia, serif',
-            fill: '#FFD700',
-            stroke: '#8B4513',
-            strokeThickness: 5,
+        this.add.text(W/2, 60, "Mr. Kluck's", {
+            fontSize: '34px', fontFamily: 'Georgia, serif', fill: '#FFD700', stroke: '#8B4513', strokeThickness: 5,
+        }).setOrigin(0.5);
+        this.add.text(W/2, 102, 'Egg Hunt', {
+            fontSize: '44px', fontFamily: 'Georgia, serif', fill: '#FFD700', stroke: '#8B4513', strokeThickness: 6,
+        }).setOrigin(0.5);
+        this.add.text(W/2, 140, 'Open World Edition', {
+            fontSize: '18px', fontFamily: 'Georgia, serif', fill: '#AADDFF',
         }).setOrigin(0.5);
 
-        this.add.text(W / 2, 112, 'Egg Hunt!', {
-            fontSize: '44px',
-            fontFamily: 'Georgia, serif',
-            fill: '#FFD700',
-            stroke: '#8B4513',
-            strokeThickness: 6,
+        const kluck = this.add.image(W/2, 185, 'player').setScale(2.5);
+        this.tweens.add({ targets: kluck, y: 195, yoyo: true, repeat: -1, duration: 500, ease: 'Sine.easeInOut' });
+
+        this.add.text(W/2, 240, [
+            'The Easter Bunny has stolen your eggs',
+            'and scattered them across the land!',
+            'Explore forests, deserts, swamps & mountains',
+            'to reclaim them all!',
+        ].join('\n'), {
+            fontSize: '14px', fontFamily: 'Arial', fill: '#FFFFCC', align: 'center', lineSpacing: 4,
         }).setOrigin(0.5);
 
-        // Bouncing Mr Kluck sprite
-        const kluck = this.add.image(W / 2, 170, 'player').setScale(2.5);
-        this.tweens.add({
-            targets: kluck,
-            y: 180,
-            yoyo: true,
-            repeat: -1,
-            duration: 500,
-            ease: 'Sine.easeInOut',
-        });
-
-        // Story text
-        const story = [
-            'Oh no! The Easter Bunny has',
-            'stolen all of Mr. Kluck\'s eggs!',
-            'Help Mr. Kluck hunt them down',
-            'before Easter arrives!',
-        ].join('\n');
-
-        this.add.text(W / 2, 240, story, {
-            fontSize: '15px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FFFFCC',
-            align: 'center',
-            lineSpacing: 5,
-        }).setOrigin(0.5);
-
-        // Controls hint
-        const controls = [
-            'WASD/Arrows: Move  |  SPACE: Crow Stun',
-            'SHIFT: Dash  |  Collect power-ups!',
-        ].join('\n');
-
-        this.add.text(W / 2, 315, controls, {
-            fontSize: '12px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#AADDAA',
-            align: 'center',
-            lineSpacing: 3,
+        this.add.text(W/2, 320, [
+            'WASD/Arrows: Move   |   E: Talk to NPCs',
+            'SPACE: Crow Stun    |   SHIFT: Dash',
+        ].join('\n'), {
+            fontSize: '12px', fontFamily: 'Arial', fill: '#88DDAA', align: 'center', lineSpacing: 3,
         }).setOrigin(0.5);
 
         // Leaderboard
         const stored = localStorage.getItem('mrkluckLeaderboard');
-        const leaderboard = stored ? JSON.parse(stored) : [];
-
-        let lbY = 355;
-        this.add.text(W / 2, lbY, '--- High Scores ---', {
-            fontSize: '14px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FFD700',
-            align: 'center',
-        }).setOrigin(0.5);
-
-        if (leaderboard.length === 0) {
-            this.add.text(W / 2, lbY + 20, '(no scores yet)', {
-                fontSize: '13px', fill: '#FFFFCC',
-            }).setOrigin(0.5);
+        const lb = stored ? JSON.parse(stored) : [];
+        let lbY = 365;
+        this.add.text(W/2, lbY, '--- High Scores ---', { fontSize: '14px', fill: '#FFD700' }).setOrigin(0.5);
+        if (lb.length === 0) {
+            this.add.text(W/2, lbY+20, '(no scores yet)', { fontSize: '13px', fill: '#FFFFCC' }).setOrigin(0.5);
         } else {
-            leaderboard.forEach((entry, i) => {
-                this.add.text(W / 2, lbY + 18 + i * 18,
-                    `${i + 1}. ${entry.name}  ${entry.score} pts  (Lv ${entry.level})`, {
-                    fontSize: '13px',
-                    fontFamily: 'Arial, sans-serif',
-                    fill: '#FFFFCC',
-                    align: 'center',
+            lb.forEach((e, i) => {
+                this.add.text(W/2, lbY+18+i*18, `${i+1}. ${e.name}  ${e.score} pts`, {
+                    fontSize: '13px', fill: '#FFFFCC',
                 }).setOrigin(0.5);
             });
         }
 
-        // Version
-        this.add.text(W / 2, H - 70, `v${APP_VERSION}`, {
-            fontSize: '12px',
-            fill: '#aaaaaa',
+        this.add.text(W/2, H-65, `v${APP_VERSION}`, { fontSize: '12px', fill: '#888' }).setOrigin(0.5);
+        const tap = this.add.text(W/2, H-40, 'Tap or Press SPACE to Play', {
+            fontSize: '18px', fontFamily: 'Arial', fill: '#FFD700',
         }).setOrigin(0.5);
+        this.tweens.add({ targets: tap, alpha: 0, yoyo: true, repeat: -1, duration: 700 });
 
-        // "Tap to play"
-        const tapText = this.add.text(W / 2, H - 45, 'Tap or Press SPACE to Play', {
-            fontSize: '18px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FFD700',
-        }).setOrigin(0.5);
-
-        this.tweens.add({
-            targets: tapText,
-            alpha: 0,
-            yoyo: true,
-            repeat: -1,
-            duration: 700,
-        });
-
-        // Start game
-        const startGame = () => {
-            this.scene.start('GameScene', { level: 1, score: 0, lives: 3 });
-        };
-        this.input.keyboard.once('keydown-SPACE', startGame);
-        this.input.once('pointerdown', startGame);
+        const start = () => this.scene.start('GameScene');
+        this.input.keyboard.once('keydown-SPACE', start);
+        this.input.once('pointerdown', start);
     }
 }
 
@@ -875,287 +913,183 @@ class BootScene extends Phaser.Scene {
 // ===================================================================
 
 class GameScene extends Phaser.Scene {
-    constructor() {
-        super('GameScene');
-    }
+    constructor() { super('GameScene'); }
 
-    init(data) {
-        this.currentLevel   = data.level  || 1;
-        this.score          = data.score  || 0;
-        this.lives          = data.lives  !== undefined ? data.lives : 3;
-        this.eggsLeft       = 0;
-        this.isInvincible   = false;
+    init() {
+        this.score = 0;
+        this.lives = 3;
+        this.isInvincible = false;
         this.invincibleTimer = null;
-        this.crowReady      = true;
-        this.crowCooldownTimer = null;
-        this.paused         = false;
-        this.levelComplete  = false;
-        this.playerDead     = false;
+        this.crowReady = true;
+        this.dashReady = true;
+        this.isDashing = false;
+        this.paused = false;
+        this.playerDead = false;
 
-        // Dash state
-        this.dashReady      = true;
-        this.isDashing      = false;
-        this.dashCooldownTimer = null;
-        this.dashDir        = { x: 0, y: 0 };
+        this.comboCount = 0;
+        this.comboMult = 1;
+        this.comboTimer = null;
 
-        // Combo state
-        this.comboCount     = 0;
-        this.comboMultiplier = 1;
-        this.comboTimer     = null;
+        this.totalEggsCollected = 0;
+        this.goldenEggsCollected = 0;
+        this.bossesDefeated = {};
 
-        // Power-up state
-        this.activePowerups = {};  // { type: { timer, endTime } }
-        this.powerupSpawnTimer = null;
+        this.activePowerups = {};
+        this.shieldSprite = null;
 
-        // Level timer
-        this.levelTimeLeft  = 0;
-        this.levelTimerEvent = null;
+        this.dialogueActive = false;
+        this.dialogueNPC = null;
+        this.dialogueIdx = 0;
+        this.typewriterTimer = null;
+        this.typewriterDone = false;
+        this.currentFullText = '';
 
-        // Boss state
-        this.bossDefeated   = false;
-        this.bossStunCount  = 0;
+        this.activeQuests = [];
+        this.completedQuests = {};
+
+        this.lastVelocity = { x: 0, y: 0 };
+        this.playerOnIce = false;
     }
 
-    preload() {
-        generateAllTextures(this);
-    }
+    preload() { generateAllTextures(this); }
 
     create() {
-        const W = this.scale.width;
-        const H = this.scale.height;
-        const cfg = getLevelConfig(this.currentLevel);
+        // Generate world data
+        this.worldData = generateWorld();
 
-        // ---- Background ----
-        this.add.tileSprite(0, 0, W, H, 'grass').setOrigin(0, 0);
+        // Build tilemap
+        const map = this.make.tilemap({ tileWidth: TILE, tileHeight: TILE, width: WORLD_W, height: WORLD_H });
+        const tileset = map.addTilesetImage('tiles', 'tiles', TILE, TILE, 0, 0);
 
-        // ---- Physics groups ----
-        this.eggGroup     = this.physics.add.staticGroup();
-        this.bunnyGroup   = this.physics.add.group();
-        this.bushGroup    = this.physics.add.staticGroup();
-        this.powerupGroup = this.physics.add.staticGroup();
-        this.mudGroup     = this.physics.add.staticGroup();
-        this.iceGroup     = this.physics.add.staticGroup();
+        this.groundLayer = map.createBlankLayer('ground', tileset);
+        this.wallLayer = map.createBlankLayer('walls', tileset);
 
-        // ---- Spawn decorations / bushes ----
-        for (let i = 0; i < cfg.bushes + 4; i++) {
-            const pos = randomFieldPos(this, 50);
-            const isBush = i < cfg.bushes;
-            if (isBush) {
-                this.bushGroup.create(pos.x, pos.y, 'bush');
-            } else {
-                this.add.image(pos.x, pos.y, 'flower').setAlpha(0.7);
+        for (let y = 0; y < WORLD_H; y++) {
+            for (let x = 0; x < WORLD_W; x++) {
+                this.groundLayer.putTileAt(this.worldData.ground[y][x], x, y);
+                if (this.worldData.walls[y][x] >= 0) {
+                    this.wallLayer.putTileAt(this.worldData.walls[y][x], x, y);
+                }
             }
         }
 
-        // ---- Spawn environmental hazards ----
-        for (let i = 0; i < (cfg.mud || 0); i++) {
-            const pos = randomFieldPos(this, 80);
-            const mud = this.mudGroup.create(pos.x, pos.y, 'mud');
-            mud.setAlpha(0.8).setDepth(1);
-            // Make hitbox smaller than visual
-            mud.body.setCircle(18, 6, 6);
-        }
-        for (let i = 0; i < (cfg.ice || 0); i++) {
-            const pos = randomFieldPos(this, 80);
-            const ice = this.iceGroup.create(pos.x, pos.y, 'ice');
-            ice.setAlpha(0.7).setDepth(1);
-            ice.body.setCircle(18, 6, 6);
-        }
+        this.groundLayer.setCollision([T_WATER]);
+        this.wallLayer.setCollisionByExclusion([-1]);
 
-        // ---- Spawn player ----
-        this.player = this.physics.add.sprite(W / 2, H / 2, 'player');
+        // Physics world bounds
+        this.physics.world.setBounds(0, 0, WORLD_W * TILE, WORLD_H * TILE);
+
+        // Player
+        this.player = this.physics.add.sprite(V1_X * TILE + TILE/2, V1_Y * TILE + TILE/2, 'player');
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(10);
-        this.shieldSprite = null;
-        this.playerOnMud = false;
-        this.playerOnIce = false;
-        this.lastVelocity = { x: 0, y: 0 };
 
-        // ---- Spawn eggs ----
-        this.spawnEggs(cfg);
+        this.physics.add.collider(this.player, this.groundLayer);
+        this.physics.add.collider(this.player, this.wallLayer);
 
-        // ---- Spawn bunnies ----
-        this.spawnBunnies(cfg);
+        // Groups
+        this.eggGroup = this.physics.add.staticGroup();
+        this.bunnyGroup = this.physics.add.group();
+        this.powerupGroup = this.physics.add.staticGroup();
 
-        // ---- Collisions ----
-        this.physics.add.overlap(this.player, this.bunnyGroup, this.onCaughtByBunny, null, this);
-        this.physics.add.overlap(this.player, this.eggGroup, this.onCollectEgg, null, this);
-        this.physics.add.overlap(this.player, this.powerupGroup, this.onCollectPowerup, null, this);
-        this.physics.add.collider(this.player, this.bushGroup);
-        this.physics.add.collider(this.bunnyGroup, this.bushGroup);
+        this.physics.add.collider(this.bunnyGroup, this.wallLayer);
 
-        // ---- HUD ----
-        this.createHUD();
-
-        // ---- Input ----
-        this.cursors   = this.input.keyboard.createCursorKeys();
-        this.wasd      = this.input.keyboard.addKeys({
-            up:    Phaser.Input.Keyboard.KeyCodes.W,
-            down:  Phaser.Input.Keyboard.KeyCodes.S,
-            left:  Phaser.Input.Keyboard.KeyCodes.A,
-            right: Phaser.Input.Keyboard.KeyCodes.D,
+        // Spawn eggs
+        this.worldData.eggs.forEach(e => {
+            const px = e.tx * TILE + TILE/2, py = e.ty * TILE + TILE/2;
+            let key, points, eggType;
+            if (e.type === 'golden')     { key = 'goldenegg';     points = GOLDEN_EGG_POINTS;    eggType = 'golden'; }
+            else if (e.type === 'chocolate') { key = 'chocolateegg'; points = CHOCOLATE_EGG_POINTS; eggType = 'chocolate'; }
+            else if (e.type === 'rotten')    { key = 'rottenegg';    points = ROTTEN_EGG_PENALTY;   eggType = 'rotten'; }
+            else { key = 'egg' + (Math.abs(e.tx * 7 + e.ty * 3) % EGG_COLORS.length); points = EGG_POINTS; eggType = 'normal'; }
+            const egg = this.eggGroup.create(px, py, key);
+            egg.setData('points', points);
+            egg.setData('eggType', eggType);
+            egg.setDepth(5);
+            if (eggType === 'golden') {
+                this.tweens.add({ targets: egg, angle: 360, repeat: -1, duration: 3000, ease: 'Linear' });
+                this.tweens.add({ targets: egg, scaleX: 1.15, scaleY: 1.15, yoyo: true, repeat: -1, duration: 800 });
+            } else if (eggType === 'rotten') {
+                this.tweens.add({ targets: egg, angle: -8, yoyo: true, repeat: -1, duration: 400 });
+            } else {
+                this.tweens.add({ targets: egg, y: py - 4, yoyo: true, repeat: -1, duration: 600 + (e.tx % 5) * 80, ease: 'Sine.easeInOut' });
+            }
         });
-        this.crowKey   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        this.dashKey   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+
+        // Spawn bunnies
+        this.worldData.bunnies.forEach(b => {
+            const px = b.tx * TILE + TILE/2, py = b.ty * TILE + TILE/2;
+            let key, speed, texKey, stunKey;
+            if (b.type === 'fast')   { key = 'fast_bunny'; speed = 130; texKey = 'fast_bunny'; stunKey = 'fast_bunny_stunned'; }
+            else if (b.type === 'patrol') { key = 'patrol_bunny'; speed = 80; texKey = 'patrol_bunny'; stunKey = 'patrol_bunny_stunned'; }
+            else if (b.type === 'boss')   { key = 'boss_bunny'; speed = 70; texKey = 'boss_bunny'; stunKey = 'boss_bunny_stunned'; }
+            else                          { key = 'bunny'; speed = 90; texKey = 'bunny'; stunKey = 'bunny_stunned'; }
+            const bunny = this.bunnyGroup.create(px, py, key);
+            bunny.setCollideWorldBounds(true);
+            bunny.setData('speed', speed);
+            bunny.setData('stunned', false);
+            bunny.setData('stunnedTimer', null);
+            bunny.setData('bunnyType', b.type);
+            bunny.setData('textureKey', texKey);
+            bunny.setData('stunnedTextureKey', stunKey);
+            bunny.setData('biome', b.biome);
+            bunny.setData('stuckTime', 0);
+            bunny.setDepth(9);
+            if (b.type === 'patrol') {
+                bunny.setData('patrolCenter', { x: px, y: py });
+                bunny.setData('patrolAngle', Math.random() * Math.PI * 2);
+            }
+            if (b.type === 'boss') {
+                bunny.setData('bossHP', 3);
+                bunny.setScale(1.2);
+            }
+        });
+
+        // Overlaps
+        this.physics.add.overlap(this.player, this.eggGroup, this.onCollectEgg, null, this);
+        this.physics.add.overlap(this.player, this.bunnyGroup, this.onCaughtByBunny, null, this);
+        this.physics.add.overlap(this.player, this.powerupGroup, this.onCollectPowerup, null, this);
+
+        // Spawn NPCs
+        this.npcs = [];
+        NPC_DEFS.forEach(d => {
+            const npc = this.add.image(d.tx * TILE + TILE/2, d.ty * TILE + TILE/2, 'npc_' + d.id);
+            npc.setDepth(8);
+            npc.setData('npcDef', d);
+            npc.setData('dialogueIdx', 0);
+            this.npcs.push(npc);
+            this.tweens.add({ targets: npc, y: npc.y - 3, yoyo: true, repeat: -1, duration: 800 + Math.random() * 400, ease: 'Sine.easeInOut' });
+        });
+
+        // Camera
+        this.cameras.main.setBounds(0, 0, WORLD_W * TILE, WORLD_H * TILE);
+        this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+
+        // Input
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.wasd = this.input.keyboard.addKeys({
+            up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
+            left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D,
+        });
+        this.crowKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.dashKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+
         this.setupTouchControls();
 
-        // ---- Level timer ----
-        const totalEggsForTime = (cfg.eggs || 0) + (cfg.golden || 0) + (cfg.chocolate || 0) + (cfg.rotten || 0);
-        this.levelTimeLeft = BASE_LEVEL_TIME + totalEggsForTime * TIME_PER_EGG;
-        this.levelTimerEvent = this.time.addEvent({
-            delay: 1000,
-            callback: this.tickLevelTimer,
-            callbackScope: this,
-            loop: true,
-        });
-        // Pause the timer during intro
-        this.levelTimerEvent.paused = true;
+        // HUD
+        this.createHUD();
+        this.createMinimap();
+        this.createDialogueUI();
 
-        // ---- Power-up spawn timer ----
-        this.powerupSpawnTimer = this.time.addEvent({
-            delay: POWERUP_SPAWN_INTERVAL,
-            callback: this.spawnPowerup,
-            callbackScope: this,
-            loop: true,
-        });
-        this.powerupSpawnTimer.paused = true;
+        // Power-up spawn timer
+        this.time.addEvent({ delay: 12000, callback: this.spawnPowerup, callbackScope: this, loop: true });
 
-        // ---- Level intro overlay ----
-        this.showLevelIntro(cfg);
-    }
-
-    // ------------------------------------------------------------------
-    //  Egg spawning
-    // ------------------------------------------------------------------
-
-    spawnEggs(cfg) {
-        const totalCollectable = cfg.eggs + cfg.golden + (cfg.chocolate || 0);
-        this.eggsLeft = totalCollectable;
-
-        // Regular eggs
-        for (let i = 0; i < cfg.eggs; i++) {
-            const colorIdx = i % EGG_COLORS.length;
-            const pos = this.findSafeSpawnPos(80);
-            const egg = this.eggGroup.create(pos.x, pos.y, 'egg' + colorIdx);
-            egg.setData('points', EGG_POINTS);
-            egg.setData('eggType', 'normal');
-            this.tweens.add({
-                targets: egg,
-                y: pos.y - 5,
-                yoyo: true,
-                repeat: -1,
-                duration: 600 + i * 80,
-                ease: 'Sine.easeInOut',
-            });
-        }
-
-        // Golden eggs
-        for (let i = 0; i < cfg.golden; i++) {
-            const pos = this.findSafeSpawnPos(80);
-            const egg = this.eggGroup.create(pos.x, pos.y, 'goldenegg');
-            egg.setData('points', GOLDEN_EGG_POINTS);
-            egg.setData('eggType', 'golden');
-            this.tweens.add({
-                targets: egg, angle: 360, repeat: -1, duration: 3000, ease: 'Linear',
-            });
-            this.tweens.add({
-                targets: egg, scaleX: 1.15, scaleY: 1.15, yoyo: true, repeat: -1, duration: 800,
-            });
-        }
-
-        // Chocolate eggs
-        for (let i = 0; i < (cfg.chocolate || 0); i++) {
-            const pos = this.findSafeSpawnPos(80);
-            const egg = this.eggGroup.create(pos.x, pos.y, 'chocolateegg');
-            egg.setData('points', CHOCOLATE_EGG_POINTS);
-            egg.setData('eggType', 'chocolate');
-            this.tweens.add({
-                targets: egg, y: pos.y - 4, yoyo: true, repeat: -1,
-                duration: 700 + i * 60, ease: 'Sine.easeInOut',
-            });
-        }
-
-        // Rotten eggs (don't count toward eggsLeft — they're penalties)
-        for (let i = 0; i < (cfg.rotten || 0); i++) {
-            const pos = this.findSafeSpawnPos(80);
-            const egg = this.eggGroup.create(pos.x, pos.y, 'rottenegg');
-            egg.setData('points', ROTTEN_EGG_PENALTY);
-            egg.setData('eggType', 'rotten');
-            // Slight wobble
-            this.tweens.add({
-                targets: egg, angle: -10, yoyo: true, repeat: -1, duration: 400,
-            });
-        }
-    }
-
-    // ------------------------------------------------------------------
-    //  Bunny spawning
-    // ------------------------------------------------------------------
-
-    spawnBunnies(cfg) {
-        // Normal bunnies
-        for (let i = 0; i < cfg.bunnies; i++) {
-            const pos = this.findSafeSpawnPos(150);
-            const bunny = this.bunnyGroup.create(pos.x, pos.y, 'bunny');
-            bunny.setCollideWorldBounds(true);
-            bunny.setData('speed', cfg.bunnySpeed + i * 10);
-            bunny.setData('stunned', false);
-            bunny.setData('stunnedTimer', null);
-            bunny.setData('bunnyType', 'normal');
-            bunny.setData('textureKey', 'bunny');
-            bunny.setData('stunnedTextureKey', 'bunny_stunned');
-            bunny.setDepth(9);
-        }
-
-        // Fast bunnies
-        for (let i = 0; i < (cfg.fastBunnies || 0); i++) {
-            const pos = this.findSafeSpawnPos(150);
-            const bunny = this.bunnyGroup.create(pos.x, pos.y, 'fast_bunny');
-            bunny.setCollideWorldBounds(true);
-            bunny.setData('speed', cfg.bunnySpeed * 1.5 + i * 10);
-            bunny.setData('stunned', false);
-            bunny.setData('stunnedTimer', null);
-            bunny.setData('bunnyType', 'fast');
-            bunny.setData('textureKey', 'fast_bunny');
-            bunny.setData('stunnedTextureKey', 'fast_bunny_stunned');
-            bunny.setDepth(9);
-        }
-
-        // Patrol bunnies
-        for (let i = 0; i < (cfg.patrolBunnies || 0); i++) {
-            const pos = this.findSafeSpawnPos(120);
-            const bunny = this.bunnyGroup.create(pos.x, pos.y, 'patrol_bunny');
-            bunny.setCollideWorldBounds(true);
-            bunny.setData('speed', cfg.bunnySpeed * 0.8);
-            bunny.setData('stunned', false);
-            bunny.setData('stunnedTimer', null);
-            bunny.setData('bunnyType', 'patrol');
-            bunny.setData('textureKey', 'patrol_bunny');
-            bunny.setData('stunnedTextureKey', 'patrol_bunny_stunned');
-            bunny.setData('patrolCenter', { x: pos.x, y: pos.y });
-            bunny.setData('patrolRadius', 100 + i * 30);
-            bunny.setData('patrolAngle', Math.random() * Math.PI * 2);
-            bunny.setData('chaseRange', 120);
-            bunny.setDepth(9);
-        }
-
-        // Boss bunny (on boss levels)
-        if (cfg.boss) {
-            const pos = this.findSafeSpawnPos(200);
-            const bunny = this.bunnyGroup.create(pos.x, pos.y, 'boss_bunny');
-            bunny.setCollideWorldBounds(true);
-            bunny.setData('speed', cfg.bunnySpeed * 0.7);
-            bunny.setData('stunned', false);
-            bunny.setData('stunnedTimer', null);
-            bunny.setData('bunnyType', 'boss');
-            bunny.setData('textureKey', 'boss_bunny');
-            bunny.setData('stunnedTextureKey', 'boss_bunny_stunned');
-            bunny.setData('bossHP', 3);       // needs 3 stuns to defeat
-            bunny.setData('bossMaxHP', 3);
-            bunny.setScale(1.2);
-            bunny.setDepth(9);
-            this.bossDefeated = false;
-        }
+        // NPC proximity
+        this.nearestNPC = null;
+        this.interactPrompt = this.add.text(0, 0, '[E] Talk', {
+            fontSize: '12px', fill: '#FFD700', backgroundColor: '#000000AA', padding: { x: 3, y: 2 },
+        }).setOrigin(0.5).setDepth(30).setVisible(false);
     }
 
     // ------------------------------------------------------------------
@@ -1164,207 +1098,86 @@ class GameScene extends Phaser.Scene {
 
     createHUD() {
         const W = this.scale.width;
+        this.hudBg = this.add.graphics().setScrollFactor(0).setDepth(100);
+        this.hudBg.fillStyle(0x000000, 0.6);
+        this.hudBg.fillRect(0, 0, W, 40);
 
-        // Black bar at top
-        const hudBg = this.add.graphics();
-        hudBg.fillStyle(0x000000, 0.7);
-        hudBg.fillRect(0, 0, W, 54);
-        hudBg.setDepth(20);
+        this.scoreText = this.add.text(8, 4, 'Score: 0', { fontSize: '14px', fill: '#FFD700' }).setScrollFactor(0).setDepth(101);
+        this.eggsText = this.add.text(8, 22, 'Eggs: 0', { fontSize: '12px', fill: '#FFFFFF' }).setScrollFactor(0).setDepth(101);
+        this.comboText = this.add.text(130, 4, '', { fontSize: '13px', fill: '#FF8800' }).setScrollFactor(0).setDepth(101);
+        this.biomeText = this.add.text(W/2, 4, '', { fontSize: '12px', fill: '#AADDAA' }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(101);
 
-        // Level name
-        const cfg = getLevelConfig(this.currentLevel);
-        this.levelText = this.add.text(W / 2, 4, `Level ${this.currentLevel}: ${cfg.name}`, {
-            fontSize: '14px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FFFFCC',
-        }).setOrigin(0.5, 0).setDepth(21);
+        this.crowLabel = this.add.text(W/2, 24, 'CROW!', { fontSize: '11px', fill: '#FFD700', backgroundColor: '#440000', padding: { x: 3, y: 1 } }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(101);
+        this.dashLabel = this.add.text(W/2 + 55, 24, 'DASH!', { fontSize: '11px', fill: '#FF8800', backgroundColor: '#442200', padding: { x: 3, y: 1 } }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(101);
 
-        // Score
-        this.scoreText = this.add.text(W / 2, 22, `Score: ${this.score}`, {
-            fontSize: '13px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FFD700',
-        }).setOrigin(0.5, 0).setDepth(21);
-
-        // Timer
-        this.timerText = this.add.text(W / 2, 38, `Time: ${this.levelTimeLeft}s`, {
-            fontSize: '12px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FFFFFF',
-        }).setOrigin(0.5, 0).setDepth(21);
-
-        // Eggs remaining
-        this.eggsText = this.add.text(8, 36, `Eggs: ${this.eggsLeft}`, {
-            fontSize: '13px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FFFFFF',
-        }).setOrigin(0, 0).setDepth(21);
-
-        // Combo display
-        this.comboText = this.add.text(8, 20, '', {
-            fontSize: '13px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FF8800',
-        }).setOrigin(0, 0).setDepth(21);
-
-        // Lives (hearts)
         this.createHeartDisplay();
 
-        // Active power-up indicators (below HUD bar)
-        this.powerupIndicators = {};
-        this.powerupIndicatorY = 58;
-
-        // Crow power button
-        this.crowLabel = this.add.text(W - 8, 4, 'CROW', {
-            fontSize: '12px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FFD700',
-            backgroundColor: '#440000',
-            padding: { x: 3, y: 1 },
-        }).setOrigin(1, 0).setDepth(21).setInteractive();
-        this.crowLabel.on('pointerdown', () => { this.useCrowPower(); });
-
-        // Dash indicator
-        this.dashLabel = this.add.text(W - 8, 22, 'DASH', {
-            fontSize: '12px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FF8800',
-            backgroundColor: '#442200',
-            padding: { x: 3, y: 1 },
-        }).setOrigin(1, 0).setDepth(21);
-
-        // Pause button
-        this.pauseBtn = this.add.text(8, 4, '|| Pause', {
-            fontSize: '12px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FFFFFF',
-            backgroundColor: '#222222',
-            padding: { x: 3, y: 1 },
-        }).setOrigin(0, 0).setDepth(21).setInteractive();
-        this.pauseBtn.on('pointerdown', () => { this.togglePause(); });
+        // Quest panel
+        this.questText = this.add.text(8, 44, '', { fontSize: '11px', fill: '#AADDFF', lineSpacing: 2 }).setScrollFactor(0).setDepth(101);
     }
 
     createHeartDisplay() {
-        if (this.heartImages) {
-            this.heartImages.forEach(h => h.destroy());
-        }
+        if (this.heartImages) this.heartImages.forEach(h => h.destroy());
         this.heartImages = [];
         const W = this.scale.width;
         for (let i = 0; i < this.lives; i++) {
-            const h = this.add.image(W - 14 - i * 26, 44, 'heart')
-                .setDepth(21)
-                .setScale(0.7);
+            const h = this.add.image(W - 14 - i * 22, 20, 'heart').setScrollFactor(0).setDepth(101).setScale(0.6);
             this.heartImages.push(h);
         }
     }
 
-    updatePowerupIndicators() {
-        const W = this.scale.width;
-        let idx = 0;
-        const activeTypes = Object.keys(this.activePowerups);
+    createMinimap() {
+        const mmW = 110, mmH = 110;
+        const mmX = this.scale.width - mmW - 8, mmY = 44;
 
-        // Remove old indicators
-        Object.keys(this.powerupIndicators).forEach(key => {
-            if (!this.activePowerups[key]) {
-                if (this.powerupIndicators[key]) {
-                    this.powerupIndicators[key].destroy();
-                    delete this.powerupIndicators[key];
-                }
+        // Generate minimap texture
+        const g = this.make.graphics({ add: false });
+        const colorMap = {
+            [T_GRASS]: 0x2D8C27, [T_GRASS_DARK]: 0x247A1F, [T_DIRT]: 0x8B7355, [T_STONE]: 0x999999,
+            [T_SAND]: 0xD4B896, [T_SNOW]: 0xDDDDFF, [T_WATER]: 0x2266AA, [T_SWAMP]: 0x3D5C2E,
+            [T_FOREST]: 0x1A5C14, [T_ICE]: 0xAADDFF, [T_COBBLE]: 0x888888, [T_WOOD]: 0x9B7340,
+        };
+        const scaleX = mmW / WORLD_W, scaleY = mmH / WORLD_H;
+        for (let y = 0; y < WORLD_H; y++) {
+            for (let x = 0; x < WORLD_W; x++) {
+                g.fillStyle(colorMap[this.worldData.ground[y][x]] || 0x2D8C27);
+                g.fillRect(Math.floor(x * scaleX), Math.floor(y * scaleY), Math.ceil(scaleX), Math.ceil(scaleY));
             }
-        });
+        }
+        g.generateTexture('minimap_tex', mmW, mmH);
+        g.destroy();
 
-        activeTypes.forEach(type => {
-            const remaining = Math.max(0, Math.ceil((this.activePowerups[type].endTime - this.time.now) / 1000));
-            const labels = {
-                speed: 'SPD', shield: 'SHD', magnet: 'MAG', freeze: 'FRZ',
-            };
-            const colors = {
-                speed: '#FFDD00', shield: '#44AAFF', magnet: '#FF4444', freeze: '#CCEEFF',
-            };
-            const label = labels[type] || type.toUpperCase().slice(0, 3);
-            const color = colors[type] || '#FFFFFF';
+        // Border
+        const border = this.add.graphics().setScrollFactor(0).setDepth(100);
+        border.lineStyle(2, 0xFFFFFF, 0.6);
+        border.strokeRect(mmX - 1, mmY - 1, mmW + 2, mmH + 2);
 
-            if (this.powerupIndicators[type]) {
-                this.powerupIndicators[type].setText(`${label} ${remaining}s`);
-            } else {
-                this.powerupIndicators[type] = this.add.text(
-                    W / 2 - 80 + idx * 60, this.powerupIndicatorY,
-                    `${label} ${remaining}s`, {
-                    fontSize: '11px',
-                    fontFamily: 'Arial, sans-serif',
-                    fill: color,
-                    backgroundColor: '#000000',
-                    padding: { x: 2, y: 1 },
-                }).setOrigin(0.5, 0).setDepth(21);
-            }
-            idx++;
-        });
+        this.minimapImg = this.add.image(mmX, mmY, 'minimap_tex').setOrigin(0).setScrollFactor(0).setDepth(101).setAlpha(0.75);
+        this.minimapDot = this.add.graphics().setScrollFactor(0).setDepth(102);
+        this.mmX = mmX; this.mmY = mmY; this.mmW = mmW; this.mmH = mmH;
     }
 
-    showLevelIntro(cfg) {
-        const W = this.scale.width;
-        const H = this.scale.height;
+    createDialogueUI() {
+        const W = this.scale.width, H = this.scale.height;
+        const boxH = 130, boxW = W - 40, boxX = 20, boxY = H - boxH - 10;
 
-        const overlay = this.add.graphics().setDepth(50);
-        overlay.fillStyle(0x000000, 0.7);
-        overlay.fillRect(0, 0, W, H);
+        this.dlgBox = this.add.graphics().setScrollFactor(0).setDepth(200).setVisible(false);
+        this.dlgBox.fillStyle(0x111122, 0.92);
+        this.dlgBox.fillRoundedRect(boxX, boxY, boxW, boxH, 12);
+        this.dlgBox.lineStyle(2, 0x4466AA, 0.8);
+        this.dlgBox.strokeRoundedRect(boxX, boxY, boxW, boxH, 12);
 
-        const t1 = this.add.text(W / 2, H / 2 - 90, `Level ${this.currentLevel}`, {
-            fontSize: '48px',
-            fontFamily: 'Georgia, serif',
-            fill: '#FFD700',
-            stroke: '#8B4513',
-            strokeThickness: 5,
-        }).setOrigin(0.5).setDepth(51);
+        this.dlgName = this.add.text(boxX + 14, boxY + 8, '', {
+            fontSize: '16px', fontFamily: 'Georgia, serif', fill: '#FFD700',
+        }).setScrollFactor(0).setDepth(201).setVisible(false);
 
-        const t2 = this.add.text(W / 2, H / 2 - 30, cfg.name, {
-            fontSize: '28px',
-            fontFamily: 'Georgia, serif',
-            fill: '#FFFFFF',
-        }).setOrigin(0.5).setDepth(51);
+        this.dlgText = this.add.text(boxX + 14, boxY + 32, '', {
+            fontSize: '14px', fontFamily: 'Arial', fill: '#EEEEEE', wordWrap: { width: boxW - 28 }, lineSpacing: 4,
+        }).setScrollFactor(0).setDepth(201).setVisible(false);
 
-        const eggCount = cfg.eggs + cfg.golden + (cfg.chocolate || 0);
-        const t3 = this.add.text(W / 2, H / 2 + 20, `Find ${eggCount} eggs!  (Watch for rotten ones!)`, {
-            fontSize: '16px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#FFFFCC',
-        }).setOrigin(0.5).setDepth(51);
-
-        // Environment hints
-        const hints = [];
-        if (cfg.mud > 0) hints.push('Mud patches slow you down');
-        if (cfg.ice > 0) hints.push('Ice patches make you slide');
-        if (cfg.boss) hints.push('BOSS BUNNY awaits! Stun it 3 times!');
-        if (cfg.fastBunnies > 0) hints.push('Fast bunnies spotted!');
-        if (cfg.patrolBunnies > 0) hints.push('Patrol bunnies guard the area');
-
-        const hintText = hints.length > 0 ? hints.join('\n') : '';
-        const t4 = this.add.text(W / 2, H / 2 + 55, hintText, {
-            fontSize: '13px',
-            fontFamily: 'Arial, sans-serif',
-            fill: cfg.boss ? '#FF6644' : '#AADDAA',
-            align: 'center',
-            lineSpacing: 4,
-        }).setOrigin(0.5).setDepth(51);
-
-        const t5 = this.add.text(W / 2, H / 2 + 120, 'Tap or press any key', {
-            fontSize: '16px',
-            fontFamily: 'Arial, sans-serif',
-            fill: '#AAAAAA',
-        }).setOrigin(0.5).setDepth(51);
-
-        const dismiss = () => {
-            [overlay, t1, t2, t3, t4, t5].forEach(obj => obj.destroy());
-            this.paused = false;
-            if (this.levelTimerEvent) this.levelTimerEvent.paused = false;
-            if (this.powerupSpawnTimer) this.powerupSpawnTimer.paused = false;
-        };
-
-        this.paused = true;
-        this.time.delayedCall(800, () => {
-            this.input.keyboard.once('keydown', dismiss);
-            this.input.once('pointerdown', dismiss);
-        });
+        this.dlgPrompt = this.add.text(boxX + boxW - 14, boxY + boxH - 16, '[E] Continue', {
+            fontSize: '11px', fill: '#AAAAAA',
+        }).setOrigin(1, 1).setScrollFactor(0).setDepth(201).setVisible(false);
     }
 
     // ------------------------------------------------------------------
@@ -1372,396 +1185,380 @@ class GameScene extends Phaser.Scene {
     // ------------------------------------------------------------------
 
     update(time, delta) {
-        if (this.paused || this.levelComplete || this.playerDead) return;
+        if (this.playerDead) return;
+
+        // Handle dialogue input separately
+        if (this.dialogueActive) {
+            if (Phaser.Input.Keyboard.JustDown(this.interactKey) || Phaser.Input.Keyboard.JustDown(this.crowKey)) {
+                this.advanceDialogue();
+            }
+            return;
+        }
+
+        if (this.paused) return;
 
         this.handleInput();
-        this.updateBunnies();
-        this.updateCrowLabel();
-        this.updateDashLabel();
+        this.updateBunnies(delta);
+        this.updateNPCProximity();
+        this.updateMinimap();
+        this.updateHUD();
+        this.updateShield();
         this.updateMagnet();
         this.updateEnvironment();
-        this.updatePowerupIndicators();
-        this.updateComboDisplay();
-        this.updateShieldSprite();
     }
 
     handleInput() {
-        if (this.isDashing) return;  // can't change direction while dashing
+        if (this.isDashing) return;
 
-        const left  = this.cursors.left.isDown  || this.wasd.left.isDown  || this.swipeDir === 'left';
-        const right = this.cursors.right.isDown || this.wasd.right.isDown || this.swipeDir === 'right';
-        const up    = this.cursors.up.isDown    || this.wasd.up.isDown    || this.swipeDir === 'up';
-        const down  = this.cursors.down.isDown  || this.wasd.down.isDown  || this.swipeDir === 'down';
+        const left  = this.cursors.left.isDown  || this.wasd.left.isDown;
+        const right = this.cursors.right.isDown || this.wasd.right.isDown;
+        const up    = this.cursors.up.isDown    || this.wasd.up.isDown;
+        const down  = this.cursors.down.isDown  || this.wasd.down.isDown;
 
-        this.swipeDir = null;
-
-        const dLeft  = this.dpadState && this.dpadState.left;
-        const dRight = this.dpadState && this.dpadState.right;
-        const dUp    = this.dpadState && this.dpadState.up;
-        const dDown  = this.dpadState && this.dpadState.down;
+        const dL = this.dpadState && this.dpadState.left;
+        const dR = this.dpadState && this.dpadState.right;
+        const dU = this.dpadState && this.dpadState.up;
+        const dD = this.dpadState && this.dpadState.down;
 
         let speed = PLAYER_SPEED;
-        // Speed power-up
-        if (this.activePowerups.speed) speed *= POWERUP_SPEED_MULT;
-        // Mud slow
-        if (this.playerOnMud && !this.activePowerups.speed) speed *= 0.5;
+        if (this.activePowerups.speed) speed *= 1.6;
+
+        // Mud check
+        const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
+        const groundTile = (ptx >= 0 && pty >= 0 && ptx < WORLD_W && pty < WORLD_H) ? this.worldData.ground[pty][ptx] : T_GRASS;
+        if (groundTile === T_SWAMP && !this.activePowerups.speed) speed *= 0.55;
+        this.playerOnIce = (groundTile === T_ICE);
 
         let vx = 0, vy = 0;
-        if (left  || dLeft)  vx = -speed;
-        if (right || dRight) vx =  speed;
-        if (up    || dUp)    vy = -speed;
-        if (down  || dDown)  vy =  speed;
+        if (left  || dL) vx = -speed;
+        if (right || dR) vx =  speed;
+        if (up    || dU) vy = -speed;
+        if (down  || dD) vy =  speed;
 
-        // Diagonal speed normalization
-        if (vx !== 0 && vy !== 0) {
-            const diagonalSpeedFactor = 1 / Math.SQRT2;
-            vx *= diagonalSpeedFactor;
-            vy *= diagonalSpeedFactor;
-        }
+        if (vx !== 0 && vy !== 0) { const d = 1 / Math.SQRT2; vx *= d; vy *= d; }
 
-        // Ice: blend with last velocity for sliding effect
-        if (this.playerOnIce && !this.isDashing) {
-            const iceBlend = 0.08;
-            vx = this.lastVelocity.x * (1 - iceBlend) + vx * iceBlend;
-            vy = this.lastVelocity.y * (1 - iceBlend) + vy * iceBlend;
+        if (this.playerOnIce) {
+            vx = this.lastVelocity.x * 0.93 + vx * 0.07;
+            vy = this.lastVelocity.y * 0.93 + vy * 0.07;
         }
 
         this.player.setVelocity(vx, vy);
         this.lastVelocity = { x: vx, y: vy };
 
-        // Flip sprite based on direction
         if (vx < 0) this.player.setFlipX(true);
         if (vx > 0) this.player.setFlipX(false);
 
-        // Crow power
-        if (Phaser.Input.Keyboard.JustDown(this.crowKey)) {
-            this.useCrowPower();
-        }
-
-        // Dash
-        if (Phaser.Input.Keyboard.JustDown(this.dashKey)) {
-            this.useDash();
-        }
+        if (Phaser.Input.Keyboard.JustDown(this.crowKey)) this.useCrowPower();
+        if (Phaser.Input.Keyboard.JustDown(this.dashKey)) this.useDash();
+        if (Phaser.Input.Keyboard.JustDown(this.interactKey) && this.nearestNPC) this.showDialogue(this.nearestNPC);
     }
 
-    updateBunnies() {
-        const px = this.player.x;
-        const py = this.player.y;
+    updateBunnies(delta) {
+        const px = this.player.x, py = this.player.y;
         const allFrozen = !!this.activePowerups.freeze;
 
         this.bunnyGroup.getChildren().forEach(bunny => {
             if (bunny.getData('stunned')) return;
 
-            // Freeze power-up stops all bunnies
-            if (allFrozen) {
-                bunny.setVelocity(0, 0);
-                bunny.setTint(0x88BBFF);
-                return;
-            } else {
-                bunny.clearTint();
-            }
+            const dist = Phaser.Math.Distance.Between(bunny.x, bunny.y, px, py);
+
+            if (allFrozen) { bunny.setVelocity(0, 0); bunny.setTint(0x88BBFF); return; }
+            bunny.clearTint();
+
+            // Leash — don't chase if too far
+            if (dist > BUNNY_LEASH) { bunny.setVelocity(0, 0); bunny.setData('stuckTime', 0); return; }
 
             const speed = bunny.getData('speed');
-            const bunnyType = bunny.getData('bunnyType');
+            const type = bunny.getData('bunnyType');
 
-            if (bunnyType === 'patrol') {
-                this.updatePatrolBunny(bunny, px, py, speed);
-            } else if (bunnyType === 'boss') {
-                this.updateBossBunny(bunny, px, py, speed);
+            if (type === 'patrol') {
+                const center = bunny.getData('patrolCenter');
+                if (dist < 130) {
+                    const a = Phaser.Math.Angle.Between(bunny.x, bunny.y, px, py);
+                    this.physics.velocityFromRotation(a, speed * 1.2, bunny.body.velocity);
+                } else {
+                    let pa = bunny.getData('patrolAngle') + 0.015;
+                    bunny.setData('patrolAngle', pa);
+                    const tx = center.x + Math.cos(pa) * 80, ty = center.y + Math.sin(pa) * 80;
+                    const a = Phaser.Math.Angle.Between(bunny.x, bunny.y, tx, ty);
+                    this.physics.velocityFromRotation(a, speed * 0.6, bunny.body.velocity);
+                }
+            } else if (type === 'boss') {
+                const a = Phaser.Math.Angle.Between(bunny.x, bunny.y, px, py);
+                const phase = Math.floor(this.time.now / 3000) % 2;
+                if (phase === 0 || dist < 100) {
+                    this.physics.velocityFromRotation(a, speed * 1.3, bunny.body.velocity);
+                } else {
+                    this.physics.velocityFromRotation(a + Math.PI / 2, speed, bunny.body.velocity);
+                }
+            } else if (dist < BUNNY_CHASE_RANGE) {
+                const a = Phaser.Math.Angle.Between(bunny.x, bunny.y, px, py);
+                const wobble = Math.sin(this.time.now / 600 + bunny.x) * (type === 'fast' ? 0.2 : 0.4);
+                this.physics.velocityFromRotation(a + wobble, speed, bunny.body.velocity);
             } else {
-                // Normal and fast: chase player with wobble
-                const angle = Phaser.Math.Angle.Between(bunny.x, bunny.y, px, py);
-                const wobbleAmount = bunnyType === 'fast' ? 0.2 : 0.4;
-                const wobble = Math.sin(this.time.now / 600 + bunny.x) * wobbleAmount;
-                this.physics.velocityFromRotation(angle + wobble, speed, bunny.body.velocity);
+                // Wander
+                const wa = Math.sin(this.time.now / 2000 + bunny.x * 0.1) * Math.PI;
+                this.physics.velocityFromRotation(wa, speed * 0.3, bunny.body.velocity);
             }
 
-            // Flip sprite
+            // Wall-stuck avoidance
+            if (bunny.body.speed < 5 && dist < BUNNY_CHASE_RANGE) {
+                const st = (bunny.getData('stuckTime') || 0) + (delta || 16);
+                bunny.setData('stuckTime', st);
+                if (st > 800) {
+                    const nudge = Phaser.Math.Angle.Between(bunny.x, bunny.y, px, py) + (Math.random() > 0.5 ? Math.PI/2 : -Math.PI/2);
+                    this.physics.velocityFromRotation(nudge, speed, bunny.body.velocity);
+                    bunny.setData('stuckTime', 0);
+                }
+            } else {
+                bunny.setData('stuckTime', 0);
+            }
+
             if (bunny.body.velocity.x < 0) bunny.setFlipX(true);
             else bunny.setFlipX(false);
         });
     }
 
-    updatePatrolBunny(bunny, px, py, speed) {
-        const center = bunny.getData('patrolCenter');
-        const radius = bunny.getData('patrolRadius');
-        const chaseRange = bunny.getData('chaseRange');
-
-        const distToPlayer = Phaser.Math.Distance.Between(bunny.x, bunny.y, px, py);
-
-        if (distToPlayer < chaseRange) {
-            // Chase player when close
-            const angle = Phaser.Math.Angle.Between(bunny.x, bunny.y, px, py);
-            this.physics.velocityFromRotation(angle, speed * 1.1, bunny.body.velocity);
+    updateNPCProximity() {
+        let nearest = null, nearDist = Infinity;
+        this.npcs.forEach(npc => {
+            const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, npc.x, npc.y);
+            if (d < NPC_INTERACT_DIST && d < nearDist) { nearest = npc; nearDist = d; }
+        });
+        this.nearestNPC = nearest;
+        if (nearest) {
+            this.interactPrompt.setPosition(nearest.x, nearest.y - 24);
+            this.interactPrompt.setVisible(true);
         } else {
-            // Patrol in circle around center point
-            let pa = bunny.getData('patrolAngle');
-            pa += 0.015;
-            bunny.setData('patrolAngle', pa);
-            const targetX = center.x + Math.cos(pa) * radius;
-            const targetY = center.y + Math.sin(pa) * radius;
-            const angle = Phaser.Math.Angle.Between(bunny.x, bunny.y, targetX, targetY);
-            this.physics.velocityFromRotation(angle, speed * 0.6, bunny.body.velocity);
+            this.interactPrompt.setVisible(false);
         }
     }
 
-    updateBossBunny(bunny, px, py, speed) {
-        const dist = Phaser.Math.Distance.Between(bunny.x, bunny.y, px, py);
-        const angle = Phaser.Math.Angle.Between(bunny.x, bunny.y, px, py);
+    updateMinimap() {
+        const px = (this.player.x / (WORLD_W * TILE)) * this.mmW + this.mmX;
+        const py = (this.player.y / (WORLD_H * TILE)) * this.mmH + this.mmY;
+        this.minimapDot.clear();
+        this.minimapDot.fillStyle(0xFF0000);
+        this.minimapDot.fillCircle(px, py, 3);
+    }
 
-        // Boss alternates between charging and circling
-        const phase = Math.floor(this.time.now / 3000) % 2;
-        if (phase === 0 || dist < 100) {
-            // Charge at player
-            this.physics.velocityFromRotation(angle, speed * 1.3, bunny.body.velocity);
+    updateHUD() {
+        this.scoreText.setText(`Score: ${this.score}`);
+        this.eggsText.setText(`Eggs: ${this.totalEggsCollected}`);
+
+        if (this.comboMult > 1) {
+            this.comboText.setText(`x${this.comboMult} COMBO`);
         } else {
-            // Circle around player
-            const circleAngle = angle + Math.PI / 2;
-            this.physics.velocityFromRotation(circleAngle, speed, bunny.body.velocity);
+            this.comboText.setText('');
+        }
+
+        // Biome name
+        const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
+        if (ptx >= 0 && pty >= 0 && ptx < WORLD_W && pty < WORLD_H) {
+            const b = this.worldData.biomeMap[pty][ptx];
+            const names = { village: 'Village', farmland: 'Farmland', forest: 'Forest', desert: 'Desert', swamp: 'Swamp', snow: 'Snowy Mountains', hills: 'Hills', water: 'Water' };
+            this.biomeText.setText(names[b] || b);
+        }
+
+        // Crow/Dash labels
+        this.crowLabel.setText(this.crowReady ? 'CROW!' : 'crow...');
+        this.crowLabel.setStyle({ fill: this.crowReady ? '#FFD700' : '#666', backgroundColor: this.crowReady ? '#440000' : '#222' });
+        this.dashLabel.setText(this.dashReady ? 'DASH!' : 'dash...');
+        this.dashLabel.setStyle({ fill: this.dashReady ? '#FF8800' : '#666', backgroundColor: this.dashReady ? '#442200' : '#222' });
+
+        // Quest tracker
+        if (this.activeQuests.length > 0) {
+            const lines = this.activeQuests.map(q => {
+                let prog = '';
+                if (q.type === 'eggs') prog = ` (${Math.min(this.totalEggsCollected, q.target)}/${q.target})`;
+                if (q.type === 'golden') prog = ` (${Math.min(this.goldenEggsCollected, q.target)}/${q.target})`;
+                if (q.type === 'boss') prog = this.bossesDefeated[q.target] ? ' (Done!)' : '';
+                return `> ${q.desc}${prog}`;
+            });
+            this.questText.setText(lines.join('\n'));
+        } else {
+            this.questText.setText('');
         }
     }
 
-    updateCrowLabel() {
-        if (this.crowReady) {
-            this.crowLabel.setStyle({ fill: '#FFD700', backgroundColor: '#440000' });
-            this.crowLabel.setText('CROW!');
-        } else {
-            this.crowLabel.setStyle({ fill: '#888888', backgroundColor: '#222222' });
-            this.crowLabel.setText('crow...');
-        }
-    }
-
-    updateDashLabel() {
-        if (this.dashReady) {
-            this.dashLabel.setStyle({ fill: '#FF8800', backgroundColor: '#442200' });
-            this.dashLabel.setText('DASH!');
-        } else {
-            this.dashLabel.setStyle({ fill: '#888888', backgroundColor: '#222222' });
-            this.dashLabel.setText('dash...');
+    updateShield() {
+        if (this.shieldSprite && this.shieldSprite.active) {
+            this.shieldSprite.setPosition(this.player.x, this.player.y);
         }
     }
 
     updateMagnet() {
         if (!this.activePowerups.magnet) return;
-
         this.eggGroup.getChildren().forEach(egg => {
-            if (egg.getData('eggType') === 'rotten') return;  // don't attract rotten eggs
-            const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, egg.x, egg.y);
-            if (dist < POWERUP_MAGNET_RADIUS) {
-                const angle = Phaser.Math.Angle.Between(egg.x, egg.y, this.player.x, this.player.y);
-                const pullSpeed = 3;
-                egg.x += Math.cos(angle) * pullSpeed;
-                egg.y += Math.sin(angle) * pullSpeed;
+            if (egg.getData('eggType') === 'rotten') return;
+            const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, egg.x, egg.y);
+            if (d < 150) {
+                const a = Phaser.Math.Angle.Between(egg.x, egg.y, this.player.x, this.player.y);
+                egg.x += Math.cos(a) * 3;
+                egg.y += Math.sin(a) * 3;
                 egg.body.reset(egg.x, egg.y);
             }
         });
     }
 
     updateEnvironment() {
-        // Check mud overlap
-        this.playerOnMud = false;
-        this.mudGroup.getChildren().forEach(mud => {
-            const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, mud.x, mud.y);
-            if (dist < 24) this.playerOnMud = true;
-        });
-
-        // Check ice overlap
-        this.playerOnIce = false;
-        this.iceGroup.getChildren().forEach(ice => {
-            const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, ice.x, ice.y);
-            if (dist < 24) this.playerOnIce = true;
-        });
-    }
-
-    updateShieldSprite() {
-        if (this.shieldSprite && this.shieldSprite.active) {
-            this.shieldSprite.setPosition(this.player.x, this.player.y);
-        }
-    }
-
-    updateComboDisplay() {
-        if (this.comboMultiplier > 1) {
-            this.comboText.setText(`x${this.comboMultiplier} COMBO!`);
-            this.comboText.setStyle({ fill: this.comboMultiplier >= 4 ? '#FF4400' : '#FF8800' });
-        } else {
-            this.comboText.setText('');
+        // Ice visual hint
+        if (this.playerOnIce) {
+            this.player.setTint(0xCCDDFF);
+        } else if (!this.activePowerups.shield) {
+            this.player.clearTint();
         }
     }
 
     // ------------------------------------------------------------------
-    //  Level timer
+    //  DIALOGUE
     // ------------------------------------------------------------------
 
-    tickLevelTimer() {
-        if (this.paused || this.levelComplete || this.playerDead) return;
-        this.levelTimeLeft--;
-        this.timerText.setText(`Time: ${this.levelTimeLeft}s`);
-
-        if (this.levelTimeLeft <= 10) {
-            this.timerText.setStyle({ fill: '#FF4444', fontSize: '13px' });
-        }
-
-        if (this.levelTimeLeft <= 0) {
-            // Time's up — lose a life
-            this.lives--;
-            this.createHeartDisplay();
-            this.cameras.main.flash(400, 255, 100, 0);
-
-            if (this.lives <= 0) {
-                this.gameOver();
-            } else {
-                // Show warning and restart level with remaining lives
-                this.showTimeUpWarning();
-            }
-        }
-    }
-
-    showTimeUpWarning() {
-        const W = this.scale.width;
-        const H = this.scale.height;
-
-        this.paused = true;
+    showDialogue(npc) {
+        const def = npc.getData('npcDef');
+        this.dialogueActive = true;
+        this.dialogueNPC = npc;
         this.player.setVelocity(0, 0);
-        this.bunnyGroup.getChildren().forEach(b => b.setVelocity(0, 0));
 
-        const overlay = this.add.graphics().setDepth(60);
-        overlay.fillStyle(0x000000, 0.7);
-        overlay.fillRect(0, 0, W, H);
+        // Activate quest if NPC has one and not already active/completed
+        if (def.quest && !this.completedQuests[def.quest.id] && !this.activeQuests.find(q => q.id === def.quest.id)) {
+            this.activeQuests.push(def.quest);
+        }
 
-        const t1 = this.add.text(W / 2, H / 2 - 30, "Time's Up!", {
-            fontSize: '36px', fontFamily: 'Georgia, serif',
-            fill: '#FF6644', stroke: '#000000', strokeThickness: 4,
-        }).setOrigin(0.5).setDepth(61);
+        const idx = npc.getData('dialogueIdx');
+        const text = def.dialogues[idx % def.dialogues.length];
+        npc.setData('dialogueIdx', idx + 1);
 
-        const t2 = this.add.text(W / 2, H / 2 + 20, 'You lost a life! Retrying level...', {
-            fontSize: '16px', fontFamily: 'Arial, sans-serif', fill: '#FFFFCC',
-        }).setOrigin(0.5).setDepth(61);
+        this.dlgBox.setVisible(true);
+        this.dlgName.setText(def.name).setVisible(true);
+        this.dlgText.setText('').setVisible(true);
+        this.dlgPrompt.setVisible(true);
 
-        this.time.delayedCall(2000, () => {
-            this.scene.start('GameScene', {
-                level: this.currentLevel,
-                score: this.score,
-                lives: this.lives,
-            });
-        });
+        this.currentFullText = text;
+        this.typewriterDone = false;
+        this.startTypewriter(text);
     }
 
-    // ------------------------------------------------------------------
-    //  DASH
-    // ------------------------------------------------------------------
-
-    useDash() {
-        if (!this.dashReady || this.isDashing) return;
-
-        const vx = this.player.body.velocity.x;
-        const vy = this.player.body.velocity.y;
-        if (vx === 0 && vy === 0) return;  // need to be moving
-
-        this.isDashing = true;
-        this.dashReady = false;
-
-        // Normalize direction
-        const mag = Math.sqrt(vx * vx + vy * vy);
-        this.dashDir = { x: vx / mag, y: vy / mag };
-
-        this.player.setVelocity(this.dashDir.x * DASH_SPEED, this.dashDir.y * DASH_SPEED);
-
-        // Temporary invincibility during dash
-        this.isInvincible = true;
-
-        // Trail effect
-        const trailInterval = this.time.addEvent({
-            delay: 30,
+    startTypewriter(text) {
+        let i = 0;
+        if (this.typewriterTimer) this.typewriterTimer.remove();
+        this.typewriterTimer = this.time.addEvent({
+            delay: DIALOGUE_CHAR_DELAY,
             callback: () => {
-                const trail = this.add.image(this.player.x, this.player.y, 'dashtrail')
-                    .setDepth(8).setAlpha(0.6);
-                this.tweens.add({
-                    targets: trail, alpha: 0, scaleX: 0.3, scaleY: 0.3,
-                    duration: 300, onComplete: () => trail.destroy(),
-                });
+                i++;
+                this.dlgText.setText(text.substring(0, i));
+                if (i >= text.length) { this.typewriterTimer.remove(); this.typewriterDone = true; }
             },
-            repeat: Math.floor(DASH_DURATION / 30),
-        });
-
-        // End dash
-        this.time.delayedCall(DASH_DURATION, () => {
-            this.isDashing = false;
-            if (!this.invincibleTimer) {
-                this.isInvincible = false;
-            }
-            trailInterval.remove();
-        });
-
-        // Cooldown
-        this.dashCooldownTimer = this.time.delayedCall(DASH_COOLDOWN, () => {
-            this.dashReady = true;
+            loop: true,
         });
     }
 
+    advanceDialogue() {
+        if (!this.typewriterDone) {
+            // Skip to full text
+            if (this.typewriterTimer) this.typewriterTimer.remove();
+            this.dlgText.setText(this.currentFullText);
+            this.typewriterDone = true;
+            return;
+        }
+        this.closeDialogue();
+    }
+
+    closeDialogue() {
+        this.dialogueActive = false;
+        this.dialogueNPC = null;
+        this.dlgBox.setVisible(false);
+        this.dlgName.setVisible(false);
+        this.dlgText.setVisible(false);
+        this.dlgPrompt.setVisible(false);
+        if (this.typewriterTimer) this.typewriterTimer.remove();
+
+        // Check quest completion after dialogue
+        this.checkQuests();
+    }
+
     // ------------------------------------------------------------------
-    //  CROW POWER
+    //  QUESTS
+    // ------------------------------------------------------------------
+
+    checkQuests() {
+        this.activeQuests = this.activeQuests.filter(q => {
+            if (this.completedQuests[q.id]) return false;
+            let done = false;
+            if (q.type === 'eggs' && this.totalEggsCollected >= q.target) done = true;
+            if (q.type === 'golden' && this.goldenEggsCollected >= q.target) done = true;
+            if (q.type === 'boss' && this.bossesDefeated[q.target]) done = true;
+            if (done) {
+                this.completeQuest(q);
+                return false;
+            }
+            return true;
+        });
+    }
+
+    completeQuest(quest) {
+        this.completedQuests[quest.id] = true;
+
+        // Reward
+        if (quest.rewardType === 'life') {
+            this.lives = Math.min(this.lives + 1, 5);
+            this.createHeartDisplay();
+        } else if (quest.rewardType === 'score500') {
+            this.score += 500;
+        } else if (quest.rewardType === 'speed') {
+            // Permanent slight speed boost — handled by checking completedQuests in input
+        }
+
+        // Notification
+        const W = this.scale.width;
+        const notify = this.add.text(W / 2, 70, `Quest Complete: ${quest.desc}!`, {
+            fontSize: '18px', fill: '#FFD700', stroke: '#000', strokeThickness: 3,
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(150);
+        this.tweens.add({ targets: notify, y: 50, alpha: 0, duration: 3000, onComplete: () => notify.destroy() });
+        this.cameras.main.flash(400, 255, 215, 0);
+    }
+
+    // ------------------------------------------------------------------
+    //  ABILITIES
     // ------------------------------------------------------------------
 
     useCrowPower() {
         if (!this.crowReady) return;
         this.crowReady = false;
 
-        const burst = this.add.image(this.player.x, this.player.y, 'crowburst')
-            .setDepth(15).setAlpha(0.9);
-        this.tweens.add({
-            targets: burst, scaleX: 3.5, scaleY: 3.5, alpha: 0,
-            duration: 600, onComplete: () => burst.destroy(),
-        });
+        const burst = this.add.image(this.player.x, this.player.y, 'crowburst').setDepth(15).setAlpha(0.9);
+        this.tweens.add({ targets: burst, scaleX: 3.5, scaleY: 3.5, alpha: 0, duration: 600, onComplete: () => burst.destroy() });
 
         this.bunnyGroup.getChildren().forEach(bunny => {
-            const dist = Phaser.Math.Distance.Between(
-                this.player.x, this.player.y, bunny.x, bunny.y
-            );
-            if (dist < CROW_STUN_RADIUS) {
+            if (Phaser.Math.Distance.Between(this.player.x, this.player.y, bunny.x, bunny.y) < CROW_STUN_RADIUS) {
                 this.stunBunny(bunny);
             }
         });
 
-        if (this.crowCooldownTimer) this.crowCooldownTimer.remove();
-        this.crowCooldownTimer = this.time.delayedCall(CROW_COOLDOWN, () => {
-            this.crowReady = true;
-        });
+        this.time.delayedCall(CROW_COOLDOWN, () => { this.crowReady = true; });
     }
 
     stunBunny(bunny) {
-        const bunnyType = bunny.getData('bunnyType');
+        const type = bunny.getData('bunnyType');
 
-        // Boss requires multiple stuns
-        if (bunnyType === 'boss') {
-            let hp = bunny.getData('bossHP');
-            hp--;
+        if (type === 'boss') {
+            let hp = bunny.getData('bossHP') - 1;
             bunny.setData('bossHP', hp);
-
-            // Show HP
-            const hpText = this.add.text(bunny.x, bunny.y - 30,
-                `HP: ${hp}/${bunny.getData('bossMaxHP')}`, {
+            const hpText = this.add.text(bunny.x, bunny.y - 30, `HP: ${hp}/3`, {
                 fontSize: '14px', fill: '#FF4444', stroke: '#000', strokeThickness: 2,
             }).setOrigin(0.5).setDepth(15);
-            this.tweens.add({
-                targets: hpText, y: hpText.y - 30, alpha: 0,
-                duration: 1200, onComplete: () => hpText.destroy(),
-            });
+            this.tweens.add({ targets: hpText, y: hpText.y - 30, alpha: 0, duration: 1200, onComplete: () => hpText.destroy() });
 
             if (hp <= 0) {
-                // Boss defeated!
-                this.bossDefeated = true;
-                const defeatText = this.add.text(bunny.x, bunny.y - 20, 'BOSS DEFEATED!', {
-                    fontSize: '20px', fill: '#FFD700', stroke: '#000', strokeThickness: 3,
-                }).setOrigin(0.5).setDepth(30);
-                this.tweens.add({
-                    targets: defeatText, y: defeatText.y - 60, alpha: 0,
-                    duration: 2000, onComplete: () => defeatText.destroy(),
-                });
-                // Big score bonus
+                this.bossesDefeated[bunny.getData('biome')] = true;
                 this.score += 200;
-                this.scoreText.setText(`Score: ${this.score}`);
+                const dt = this.add.text(bunny.x, bunny.y - 20, 'BOSS DEFEATED! +200', {
+                    fontSize: '18px', fill: '#FFD700', stroke: '#000', strokeThickness: 3,
+                }).setOrigin(0.5).setDepth(30);
+                this.tweens.add({ targets: dt, y: dt.y - 60, alpha: 0, duration: 2000, onComplete: () => dt.destroy() });
                 bunny.destroy();
                 this.cameras.main.flash(500, 255, 215, 0);
+                this.checkQuests();
                 return;
             }
         }
@@ -1770,26 +1567,44 @@ class GameScene extends Phaser.Scene {
         bunny.setVelocity(0, 0);
         bunny.setTexture(bunny.getData('stunnedTextureKey'));
 
-        const starText = this.add.text(bunny.x, bunny.y - 20, '***', {
-            fontSize: '16px', fill: '#FFFF00',
-        }).setDepth(15);
-        this.tweens.add({
-            targets: starText, y: bunny.y - 50, alpha: 0,
-            duration: CROW_STUN_DURATION, onComplete: () => starText.destroy(),
+        const stars = this.add.text(bunny.x, bunny.y - 20, '***', { fontSize: '14px', fill: '#FFFF00' }).setDepth(15);
+        this.tweens.add({ targets: stars, y: bunny.y - 50, alpha: 0, duration: CROW_STUN_DURATION, onComplete: () => stars.destroy() });
+
+        const old = bunny.getData('stunnedTimer');
+        if (old) old.remove();
+        const dur = type === 'boss' ? CROW_STUN_DURATION * 0.5 : CROW_STUN_DURATION;
+        bunny.setData('stunnedTimer', this.time.delayedCall(dur, () => {
+            if (bunny.active) { bunny.setData('stunned', false); bunny.setTexture(bunny.getData('textureKey')); bunny.clearTint(); }
+        }));
+    }
+
+    useDash() {
+        if (!this.dashReady || this.isDashing) return;
+        const vx = this.player.body.velocity.x, vy = this.player.body.velocity.y;
+        if (vx === 0 && vy === 0) return;
+
+        this.isDashing = true;
+        this.dashReady = false;
+        this.isInvincible = true;
+
+        const mag = Math.sqrt(vx * vx + vy * vy);
+        this.player.setVelocity((vx / mag) * DASH_SPEED, (vy / mag) * DASH_SPEED);
+
+        const trail = this.time.addEvent({
+            delay: 30,
+            callback: () => {
+                const t = this.add.image(this.player.x, this.player.y, 'dashtrail').setDepth(8).setAlpha(0.6);
+                this.tweens.add({ targets: t, alpha: 0, scaleX: 0.3, scaleY: 0.3, duration: 300, onComplete: () => t.destroy() });
+            },
+            repeat: Math.floor(DASH_DURATION / 30),
         });
 
-        const existingTimer = bunny.getData('stunnedTimer');
-        if (existingTimer) existingTimer.remove();
-
-        const stunDur = bunnyType === 'boss' ? CROW_STUN_DURATION * 0.6 : CROW_STUN_DURATION;
-        const t = this.time.delayedCall(stunDur, () => {
-            if (bunny && bunny.active) {
-                bunny.setData('stunned', false);
-                bunny.setTexture(bunny.getData('textureKey'));
-                bunny.clearTint();
-            }
+        this.time.delayedCall(DASH_DURATION, () => {
+            this.isDashing = false;
+            if (!this.invincibleTimer && !this.activePowerups.shield) this.isInvincible = false;
+            trail.remove();
         });
-        bunny.setData('stunnedTimer', t);
+        this.time.delayedCall(DASH_COOLDOWN, () => { this.dashReady = true; });
     }
 
     // ------------------------------------------------------------------
@@ -1797,34 +1612,26 @@ class GameScene extends Phaser.Scene {
     // ------------------------------------------------------------------
 
     spawnPowerup() {
-        if (this.paused || this.levelComplete || this.playerDead) return;
-
-        // Limit active power-ups on field
+        if (this.paused || this.playerDead || this.dialogueActive) return;
         if (this.powerupGroup.getChildren().length >= 2) return;
 
-        const type = POWERUP_TYPES[Phaser.Math.Between(0, POWERUP_TYPES.length - 1)];
-        // Don't spawn extra life if already at 5
+        const types = ['speed', 'shield', 'magnet', 'freeze', 'extralife'];
+        const type = types[Phaser.Math.Between(0, types.length - 1)];
         if (type === 'extralife' && this.lives >= 5) return;
 
-        const pos = this.findSafeSpawnPos(60);
-        const pu = this.powerupGroup.create(pos.x, pos.y, 'powerup_' + type);
+        // Spawn near player
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 100 + Math.random() * 150;
+        const px = this.player.x + Math.cos(angle) * dist;
+        const py = this.player.y + Math.sin(angle) * dist;
+        if (px < TILE || py < TILE || px > (WORLD_W - 1) * TILE || py > (WORLD_H - 1) * TILE) return;
+
+        const pu = this.powerupGroup.create(px, py, 'powerup_' + type);
         pu.setData('powerupType', type);
         pu.setDepth(8);
-
-        // Pulsing glow
-        this.tweens.add({
-            targets: pu, scaleX: 1.3, scaleY: 1.3,
-            yoyo: true, repeat: -1, duration: 500,
-        });
-
-        // Auto-destroy after lifetime
-        this.time.delayedCall(POWERUP_LIFETIME, () => {
-            if (pu && pu.active) {
-                this.tweens.add({
-                    targets: pu, alpha: 0, duration: 500,
-                    onComplete: () => { if (pu.active) pu.destroy(); },
-                });
-            }
+        this.tweens.add({ targets: pu, scaleX: 1.3, scaleY: 1.3, yoyo: true, repeat: -1, duration: 500 });
+        this.time.delayedCall(8000, () => {
+            if (pu.active) this.tweens.add({ targets: pu, alpha: 0, duration: 500, onComplete: () => { if (pu.active) pu.destroy(); } });
         });
     }
 
@@ -1832,94 +1639,31 @@ class GameScene extends Phaser.Scene {
         const type = pu.getData('powerupType');
         pu.destroy();
 
-        // Floating label
-        const labels = {
-            speed: 'SPEED!', shield: 'SHIELD!', magnet: 'MAGNET!',
-            freeze: 'FREEZE!', extralife: '+1 LIFE!',
-        };
-        const colors = {
-            speed: '#FFDD00', shield: '#44AAFF', magnet: '#FF4444',
-            freeze: '#CCEEFF', extralife: '#FF88CC',
-        };
+        const labels = { speed: 'SPEED!', shield: 'SHIELD!', magnet: 'MAGNET!', freeze: 'FREEZE!', extralife: '+1 LIFE!' };
+        const colors = { speed: '#FFDD00', shield: '#44AAFF', magnet: '#FF4444', freeze: '#CCEEFF', extralife: '#FF88CC' };
 
-        const floatText = this.add.text(player.x, player.y - 20, labels[type], {
-            fontSize: '18px', fontFamily: 'Arial, sans-serif',
-            fill: colors[type], stroke: '#000000', strokeThickness: 3,
+        const ft = this.add.text(player.x, player.y - 20, labels[type], {
+            fontSize: '18px', fill: colors[type], stroke: '#000', strokeThickness: 3,
         }).setOrigin(0.5).setDepth(30);
-        this.tweens.add({
-            targets: floatText, y: floatText.y - 50, alpha: 0,
-            duration: 1000, onComplete: () => floatText.destroy(),
+        this.tweens.add({ targets: ft, y: ft.y - 50, alpha: 0, duration: 1000, onComplete: () => ft.destroy() });
+
+        if (type === 'extralife') { this.lives = Math.min(this.lives + 1, 5); this.createHeartDisplay(); return; }
+
+        const durations = { speed: 6000, shield: 5000, magnet: 6000, freeze: 4000 };
+        if (this.activePowerups[type] && this.activePowerups[type].timer) this.activePowerups[type].timer.remove();
+
+        const timer = this.time.delayedCall(durations[type], () => {
+            delete this.activePowerups[type];
+            if (type === 'shield') { if (!this.invincibleTimer) this.isInvincible = false; if (this.shieldSprite) { this.shieldSprite.destroy(); this.shieldSprite = null; } }
+            if (type === 'freeze') this.bunnyGroup.getChildren().forEach(b => b.clearTint());
         });
+        this.activePowerups[type] = { timer };
 
-        this.cameras.main.flash(150, 100, 200, 255, false);
-
-        if (type === 'extralife') {
-            this.lives = Math.min(this.lives + 1, 5);
-            this.createHeartDisplay();
-            return;
-        }
-
-        // Duration-based power-ups
-        const durations = {
-            speed: POWERUP_SPEED_DURATION,
-            shield: POWERUP_SHIELD_DURATION,
-            magnet: POWERUP_MAGNET_DURATION,
-            freeze: POWERUP_FREEZE_DURATION,
-        };
-
-        // Cancel existing timer if refreshing
-        if (this.activePowerups[type] && this.activePowerups[type].timer) {
-            this.activePowerups[type].timer.remove();
-        }
-
-        const duration = durations[type];
-        const timer = this.time.delayedCall(duration, () => {
-            this.deactivatePowerup(type);
-        });
-
-        this.activePowerups[type] = {
-            timer: timer,
-            endTime: this.time.now + duration,
-        };
-
-        // Apply immediate effects
         if (type === 'shield') {
             this.isInvincible = true;
-            if (!this.shieldSprite) {
-                this.shieldSprite = this.add.image(this.player.x, this.player.y, 'player_shield')
-                    .setDepth(11).setAlpha(0.6);
-            }
+            if (!this.shieldSprite) this.shieldSprite = this.add.image(player.x, player.y, 'shield_bubble').setDepth(11).setAlpha(0.6);
         }
-
-        if (type === 'freeze') {
-            // Visual feedback — screen flash blue
-            this.cameras.main.flash(300, 100, 150, 255, false);
-        }
-    }
-
-    deactivatePowerup(type) {
-        delete this.activePowerups[type];
-
-        if (type === 'shield') {
-            if (!this.invincibleTimer) {
-                this.isInvincible = false;
-            }
-            if (this.shieldSprite) {
-                this.shieldSprite.destroy();
-                this.shieldSprite = null;
-            }
-        }
-
-        if (type === 'freeze') {
-            // Unfreeze all bunnies visually
-            this.bunnyGroup.getChildren().forEach(b => b.clearTint());
-        }
-
-        // Clean up indicator
-        if (this.powerupIndicators[type]) {
-            this.powerupIndicators[type].destroy();
-            delete this.powerupIndicators[type];
-        }
+        if (type === 'freeze') this.cameras.main.flash(300, 100, 150, 255);
     }
 
     // ------------------------------------------------------------------
@@ -1927,41 +1671,25 @@ class GameScene extends Phaser.Scene {
     // ------------------------------------------------------------------
 
     onCaughtByBunny(player, bunny) {
-        if (this.isInvincible) return;
-        if (bunny.getData('stunned')) return;
+        if (this.isInvincible || bunny.getData('stunned') || this.dialogueActive) return;
 
         this.lives--;
+        this.comboCount = 0; this.comboMult = 1;
         this.createHeartDisplay();
 
-        // Reset combo
-        this.comboCount = 0;
-        this.comboMultiplier = 1;
-
-        if (this.lives <= 0) {
-            this.gameOver();
-            return;
-        }
+        if (this.lives <= 0) { this.gameOver(); return; }
 
         this.isInvincible = true;
         this.player.setTexture('player_stunned');
-
         this.tweens.add({
             targets: this.player, alpha: 0, yoyo: true, repeat: 7, duration: 200,
-            onComplete: () => {
-                if (this.player.active) {
-                    this.player.setAlpha(1);
-                    this.player.setTexture('player');
-                }
-            },
+            onComplete: () => { if (this.player.active) { this.player.setAlpha(1); this.player.setTexture('player'); } },
         });
-
         this.cameras.main.flash(300, 255, 0, 0);
 
         if (this.invincibleTimer) this.invincibleTimer.remove();
         this.invincibleTimer = this.time.delayedCall(INVINCIBLE_DURATION, () => {
-            if (!this.activePowerups.shield) {
-                this.isInvincible = false;
-            }
+            if (!this.activePowerups.shield) this.isInvincible = false;
             this.invincibleTimer = null;
             if (this.player.active) this.player.setTexture('player');
         });
@@ -1972,368 +1700,160 @@ class GameScene extends Phaser.Scene {
         const eggType = egg.getData('eggType');
 
         if (eggType === 'rotten') {
-            // Rotten egg penalty
             this.score = Math.max(0, this.score + basePoints);
-            this.scoreText.setText(`Score: ${this.score}`);
-
-            // Stun player briefly
-            const floatText = this.add.text(egg.x, egg.y, `${basePoints}`, {
-                fontSize: '20px', fontFamily: 'Arial, sans-serif',
-                fill: '#88AA22', stroke: '#000000', strokeThickness: 3,
-            }).setOrigin(0.5).setDepth(30);
-            this.tweens.add({
-                targets: floatText, y: floatText.y - 50, alpha: 0,
-                duration: 800, onComplete: () => floatText.destroy(),
-            });
-
-            this.cameras.main.flash(200, 100, 150, 0, false);
-
-            // Brief slowdown
+            const ft = this.add.text(egg.x, egg.y, `${basePoints}`, { fontSize: '20px', fill: '#88AA22', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(30);
+            this.tweens.add({ targets: ft, y: ft.y - 50, alpha: 0, duration: 800, onComplete: () => ft.destroy() });
+            this.cameras.main.flash(200, 100, 150, 0);
             this.player.setVelocity(0, 0);
-            const wasPaused = this.paused;
-            this.paused = true;
-            this.time.delayedCall(500, () => {
-                this.paused = wasPaused;
-            });
-
-            // Reset combo
-            this.comboCount = 0;
-            this.comboMultiplier = 1;
-
+            this.comboCount = 0; this.comboMult = 1;
             egg.destroy();
             return;
         }
 
-        // Good egg collected
-        // Combo system
+        // Combo
         this.comboCount++;
-        if (this.comboCount >= 2) {
-            this.comboMultiplier = Math.min(this.comboCount, COMBO_MAX_MULT);
-        } else {
-            this.comboMultiplier = 1;
-        }
-
-        // Reset combo timer
+        this.comboMult = this.comboCount >= 2 ? Math.min(this.comboCount, COMBO_MAX) : 1;
         if (this.comboTimer) this.comboTimer.remove();
-        this.comboTimer = this.time.delayedCall(COMBO_WINDOW, () => {
-            this.comboCount = 0;
-            this.comboMultiplier = 1;
-        });
+        this.comboTimer = this.time.delayedCall(COMBO_WINDOW, () => { this.comboCount = 0; this.comboMult = 1; });
 
-        const points = basePoints * this.comboMultiplier;
+        const points = basePoints * this.comboMult;
         this.score += points;
-        this.eggsLeft--;
+        this.totalEggsCollected++;
+        if (eggType === 'golden') this.goldenEggsCollected++;
 
-        // Floating score text
-        const comboStr = this.comboMultiplier > 1 ? ` x${this.comboMultiplier}` : '';
-        const floatText = this.add.text(egg.x, egg.y, `+${points}${comboStr}`, {
-            fontSize: this.comboMultiplier > 1 ? '24px' : '20px',
-            fontFamily: 'Arial, sans-serif',
+        const cs = this.comboMult > 1 ? ` x${this.comboMult}` : '';
+        const ft = this.add.text(egg.x, egg.y, `+${points}${cs}`, {
+            fontSize: this.comboMult > 1 ? '22px' : '18px',
             fill: eggType === 'golden' ? '#FFD700' : eggType === 'chocolate' ? '#D2691E' : '#FFFFFF',
-            stroke: '#000000',
-            strokeThickness: 3,
+            stroke: '#000', strokeThickness: 3,
         }).setOrigin(0.5).setDepth(30);
+        this.tweens.add({ targets: ft, y: ft.y - 50, alpha: 0, duration: 800, onComplete: () => ft.destroy() });
 
-        this.tweens.add({
-            targets: floatText, y: floatText.y - 50, alpha: 0,
-            duration: 800, onComplete: () => floatText.destroy(),
-        });
-
-        // Camera flash
-        if (eggType === 'golden') {
-            this.cameras.main.flash(200, 255, 215, 0, false);
-        } else if (eggType === 'chocolate') {
-            this.cameras.main.flash(100, 100, 50, 0, false);
-            // Chocolate gives brief speed boost
+        if (eggType === 'golden') this.cameras.main.flash(200, 255, 215, 0);
+        else if (eggType === 'chocolate') {
+            this.cameras.main.flash(100, 100, 50, 0);
+            // Brief speed boost
             if (!this.activePowerups.speed) {
-                const timer = this.time.delayedCall(2000, () => {
-                    this.deactivatePowerup('speed');
-                });
-                this.activePowerups.speed = { timer, endTime: this.time.now + 2000 };
+                const t = this.time.delayedCall(2000, () => { delete this.activePowerups.speed; });
+                this.activePowerups.speed = { timer: t };
             }
         } else {
-            this.cameras.main.flash(100, 0, 200, 0, false);
+            this.cameras.main.flash(100, 0, 200, 0);
         }
-
-        // Update HUD
-        this.scoreText.setText(`Score: ${this.score}`);
-        this.eggsText.setText(`Eggs: ${this.eggsLeft}`);
 
         egg.destroy();
-
-        if (this.eggsLeft <= 0) {
-            this.levelComplete = true;
-            this.time.delayedCall(300, () => {
-                this.completeLevelTransition();
-            });
-        }
+        this.checkQuests();
     }
 
     // ------------------------------------------------------------------
-    //  LEVEL TRANSITIONS
+    //  GAME OVER / PAUSE
     // ------------------------------------------------------------------
-
-    completeLevelTransition() {
-        const W = this.scale.width;
-        const H = this.scale.height;
-
-        this.bunnyGroup.getChildren().forEach(b => b.setVelocity(0, 0));
-        this.player.setVelocity(0, 0);
-        if (this.levelTimerEvent) this.levelTimerEvent.paused = true;
-        if (this.powerupSpawnTimer) this.powerupSpawnTimer.paused = true;
-
-        // Time bonus
-        const timeBonus = this.levelTimeLeft * TIME_BONUS_MULTIPLIER;
-        this.score += timeBonus;
-
-        const overlay = this.add.graphics().setDepth(60);
-        overlay.fillStyle(0x000000, 0.7);
-        overlay.fillRect(0, 0, W, H);
-
-        this.add.text(W / 2, H / 2 - 90, 'Level Complete!', {
-            fontSize: '30px', fontFamily: 'Georgia, serif',
-            fill: '#FFD700', stroke: '#8B4513', strokeThickness: 4,
-        }).setOrigin(0.5).setDepth(61);
-
-        this.add.text(W / 2, H / 2 - 40, `Score: ${this.score}`, {
-            fontSize: '22px', fontFamily: 'Arial, sans-serif', fill: '#FFFFFF',
-        }).setOrigin(0.5).setDepth(61);
-
-        this.add.text(W / 2, H / 2, `Time Bonus: +${timeBonus}`, {
-            fontSize: '18px', fontFamily: 'Arial, sans-serif',
-            fill: '#88FF88',
-        }).setOrigin(0.5).setDepth(61);
-
-        if (this.comboMultiplier > 1) {
-            this.add.text(W / 2, H / 2 + 30, `Best Combo: x${this.comboMultiplier}`, {
-                fontSize: '16px', fontFamily: 'Arial, sans-serif', fill: '#FF8800',
-            }).setOrigin(0.5).setDepth(61);
-        }
-
-        const nextLevel = this.currentLevel + 1;
-        this.add.text(W / 2, H / 2 + 60, `Next: Level ${nextLevel}`, {
-            fontSize: '20px', fontFamily: 'Arial, sans-serif', fill: '#FFFFCC',
-        }).setOrigin(0.5).setDepth(61);
-
-        const cont = this.add.text(W / 2, H / 2 + 100, 'Tap or press any key', {
-            fontSize: '16px', fontFamily: 'Arial, sans-serif', fill: '#AAAAAA',
-        }).setOrigin(0.5).setDepth(61);
-        this.tweens.add({ targets: cont, alpha: 0, yoyo: true, repeat: -1, duration: 600 });
-
-        const goNext = () => {
-            this.scene.start('GameScene', {
-                level: nextLevel,
-                score: this.score,
-                lives: this.lives,
-            });
-        };
-
-        this.time.delayedCall(800, () => {
-            this.input.keyboard.once('keydown', goNext);
-            this.input.once('pointerdown', goNext);
-        });
-    }
 
     gameOver() {
         this.playerDead = true;
         this.player.setVelocity(0, 0);
         this.bunnyGroup.getChildren().forEach(b => b.setVelocity(0, 0));
-        if (this.levelTimerEvent) this.levelTimerEvent.paused = true;
-        if (this.powerupSpawnTimer) this.powerupSpawnTimer.paused = true;
 
-        // Save score to leaderboard
         const stored = localStorage.getItem('mrkluckLeaderboard');
         let lb = stored ? JSON.parse(stored) : [];
-        const initials = 'MRK';
-        lb.push({ name: initials, score: this.score, level: this.currentLevel });
+        lb.push({ name: 'MRK', score: this.score, level: this.totalEggsCollected + ' eggs' });
         lb.sort((a, b) => b.score - a.score);
         lb = lb.slice(0, 5);
         localStorage.setItem('mrkluckLeaderboard', JSON.stringify(lb));
 
-        const W = this.scale.width;
-        const H = this.scale.height;
+        const W = this.scale.width, H = this.scale.height;
+        const ov = this.add.graphics().setScrollFactor(0).setDepth(200);
+        ov.fillStyle(0x000000, 0.75); ov.fillRect(0, 0, W, H);
 
-        const overlay = this.add.graphics().setDepth(60);
-        overlay.fillStyle(0x000000, 0.75);
-        overlay.fillRect(0, 0, W, H);
+        this.add.text(W/2, H/2-90, 'GAME OVER', {
+            fontSize: '44px', fontFamily: 'Georgia, serif', fill: '#FF3333', stroke: '#000', strokeThickness: 6,
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+        this.add.text(W/2, H/2-30, 'The bunnies caught you!', { fontSize: '18px', fill: '#FFFFCC' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+        this.add.text(W/2, H/2+10, `Final Score: ${this.score}`, { fontSize: '24px', fill: '#FFD700' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+        this.add.text(W/2, H/2+50, `Eggs Collected: ${this.totalEggsCollected}`, { fontSize: '18px', fill: '#FFF' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
 
-        this.add.text(W / 2, H / 2 - 90, 'GAME OVER', {
-            fontSize: '44px', fontFamily: 'Georgia, serif',
-            fill: '#FF3333', stroke: '#000000', strokeThickness: 6,
-        }).setOrigin(0.5).setDepth(61);
-
-        this.add.text(W / 2, H / 2 - 30, 'The Easter Bunny caught you!', {
-            fontSize: '18px', fontFamily: 'Arial, sans-serif', fill: '#FFFFCC',
-        }).setOrigin(0.5).setDepth(61);
-
-        this.add.text(W / 2, H / 2 + 10, `Final Score: ${this.score}`, {
-            fontSize: '24px', fontFamily: 'Arial, sans-serif', fill: '#FFD700',
-        }).setOrigin(0.5).setDepth(61);
-
-        this.add.text(W / 2, H / 2 + 50, `Reached Level: ${this.currentLevel}`, {
-            fontSize: '18px', fontFamily: 'Arial, sans-serif', fill: '#FFFFFF',
-        }).setOrigin(0.5).setDepth(61);
-
-        const tap = this.add.text(W / 2, H / 2 + 110, 'Tap to return to menu', {
-            fontSize: '16px', fontFamily: 'Arial, sans-serif', fill: '#AAAAAA',
-        }).setOrigin(0.5).setDepth(61);
+        const tap = this.add.text(W/2, H/2+110, 'Tap to return to menu', { fontSize: '16px', fill: '#AAA' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
         this.tweens.add({ targets: tap, alpha: 0, yoyo: true, repeat: -1, duration: 700 });
 
         this.time.delayedCall(1000, () => {
-            const goMenu = () => { this.scene.start('BootScene'); };
-            this.input.keyboard.once('keydown', goMenu);
-            this.input.once('pointerdown', goMenu);
+            const go = () => this.scene.start('BootScene');
+            this.input.keyboard.once('keydown', go);
+            this.input.once('pointerdown', go);
         });
     }
 
     togglePause() {
         this.paused = !this.paused;
         if (this.paused) {
-            this.pauseBtn.setText('> Resume');
             this.player.setVelocity(0, 0);
             this.bunnyGroup.getChildren().forEach(b => b.setVelocity(0, 0));
-            if (this.levelTimerEvent) this.levelTimerEvent.paused = true;
-            if (this.powerupSpawnTimer) this.powerupSpawnTimer.paused = true;
-
-            const W = this.scale.width;
-            const H = this.scale.height;
-            this.pauseOverlay = this.add.graphics().setDepth(55);
-            this.pauseOverlay.fillStyle(0x000000, 0.6);
-            this.pauseOverlay.fillRect(0, 0, W, H);
-            this.pausedText = this.add.text(W / 2, H / 2, 'PAUSED', {
-                fontSize: '48px', fontFamily: 'Georgia, serif',
-                fill: '#FFD700', stroke: '#000000', strokeThickness: 5,
-            }).setOrigin(0.5).setDepth(56);
+            const W = this.scale.width, H = this.scale.height;
+            this.pauseOverlay = this.add.graphics().setScrollFactor(0).setDepth(180);
+            this.pauseOverlay.fillStyle(0x000000, 0.6); this.pauseOverlay.fillRect(0, 0, W, H);
+            this.pausedText = this.add.text(W/2, H/2, 'PAUSED', {
+                fontSize: '48px', fontFamily: 'Georgia, serif', fill: '#FFD700', stroke: '#000', strokeThickness: 5,
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(181);
         } else {
-            this.pauseBtn.setText('|| Pause');
-            if (this.levelTimerEvent) this.levelTimerEvent.paused = false;
-            if (this.powerupSpawnTimer) this.powerupSpawnTimer.paused = false;
             if (this.pauseOverlay) { this.pauseOverlay.destroy(); this.pauseOverlay = null; }
-            if (this.pausedText)   { this.pausedText.destroy();   this.pausedText   = null; }
+            if (this.pausedText) { this.pausedText.destroy(); this.pausedText = null; }
         }
     }
 
     // ------------------------------------------------------------------
-    //  Touch controls
+    //  TOUCH CONTROLS
     // ------------------------------------------------------------------
 
     setupTouchControls() {
-        this.swipeDir  = null;
         this.dpadState = { left: false, right: false, up: false, down: false };
-
-        let sx, sy;
-        this.input.on('pointerdown', p => { sx = p.downX; sy = p.downY; });
-        this.input.on('pointerup', p => {
-            const dx = p.upX - sx;
-            const dy = p.upY - sy;
-            const SWIPE_MIN = 30;
-            if (Math.abs(dx) > Math.abs(dy)) {
-                if (Math.abs(dx) > SWIPE_MIN) this.swipeDir = dx > 0 ? 'right' : 'left';
-            } else {
-                if (Math.abs(dy) > SWIPE_MIN) this.swipeDir = dy > 0 ? 'down' : 'up';
-            }
-        });
-
         this.createDPad();
     }
 
     createDPad() {
-        const W = this.scale.width;
-        const H = this.scale.height;
-
-        const dpSize = 44;
-        const dpX = 60;
-        const dpY = H - 80;
-        const alpha = 0.5;
+        const W = this.scale.width, H = this.scale.height;
+        const dpSize = 40, dpX = 55, dpY = H - 75, alpha = 0.45;
 
         const makeBtn = (label, bx, by, dir) => {
-            const bg = this.add.graphics().setDepth(25).setAlpha(alpha);
-            bg.fillStyle(0x444444);
-            bg.fillRoundedRect(bx - dpSize / 2, by - dpSize / 2, dpSize, dpSize, 8);
-
-            this.add.text(bx, by, label, {
-                fontSize: '20px', fill: '#FFFFFF',
-            }).setOrigin(0.5).setDepth(26);
-
-            const zone = this.add.zone(bx, by, dpSize, dpSize)
-                .setInteractive().setDepth(27);
-            zone.on('pointerdown', () => { this.dpadState[dir] = true;  });
-            zone.on('pointerup',   () => { this.dpadState[dir] = false; });
-            zone.on('pointerout',  () => { this.dpadState[dir] = false; });
+            const bg = this.add.graphics().setScrollFactor(0).setDepth(150).setAlpha(alpha);
+            bg.fillStyle(0x444444); bg.fillRoundedRect(bx - dpSize/2, by - dpSize/2, dpSize, dpSize, 8);
+            this.add.text(bx, by, label, { fontSize: '18px', fill: '#FFF' }).setOrigin(0.5).setScrollFactor(0).setDepth(151);
+            const zone = this.add.zone(bx, by, dpSize, dpSize).setInteractive().setScrollFactor(0).setDepth(152);
+            zone.on('pointerdown', () => { this.dpadState[dir] = true; });
+            zone.on('pointerup', () => { this.dpadState[dir] = false; });
+            zone.on('pointerout', () => { this.dpadState[dir] = false; });
         };
+        makeBtn('<', dpX - dpSize, dpY, 'left');
+        makeBtn('>', dpX + dpSize, dpY, 'right');
+        makeBtn('^', dpX, dpY - dpSize, 'up');
+        makeBtn('v', dpX, dpY + dpSize, 'down');
 
-        makeBtn('<', dpX - dpSize,  dpY,          'left');
-        makeBtn('>', dpX + dpSize,  dpY,          'right');
-        makeBtn('^', dpX,           dpY - dpSize, 'up');
-        makeBtn('v', dpX,           dpY + dpSize, 'down');
-
-        // Crow button (bottom-right)
-        const crowBtnX = W - 60;
-        const crowBtnY = H - 100;
-        const crowBg = this.add.graphics().setDepth(25).setAlpha(alpha);
-        crowBg.fillStyle(0x882200);
-        crowBg.fillCircle(crowBtnX, crowBtnY, 28);
-
-        this.add.text(crowBtnX, crowBtnY, 'CROW', {
-            fontSize: '12px', fill: '#FFDD00',
-        }).setOrigin(0.5).setDepth(26);
-
-        const crowZone = this.add.zone(crowBtnX, crowBtnY, 56, 56)
-            .setInteractive().setDepth(27);
-        crowZone.on('pointerdown', () => { this.useCrowPower(); });
-
-        // Dash button (bottom-right, below crow)
-        const dashBtnX = W - 60;
-        const dashBtnY = H - 45;
-        const dashBg = this.add.graphics().setDepth(25).setAlpha(alpha);
-        dashBg.fillStyle(0x884400);
-        dashBg.fillCircle(dashBtnX, dashBtnY, 24);
-
-        this.add.text(dashBtnX, dashBtnY, 'DASH', {
-            fontSize: '11px', fill: '#FFAA00',
-        }).setOrigin(0.5).setDepth(26);
-
-        const dashZone = this.add.zone(dashBtnX, dashBtnY, 48, 48)
-            .setInteractive().setDepth(27);
-        dashZone.on('pointerdown', () => { this.useDash(); });
-    }
-
-    // ------------------------------------------------------------------
-    //  Utility
-    // ------------------------------------------------------------------
-
-    findSafeSpawnPos(minDistFromPlayer) {
-        const W = this.scale.width;
-        const H = this.scale.height;
-        const MARGIN = 70;
-        const MAX_TRIES = 50;
-        const pd = minDistFromPlayer || 80;
-
-        for (let i = 0; i < MAX_TRIES; i++) {
-            const x = Phaser.Math.Between(MARGIN, W - MARGIN);
-            const y = Phaser.Math.Between(MARGIN + 70, H - MARGIN);
-            if (this.player) {
-                const dist = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y);
-                if (dist >= pd) return { x, y };
-            } else {
-                return { x, y };
-            }
-        }
-        return {
-            x: Phaser.Math.Between(MARGIN, W - MARGIN),
-            y: Phaser.Math.Between(MARGIN + 70, H - MARGIN),
+        // Action buttons (right side)
+        const makeBtnCircle = (label, bx, by, color, cb) => {
+            const bg = this.add.graphics().setScrollFactor(0).setDepth(150).setAlpha(alpha);
+            bg.fillStyle(color); bg.fillCircle(bx, by, 24);
+            this.add.text(bx, by, label, { fontSize: '10px', fill: '#FFF' }).setOrigin(0.5).setScrollFactor(0).setDepth(151);
+            const zone = this.add.zone(bx, by, 48, 48).setInteractive().setScrollFactor(0).setDepth(152);
+            zone.on('pointerdown', cb);
         };
+        makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => this.useCrowPower());
+        makeBtnCircle('DASH', W - 55, H - 55, 0x884400, () => this.useDash());
+        makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => { if (this.nearestNPC && !this.dialogueActive) this.showDialogue(this.nearestNPC); });
+
+        // Pause button (top-left)
+        const pauseBtn = this.add.text(this.scale.width / 2 - 55, 24, '|| Pause', {
+            fontSize: '11px', fill: '#FFF', backgroundColor: '#222', padding: { x: 3, y: 1 },
+        }).setScrollFactor(0).setDepth(101).setInteractive();
+        pauseBtn.on('pointerdown', () => this.togglePause());
     }
 }
 
 
 // ===================================================================
-//  PHASER GAME CONFIGURATION
+//  PHASER CONFIG
 // ===================================================================
 
 const config = {
     type: Phaser.AUTO,
-    backgroundColor: '#2D8C27',
+    backgroundColor: '#111111',
     scene: [BootScene, GameScene],
     scale: {
         mode: Phaser.Scale.FIT,
@@ -2342,16 +1862,10 @@ const config = {
         height: window.innerHeight,
         parent: 'game-container',
     },
-    render: {
-        pixelArt: false,
-        antialias: true,
-    },
+    render: { pixelArt: false, antialias: true },
     physics: {
         default: 'arcade',
-        arcade: {
-            gravity: { y: 0 },
-            debug: false,
-        },
+        arcade: { gravity: { y: 0 }, debug: false },
     },
 };
 
