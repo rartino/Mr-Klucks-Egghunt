@@ -51,6 +51,11 @@ self.addEventListener('fetch', function(event) {
                 if (event.request.headers.get('accept')?.includes('text/html')) {
                     return caches.match('./offline.html');
                 }
+
+                return new Response('Offline', {
+                    status: 503,
+                    statusText: 'Service Unavailable'
+                });
             });
         })
     );
