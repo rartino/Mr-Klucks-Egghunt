@@ -806,9 +806,9 @@ class GameScene extends Phaser.Scene {
 
         // Diagonal speed normalization
         if (vx !== 0 && vy !== 0) {
-            const norm = 1 / Math.SQRT2;
-            vx *= norm;
-            vy *= norm;
+            const diagonalSpeedFactor = 1 / Math.SQRT2;
+            vx *= diagonalSpeedFactor;
+            vy *= diagonalSpeedFactor;
         }
 
         this.player.setVelocity(vx, vy);

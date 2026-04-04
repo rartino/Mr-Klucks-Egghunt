@@ -47,7 +47,7 @@ fetch('./manifest.json')
                         return cachedResponse;
                     }
                     return fetch(event.request).catch(function() {
-                        if (event.request.headers.get('accept').includes('text/html')) {
+                        if (event.request.headers.get('accept')?.includes('text/html')) {
                             return caches.match('./offline.html');
                         }
                     });
