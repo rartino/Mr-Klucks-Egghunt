@@ -81,8 +81,11 @@ const W_ROCK       = 16;
 const W_CACTUS     = 17;
 const W_REEDS      = 18;
 const W_SNOW_ROCK  = 19;
+const T_STAIRS     = 20;
+const T_BASEMENT   = 21;
+const W_BASEMENT_WALL = 22;
 
-const TOTAL_TILES  = 20;
+const TOTAL_TILES  = 23;
 
 // Egg colors
 const EGG_COLORS = [
@@ -135,29 +138,34 @@ function getBiome(tx, ty) {
     const dx = tx - V1_X, dy = ty - V1_Y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // Main village
+    // Villages are hard-set
     if (dist < 10) return 'village';
-    // Second village
     if (Math.sqrt((tx - V2_X) ** 2 + (ty - V2_Y) ** 2) < 7) return 'village';
 
-    if (dist < 22) return 'farmland';
+    if (dist < 20) return 'farmland';
 
     // Water pockets
     const wn = fbm(tx * 0.07 + 50, ty * 0.07 + 50);
-    if (wn < 0.2 && dist > 25 && dist < 55) return 'water';
+    if (wn < 0.18 && dist > 25 && dist < 55) return 'water';
 
-    // Biome regions
-    if (ty < 22) return 'snow';
-    if (ty < 48 && tx > 25 && tx < 125) return 'forest';
-    if (tx > 108) return 'desert';
-    if (ty > 112) return 'swamp';
-    if (tx < 38 && dist > 15) return 'hills';
+    // Compute a "weight" for each biome using smooth distance fields + noise
+    // so boundaries are wobbly and organic, not straight lines.
+    const warp = fbm(tx * 0.04 + 200, ty * 0.04 + 200) * 18 - 9; // -9..+9 tile warp
+    const warpX = fbm(tx * 0.05 + 300, ty * 0.05 + 300) * 18 - 9;
+    const wy = ty + warp;
+    const wx = tx + warpX;
 
-    // Transition zones
-    const bn = fbm(tx * 0.05, ty * 0.05);
-    if (ty < 58) return bn > 0.5 ? 'forest' : 'farmland';
-    if (tx > 92) return bn > 0.45 ? 'desert' : 'farmland';
-    if (ty > 98) return bn > 0.45 ? 'swamp' : 'farmland';
+    if (wy < 25) return 'snow';
+    if (wy < 50 && wx > 22 && wx < 128) return 'forest';
+    if (wx > 110) return 'desert';
+    if (wy > 115) return 'swamp';
+    if (wx < 36 && dist > 15) return 'hills';
+
+    // Transition zones with noise blending
+    const bn = fbm(tx * 0.06 + 100, ty * 0.06 + 100);
+    if (wy < 60) return bn > 0.48 ? 'forest' : 'farmland';
+    if (wx > 90) return bn > 0.42 ? 'desert' : 'farmland';
+    if (wy > 100) return bn > 0.42 ? 'swamp' : 'farmland';
 
     return 'farmland';
 }
@@ -197,18 +205,18 @@ function wallTileForBiome(biome, tx, ty) {
 
 // Village building definitions: { x, y, w, h } in tile offsets from village center
 const V1_BUILDINGS = [
-    { x: -6, y: -6, w: 5, h: 4 },
-    { x:  2, y: -6, w: 4, h: 4 },
-    { x: -6, y:  3, w: 4, h: 4 },
-    { x:  3, y:  3, w: 5, h: 4 },
-    { x: -3, y: -9, w: 3, h: 3 },
-    { x:  5, y: -1, w: 3, h: 3 },
+    { x: -6, y: -6, w: 5, h: 4, basement: true  },
+    { x:  2, y: -6, w: 4, h: 4                   },
+    { x: -6, y:  3, w: 4, h: 4, basement: true  },
+    { x:  3, y:  3, w: 5, h: 4                   },
+    { x: -3, y: -9, w: 3, h: 3                   },
+    { x:  5, y: -1, w: 3, h: 3                   },
 ];
 const V2_BUILDINGS = [
-    { x: -4, y: -4, w: 4, h: 3 },
-    { x:  1, y: -4, w: 4, h: 3 },
-    { x: -3, y:  2, w: 3, h: 3 },
-    { x:  2, y:  2, w: 4, h: 3 },
+    { x: -4, y: -4, w: 4, h: 3, basement: true  },
+    { x:  1, y: -4, w: 4, h: 3                   },
+    { x: -3, y:  2, w: 3, h: 3                   },
+    { x:  2, y:  2, w: 4, h: 3                   },
 ];
 
 function generateWorld() {
@@ -223,7 +231,8 @@ function generateWorld() {
         }
     }
 
-    // Place buildings
+    // Place buildings and record basement locations
+    const basements = [];
     const placeBuildings = (cx, cy, list) => {
         list.forEach(b => {
             for (let dy = 0; dy < b.h; dy++) {
@@ -231,7 +240,8 @@ function generateWorld() {
                     const tx = cx + b.x + dx, ty = cy + b.y + dy;
                     if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) continue;
                     const isEdge = dx === 0 || dx === b.w - 1 || dy === 0 || dy === b.h - 1;
-                    const isDoor = dy === b.h - 1 && dx === Math.floor(b.w / 2);
+                    const doorCenter = Math.floor(b.w / 2);
+                    const isDoor = dy === b.h - 1 && (dx === doorCenter || dx === doorCenter - 1);
                     if (isEdge && !isDoor) {
                         walls[ty][tx] = W_WOOD_WALL;
                         ground[ty][tx] = T_WOOD;
@@ -239,6 +249,15 @@ function generateWorld() {
                         walls[ty][tx] = -1;
                         ground[ty][tx] = T_WOOD;
                     }
+                }
+            }
+            // Place stairs in basement buildings (top-left interior corner)
+            if (b.basement) {
+                const sx = cx + b.x + 1, sy = cy + b.y + 1;
+                if (sx >= 0 && sy >= 0 && sx < WORLD_W && sy < WORLD_H) {
+                    ground[sy][sx] = T_STAIRS;
+                    walls[sy][sx] = -1;
+                    basements.push({ stairsTx: sx, stairsTy: sy, w: b.w, h: b.h });
                 }
             }
         });
@@ -268,23 +287,32 @@ function generateWorld() {
         if (tx1 >= 0 && tx1 < WORLD_W && walls[ty1][tx1] < 0) ground[ty1][tx1] = T_COBBLE;
         if (ty2 >= 0 && ty2 < WORLD_H && walls[ty2][tx2] < 0) ground[ty2][tx2] = T_COBBLE;
     }
-    // Road between villages
+    // Road between villages (stone, 2 tiles wide)
     for (let x = V2_X; x <= V1_X; x++) {
-        if (walls[V1_Y][x] < 0) ground[V1_Y][x] = T_DIRT;
-        if (V1_Y + 1 < WORLD_H && walls[V1_Y + 1][x] < 0) ground[V1_Y + 1][x] = T_DIRT;
+        if (walls[V1_Y][x] < 0) ground[V1_Y][x] = T_STONE;
+        if (V1_Y + 1 < WORLD_H && walls[V1_Y + 1][x] < 0) ground[V1_Y + 1][x] = T_STONE;
     }
-    // Roads out of main village (N, E, S)
-    for (let i = 0; i < 30; i++) {
+    // Roads out of main village (N, E, S) — stone, 2 tiles wide
+    for (let i = 0; i < 35; i++) {
         const n = V1_Y - 10 - i, s = V1_Y + 10 + i, e = V1_X + 10 + i;
-        if (n >= 0 && walls[n][V1_X] < 0) ground[n][V1_X] = T_DIRT;
-        if (s < WORLD_H && walls[s][V1_X] < 0) ground[s][V1_X] = T_DIRT;
-        if (e < WORLD_W && walls[V1_Y][e] < 0) ground[V1_Y][e] = T_DIRT;
+        if (n >= 0) {
+            if (walls[n][V1_X] < 0) ground[n][V1_X] = T_STONE;
+            if (V1_X + 1 < WORLD_W && walls[n][V1_X + 1] < 0) ground[n][V1_X + 1] = T_STONE;
+        }
+        if (s < WORLD_H) {
+            if (walls[s][V1_X] < 0) ground[s][V1_X] = T_STONE;
+            if (V1_X + 1 < WORLD_W && walls[s][V1_X + 1] < 0) ground[s][V1_X + 1] = T_STONE;
+        }
+        if (e < WORLD_W) {
+            if (walls[V1_Y][e] < 0) ground[V1_Y][e] = T_STONE;
+            if (V1_Y + 1 < WORLD_H && walls[V1_Y + 1][e] < 0) ground[V1_Y + 1][e] = T_STONE;
+        }
     }
 
-    // Clear walls on roads
+    // Clear walls on all road/path tiles
     for (let y = 0; y < WORLD_H; y++) {
         for (let x = 0; x < WORLD_W; x++) {
-            if (ground[y][x] === T_COBBLE || ground[y][x] === T_DIRT) {
+            if (ground[y][x] === T_COBBLE || ground[y][x] === T_DIRT || ground[y][x] === T_STONE) {
                 walls[y][x] = -1;
             }
         }
@@ -347,7 +375,7 @@ function generateWorld() {
         }
     });
 
-    return { ground, walls, biomeMap, eggs, bunnies };
+    return { ground, walls, biomeMap, eggs, bunnies, basements };
 }
 
 
@@ -584,6 +612,20 @@ function createTilesetTexture(scene) {
     g.fillStyle(0xCCCCDD); g.fillEllipse(19*T+16, 18, 22, 18);
     g.fillStyle(0xDDDDEE); g.fillEllipse(19*T+14, 14, 14, 10);
     g.fillStyle(0xFFFFFF, 0.5); g.fillEllipse(19*T+12, 10, 8, 5);
+    // 20: stairs (dark square with step lines)
+    g.fillStyle(0x554433); g.fillRect(20*T, 0, T, T);
+    g.lineStyle(2, 0x776655);
+    for (let i = 0; i < 5; i++) g.lineBetween(20*T+2, 4+i*6, 20*T+T-2, 4+i*6);
+    g.fillStyle(0xFFDD44); g.fillRect(20*T+12, 12, 8, 8); // highlight marker
+    // 21: basement floor (dark stone)
+    g.fillStyle(0x3A3A44); g.fillRect(21*T, 0, T, T);
+    g.fillStyle(0x44444E); g.fillRect(21*T+2, 2, 14, 14); g.fillRect(21*T+16, 16, 14, 14);
+    // 22: basement wall (dark brick)
+    g.fillStyle(0x2A2A34); g.fillRect(22*T, 0, T, T);
+    g.fillStyle(0x333340); g.fillRect(22*T+2, 2, 12, 6); g.fillRect(22*T+16, 2, 12, 6);
+    g.fillRect(22*T+8, 10, 12, 6); g.fillRect(22*T+22, 10, 8, 6);
+    g.fillRect(22*T+2, 18, 12, 6); g.fillRect(22*T+16, 18, 12, 6);
+    g.fillRect(22*T+8, 26, 12, 6);
 
     g.generateTexture('tiles', TOTAL_TILES * T, T);
     g.destroy();
@@ -901,7 +943,13 @@ class BootScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.tweens.add({ targets: tap, alpha: 0, yoyo: true, repeat: -1, duration: 700 });
 
-        const start = () => this.scene.start('GameScene');
+        // Throttle CPU — boot screen is mostly static
+        this.game.loop.targetFps = 15;
+
+        const start = () => {
+            this.game.loop.targetFps = 60;
+            this.scene.start('GameScene');
+        };
         this.input.keyboard.once('keydown-SPACE', start);
         this.input.once('pointerdown', start);
     }
@@ -949,6 +997,8 @@ class GameScene extends Phaser.Scene {
 
         this.lastVelocity = { x: 0, y: 0 };
         this.playerOnIce = false;
+
+        this.basementCooldown = false; // prevent re-entering immediately after exiting
     }
 
     preload() { generateAllTextures(this); }
@@ -981,6 +1031,8 @@ class GameScene extends Phaser.Scene {
 
         // Player
         this.player = this.physics.add.sprite(V1_X * TILE + TILE/2, V1_Y * TILE + TILE/2, 'player');
+        this.player.body.setSize(16, 16);
+        this.player.body.setOffset(10, 14);
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(10);
 
@@ -1185,6 +1237,11 @@ class GameScene extends Phaser.Scene {
     // ------------------------------------------------------------------
 
     update(time, delta) {
+        // Throttle CPU when in idle states
+        const isIdle = this.playerDead || this.paused || this.dialogueActive;
+        const targetFps = isIdle ? 15 : 60;
+        if (this.game.loop.targetFps !== targetFps) this.game.loop.targetFps = targetFps;
+
         if (this.playerDead) return;
 
         // Handle dialogue input separately
@@ -1205,6 +1262,7 @@ class GameScene extends Phaser.Scene {
         this.updateShield();
         this.updateMagnet();
         this.updateEnvironment();
+        this.checkStairs();
     }
 
     handleInput() {
@@ -1215,10 +1273,8 @@ class GameScene extends Phaser.Scene {
         const up    = this.cursors.up.isDown    || this.wasd.up.isDown;
         const down  = this.cursors.down.isDown  || this.wasd.down.isDown;
 
-        const dL = this.dpadState && this.dpadState.left;
-        const dR = this.dpadState && this.dpadState.right;
-        const dU = this.dpadState && this.dpadState.up;
-        const dD = this.dpadState && this.dpadState.down;
+        // Touch drag direction
+        const tD = this.touchDir || { x: 0, y: 0 };
 
         let speed = PLAYER_SPEED;
         if (this.activePowerups.speed) speed *= 1.6;
@@ -1230,10 +1286,10 @@ class GameScene extends Phaser.Scene {
         this.playerOnIce = (groundTile === T_ICE);
 
         let vx = 0, vy = 0;
-        if (left  || dL) vx = -speed;
-        if (right || dR) vx =  speed;
-        if (up    || dU) vy = -speed;
-        if (down  || dD) vy =  speed;
+        if (left  || tD.x < -0.3) vx = -speed;
+        if (right || tD.x >  0.3) vx =  speed;
+        if (up    || tD.y < -0.3) vy = -speed;
+        if (down  || tD.y >  0.3) vy =  speed;
 
         if (vx !== 0 && vy !== 0) { const d = 1 / Math.SQRT2; vx *= d; vy *= d; }
 
@@ -1800,49 +1856,249 @@ class GameScene extends Phaser.Scene {
     }
 
     // ------------------------------------------------------------------
+    //  BASEMENTS
+    // ------------------------------------------------------------------
+
+    checkStairs() {
+        if (this.basementCooldown) return;
+        const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
+        if (ptx < 0 || pty < 0 || ptx >= WORLD_W || pty >= WORLD_H) return;
+        if (this.worldData.ground[pty][ptx] === T_STAIRS) {
+            const bsmt = this.worldData.basements.find(b => b.stairsTx === ptx && b.stairsTy === pty);
+            if (bsmt) this.enterBasement(bsmt);
+        }
+    }
+
+    enterBasement(bsmt) {
+        this.scene.pause();
+        this.scene.launch('BasementScene', {
+            parentScene: this,
+            basementW: Math.max(bsmt.w + 2, 7),
+            basementH: Math.max(bsmt.h + 2, 7),
+            returnX: this.player.x,
+            returnY: this.player.y,
+            score: this.score,
+        });
+    }
+
+    returnFromBasement(data) {
+        if (data && data.score !== undefined) this.score = data.score;
+        this.scene.resume();
+        // Move player slightly off stairs so they don't re-enter
+        this.player.y += TILE;
+        this.basementCooldown = true;
+        this.time.delayedCall(800, () => { this.basementCooldown = false; });
+    }
+
+    // ------------------------------------------------------------------
     //  TOUCH CONTROLS
     // ------------------------------------------------------------------
 
     setupTouchControls() {
-        this.dpadState = { left: false, right: false, up: false, down: false };
-        this.createDPad();
-    }
+        this.touchDir = { x: 0, y: 0 };
+        this.touchAnchor = null;
+        this.touchMovePtrId = null;  // track which pointer is for movement
 
-    createDPad() {
         const W = this.scale.width, H = this.scale.height;
-        const dpSize = 40, dpX = 55, dpY = H - 75, alpha = 0.45;
+        const alpha = 0.45;
 
-        const makeBtn = (label, bx, by, dir) => {
-            const bg = this.add.graphics().setScrollFactor(0).setDepth(150).setAlpha(alpha);
-            bg.fillStyle(0x444444); bg.fillRoundedRect(bx - dpSize/2, by - dpSize/2, dpSize, dpSize, 8);
-            this.add.text(bx, by, label, { fontSize: '18px', fill: '#FFF' }).setOrigin(0.5).setScrollFactor(0).setDepth(151);
-            const zone = this.add.zone(bx, by, dpSize, dpSize).setInteractive().setScrollFactor(0).setDepth(152);
-            zone.on('pointerdown', () => { this.dpadState[dir] = true; });
-            zone.on('pointerup', () => { this.dpadState[dir] = false; });
-            zone.on('pointerout', () => { this.dpadState[dir] = false; });
-        };
-        makeBtn('<', dpX - dpSize, dpY, 'left');
-        makeBtn('>', dpX + dpSize, dpY, 'right');
-        makeBtn('^', dpX, dpY - dpSize, 'up');
-        makeBtn('v', dpX, dpY + dpSize, 'down');
+        // Action button hit areas (right side) — these pointers should NOT start drag
+        this.actionBtnZones = [];
 
-        // Action buttons (right side)
         const makeBtnCircle = (label, bx, by, color, cb) => {
             const bg = this.add.graphics().setScrollFactor(0).setDepth(150).setAlpha(alpha);
             bg.fillStyle(color); bg.fillCircle(bx, by, 24);
             this.add.text(bx, by, label, { fontSize: '10px', fill: '#FFF' }).setOrigin(0.5).setScrollFactor(0).setDepth(151);
             const zone = this.add.zone(bx, by, 48, 48).setInteractive().setScrollFactor(0).setDepth(152);
             zone.on('pointerdown', cb);
+            this.actionBtnZones.push({ x: bx, y: by, r: 30 });
         };
         makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => this.useCrowPower());
         makeBtnCircle('DASH', W - 55, H - 55, 0x884400, () => this.useDash());
         makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => { if (this.nearestNPC && !this.dialogueActive) this.showDialogue(this.nearestNPC); });
 
-        // Pause button (top-left)
-        const pauseBtn = this.add.text(this.scale.width / 2 - 55, 24, '|| Pause', {
+        // Pause button
+        const pauseBtn = this.add.text(W / 2 - 55, 24, '|| Pause', {
             fontSize: '11px', fill: '#FFF', backgroundColor: '#222', padding: { x: 3, y: 1 },
         }).setScrollFactor(0).setDepth(101).setInteractive();
         pauseBtn.on('pointerdown', () => this.togglePause());
+        this.actionBtnZones.push({ x: W / 2 - 55 + 25, y: 24 + 8, r: 35 });
+
+        // Drag-to-move: finger down anywhere (except action buttons) sets anchor
+        this.input.on('pointerdown', (p) => {
+            // Ignore if it hit an action button
+            for (const z of this.actionBtnZones) {
+                const dx = p.x - z.x, dy = p.y - z.y;
+                if (Math.sqrt(dx * dx + dy * dy) < z.r) return;
+            }
+            this.touchAnchor = { x: p.x, y: p.y };
+            this.touchMovePtrId = p.id;
+            this.touchDir = { x: 0, y: 0 };
+        });
+
+        this.input.on('pointermove', (p) => {
+            if (this.touchMovePtrId !== p.id || !this.touchAnchor || !p.isDown) return;
+            const dx = p.x - this.touchAnchor.x, dy = p.y - this.touchAnchor.y;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len > 10) {
+                this.touchDir = { x: dx / len, y: dy / len };
+            } else {
+                this.touchDir = { x: 0, y: 0 };
+            }
+        });
+
+        this.input.on('pointerup', (p) => {
+            if (this.touchMovePtrId === p.id) {
+                this.touchAnchor = null;
+                this.touchMovePtrId = null;
+                this.touchDir = { x: 0, y: 0 };
+            }
+        });
+    }
+}
+
+
+// ===================================================================
+//  BASEMENT SCENE
+// ===================================================================
+
+class BasementScene extends Phaser.Scene {
+    constructor() { super('BasementScene'); }
+
+    init(data) {
+        this.parentScene = data.parentScene;
+        this.bW = data.basementW || 7;
+        this.bH = data.basementH || 7;
+        this.returnX = data.returnX;
+        this.returnY = data.returnY;
+        this.score = data.score || 0;
+    }
+
+    preload() { generateAllTextures(this); }
+
+    create() {
+        const mapW = this.bW, mapH = this.bH;
+        const map = this.make.tilemap({ tileWidth: TILE, tileHeight: TILE, width: mapW, height: mapH });
+        const tileset = map.addTilesetImage('tiles', 'tiles', TILE, TILE, 0, 0);
+        const ground = map.createBlankLayer('bground', tileset);
+        const walls = map.createBlankLayer('bwalls', tileset);
+
+        for (let y = 0; y < mapH; y++) {
+            for (let x = 0; x < mapW; x++) {
+                const isEdge = x === 0 || x === mapW - 1 || y === 0 || y === mapH - 1;
+                ground.putTileAt(isEdge ? T_BASEMENT : T_BASEMENT, x, y);
+                if (isEdge) walls.putTileAt(W_BASEMENT_WALL, x, y);
+            }
+        }
+        // Stairs back up at bottom center
+        const sx = Math.floor(mapW / 2), sy = mapH - 2;
+        ground.putTileAt(T_STAIRS, sx, sy);
+
+        walls.setCollisionByExclusion([-1]);
+
+        this.physics.world.setBounds(0, 0, mapW * TILE, mapH * TILE);
+
+        // Center camera
+        const camX = (this.scale.width - mapW * TILE) / 2;
+        const camY = (this.scale.height - mapH * TILE) / 2;
+        this.cameras.main.setScroll(-camX, -camY);
+
+        // Dark background behind the map
+        const bg = this.add.graphics();
+        bg.fillStyle(0x111118); bg.fillRect(-camX, -camY, this.scale.width, this.scale.height);
+        bg.setDepth(-1);
+
+        // Player
+        this.player = this.physics.add.sprite(Math.floor(mapW / 2) * TILE + TILE / 2, TILE * 1.5, 'player');
+        this.player.body.setSize(16, 16);
+        this.player.body.setOffset(10, 14);
+        this.player.setCollideWorldBounds(true);
+        this.player.setDepth(10);
+
+        this.physics.add.collider(this.player, walls);
+
+        // Scatter a couple of eggs in the basement
+        this.eggGroup = this.physics.add.staticGroup();
+        const eggCount = Math.max(1, Math.floor((mapW * mapH) / 10));
+        for (let i = 0; i < eggCount; i++) {
+            const ex = Phaser.Math.Between(1, mapW - 2) * TILE + TILE / 2;
+            const ey = Phaser.Math.Between(1, mapH - 2) * TILE + TILE / 2;
+            const ci = i % EGG_COLORS.length;
+            const isGolden = i === 0;
+            const egg = this.eggGroup.create(ex, ey, isGolden ? 'goldenegg' : 'egg' + ci);
+            egg.setData('points', isGolden ? GOLDEN_EGG_POINTS : EGG_POINTS);
+            egg.setData('eggType', isGolden ? 'golden' : 'normal');
+            egg.setDepth(5);
+            this.tweens.add({ targets: egg, y: ey - 4, yoyo: true, repeat: -1, duration: 600, ease: 'Sine.easeInOut' });
+        }
+        this.physics.add.overlap(this.player, this.eggGroup, this.collectEgg, null, this);
+
+        // Input
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.wasd = this.input.keyboard.addKeys({
+            up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
+            left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D,
+        });
+
+        // Touch — simple drag
+        this.touchDir = { x: 0, y: 0 };
+        this.touchAnchor = null;
+        this.input.on('pointerdown', p => { this.touchAnchor = { x: p.x, y: p.y }; });
+        this.input.on('pointermove', p => {
+            if (!this.touchAnchor || !p.isDown) return;
+            const dx = p.x - this.touchAnchor.x, dy = p.y - this.touchAnchor.y;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len > 10) { this.touchDir = { x: dx / len, y: dy / len }; } else { this.touchDir = { x: 0, y: 0 }; }
+        });
+        this.input.on('pointerup', () => { this.touchAnchor = null; this.touchDir = { x: 0, y: 0 }; });
+
+        // Label
+        this.add.text(mapW * TILE / 2, 6, '-- Basement --', {
+            fontSize: '12px', fill: '#AAAACC',
+        }).setOrigin(0.5, 0).setDepth(20);
+        this.add.text(sx * TILE + TILE / 2, (sy - 1) * TILE + TILE / 2, 'Exit', {
+            fontSize: '11px', fill: '#FFD700',
+        }).setOrigin(0.5).setDepth(20);
+
+        this.stairsX = sx; this.stairsY = sy;
+    }
+
+    update() {
+        const left  = this.cursors.left.isDown  || this.wasd.left.isDown  || this.touchDir.x < -0.3;
+        const right = this.cursors.right.isDown || this.wasd.right.isDown || this.touchDir.x > 0.3;
+        const up    = this.cursors.up.isDown    || this.wasd.up.isDown    || this.touchDir.y < -0.3;
+        const down  = this.cursors.down.isDown  || this.wasd.down.isDown  || this.touchDir.y > 0.3;
+
+        let vx = 0, vy = 0;
+        if (left)  vx = -PLAYER_SPEED;
+        if (right) vx =  PLAYER_SPEED;
+        if (up)    vy = -PLAYER_SPEED;
+        if (down)  vy =  PLAYER_SPEED;
+        if (vx !== 0 && vy !== 0) { const d = 1 / Math.SQRT2; vx *= d; vy *= d; }
+        this.player.setVelocity(vx, vy);
+        if (vx < 0) this.player.setFlipX(true);
+        if (vx > 0) this.player.setFlipX(false);
+
+        // Check exit stairs
+        const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
+        if (ptx === this.stairsX && pty === this.stairsY) {
+            this.exitBasement();
+        }
+    }
+
+    collectEgg(player, egg) {
+        const pts = egg.getData('points');
+        this.score += pts;
+        const ft = this.add.text(egg.x, egg.y, `+${pts}`, {
+            fontSize: '18px', fill: egg.getData('eggType') === 'golden' ? '#FFD700' : '#FFF', stroke: '#000', strokeThickness: 3,
+        }).setOrigin(0.5).setDepth(30);
+        this.tweens.add({ targets: ft, y: ft.y - 40, alpha: 0, duration: 700, onComplete: () => ft.destroy() });
+        egg.destroy();
+    }
+
+    exitBasement() {
+        this.parentScene.returnFromBasement({ score: this.score });
+        this.scene.stop();
     }
 }
 
@@ -1854,7 +2110,7 @@ class GameScene extends Phaser.Scene {
 const config = {
     type: Phaser.AUTO,
     backgroundColor: '#111111',
-    scene: [BootScene, GameScene],
+    scene: [BootScene, GameScene, BasementScene],
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,

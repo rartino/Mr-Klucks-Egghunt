@@ -1,1 +1,1 @@
-self.APP_VERSION = "1.1.1";
+self.APP_VERSION = "3.1.0";
