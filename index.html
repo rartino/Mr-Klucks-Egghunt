@@ -20,7 +20,7 @@
             height: 100%;
         }
     </style>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2D8C27">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -28,32 +28,21 @@
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 </head>
 <body>
-  <div id="game-container"></div>
+    <div id="game-container"></div>
 
-  <script src="resources/phaser/phaser.min.js"></script>
+    <script src="./resources/phaser/phaser.min.js"></script>
+    <script src="./game.js"></script>
 
-  <script type="module">
-    fetch('./manifest.json')
-        .then(response => response.json())
-        .then(manifest => {
-            window.APP_VERSION = manifest.version;
-            const script = document.createElement('script');
-            script.type = 'module';
-            script.src = `./game.js?v=${window.APP_VERSION}`;
-            document.body.appendChild(script);
-        })
-        .catch(error => {
-            console.error('Failed to load manifest:', error);
-        });
-  </script>
-
-  <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-    .then(function() {
-       console.log('Service Worker Registered');
-    });
-  }
-  </script>
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+            .then(function() {
+                console.log('Service Worker Registered');
+            })
+            .catch(function(error) {
+                console.error('Service Worker registration failed:', error);
+            });
+    }
+    </script>
 </body>
 </html>
