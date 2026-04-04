@@ -10,7 +10,7 @@ fetch('./manifest.json')
             './manifest.json',
             './sw.js',
             './game.js',
-            './phaser.min.js',
+            './resources/phaser/phaser.min.js',
             './offline.html',
         ];
 
