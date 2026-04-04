@@ -10,8 +10,8 @@ fetch('./manifest.json')
             './manifest.json',
             './sw.js',
             './game.js',
+            './phaser.min.js',
             './offline.html',
-            'https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js'
         ];
 
         self.addEventListener('install', function(event) {

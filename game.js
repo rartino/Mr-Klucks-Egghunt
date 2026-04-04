@@ -147,7 +147,7 @@ function createPlayerStunnedTexture(scene) {
     if (scene.textures.exists('player_stunned')) return;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
     const s = 36;
-    // Same as player but tinted with blue/grey to indicate stunned
+    // Same as player but muted colors for stunned look
     g.fillStyle(0x886644);
     g.fillEllipse(s / 2, s / 2 + 4, 22, 18);
     g.fillStyle(0x997755);
@@ -162,11 +162,12 @@ function createPlayerStunnedTexture(scene) {
     g.fillCircle(s / 2 + 3, s / 2 - 7, 3);
     g.fillStyle(0x0000FF);
     g.fillCircle(s / 2 + 4, s / 2 - 7, 1.5);
-    // Stars above head for "stunned" look
+    // Small sparkle stars above head (as simple diamond shapes)
     g.fillStyle(0xFFFF00);
-    g.fillStar(s / 2 - 5, s / 2 - 18, 5, 3, 5, 0);
-    g.fillStar(s / 2 + 5, s / 2 - 20, 5, 2, 4, 0);
-    g.fillStar(s / 2,     s / 2 - 22, 5, 3, 5, 0);
+    g.fillTriangle(s / 2 - 5, s / 2 - 22, s / 2 - 8, s / 2 - 18, s / 2 - 2, s / 2 - 18);
+    g.fillTriangle(s / 2 - 5, s / 2 - 14, s / 2 - 8, s / 2 - 18, s / 2 - 2, s / 2 - 18);
+    g.fillTriangle(s / 2 + 5, s / 2 - 24, s / 2 + 2, s / 2 - 20, s / 2 + 8, s / 2 - 20);
+    g.fillTriangle(s / 2 + 5, s / 2 - 16, s / 2 + 2, s / 2 - 20, s / 2 + 8, s / 2 - 20);
     g.generateTexture('player_stunned', s, s);
     g.destroy();
 }
@@ -213,7 +214,7 @@ function createBunnyStunnedTexture(scene) {
     if (scene.textures.exists('bunny_stunned')) return;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
     const s = 34;
-    // Same as bunny but lying on back (rotated look)
+    // Muted bunny (stunned/dazed)
     g.fillStyle(0xCCCCDD);
     g.fillEllipse(s / 2, s / 2 + 5, 20, 14);
     g.fillStyle(0xDDDDEE);
@@ -224,13 +225,16 @@ function createBunnyStunnedTexture(scene) {
     g.fillStyle(0xFFAABB);
     g.fillEllipse(s / 2 - 5, s / 2 - 15, 3, 12);
     g.fillEllipse(s / 2 + 5, s / 2 - 15, 3, 12);
-    // X eyes for stunned
-    g.lineStyle(2, 0x555555);
-    g.strokeRect(s / 2 - 5, s / 2 - 7, 4, 4);
-    g.strokeRect(s / 2 + 1, s / 2 - 7, 4, 4);
-    // Spiral/stars
+    // X eyes for stunned (using rectangles)
+    g.fillStyle(0x555555);
+    g.fillRect(s / 2 - 6, s / 2 - 8, 4, 2);
+    g.fillRect(s / 2 - 4, s / 2 - 6, 2, 4);
+    g.fillRect(s / 2 + 2, s / 2 - 8, 4, 2);
+    g.fillRect(s / 2 + 4, s / 2 - 6, 2, 4);
+    // Sparkle diamonds above
     g.fillStyle(0xFFFF00);
-    g.fillStar(s / 2, s / 2 - 20, 5, 2, 5, 0);
+    g.fillTriangle(s / 2, s / 2 - 22, s / 2 - 3, s / 2 - 18, s / 2 + 3, s / 2 - 18);
+    g.fillTriangle(s / 2, s / 2 - 14, s / 2 - 3, s / 2 - 18, s / 2 + 3, s / 2 - 18);
     g.generateTexture('bunny_stunned', s, s);
     g.destroy();
 }
