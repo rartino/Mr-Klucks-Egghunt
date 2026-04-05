@@ -718,7 +718,8 @@ function generateWorld(mapId) {
         placeBuildings(POMPOM_X, POMPOM_Y, POMPOM_BUILDINGS);
         // Hermit cave
         placeBuildings(HERMIT_X, HERMIT_Y, [
-            { x: -2, y: -1, w: 4, h: 3, interior: 'hermit_cave' },
+            { x: -2, y: -1, w: 4, h: 3, interior: 'hermit_cave',
+              requires: { item: 'hermit_key' }, failMessage: 'The cave is sealed. You need a key.' },
         ]);
 
         // Castle plaza
@@ -1056,6 +1057,34 @@ const NPC_DEFS = [
                        "The King's word is law. Even when it makes no sense."] },
         ],
     },
+    // ==================== HERMIT (OUTSIDE) ====================
+    {
+        id: 'hermit_outside', name: 'Hermit Grizzle',
+        body: 0x887766, hat: 0x665544, hatType: 'hood',
+        tx: HERMIT_X, ty: HERMIT_Y - 3,
+        dialogues: [
+            { cond: { flag: 'fairy_blessing' },
+              lines: ["The fairy blessing! Now you can see through illusions!",
+                       "Go to the castle. Confront the false King.",
+                       "The truth will be plain as day to your enchanted eyes."],
+              giveQuest: 'ch8_confront_king' },
+            { cond: { flag: 'hermit_quest_done' },
+              lines: ["You've proven yourself capable. Listen carefully.",
+                       "Four factions hold the key to unraveling this mystery.",
+                       "The Shadowcoats in the forest. The Pom-poms in the hills.",
+                       "And somewhere... fairies who can reveal hidden truths.",
+                       "Start with the Shadowcoats. They've been tracking the bunnies."],
+              giveQuest: 'ch4_find_shadowcoats' },
+            { cond: { flag: 'met_hermit' },
+              lines: ["You know where to find me if you need me.",
+                       "Be careful out there, rooster."] },
+            { cond: { flag: 'princess_gave_key' },
+              lines: ["The Princess sent you! I have been waiting.",
+                       "We cannot talk here. Meet me inside the cave."] },
+            { cond: null,
+              lines: ["I'm a hermit. I prefer to live alone."] },
+        ],
+    },
     // ==================== HERMIT'S CAVE ====================
     {
         id: 'hermit', name: 'Hermit Grizzle',
@@ -1075,7 +1104,7 @@ const NPC_DEFS = [
                        "Start with the Shadowcoats. They've been tracking the bunnies."],
               giveQuest: 'ch4_find_shadowcoats' },
             { cond: { flag: 'found_hermit_cave' },
-              lines: ["Ah, the Princess sent you! I've been waiting.",
+              lines: ["Ah, you made it inside! Good.",
                        "The rabbit attacks are NOT natural. Someone is controlling them.",
                        "I found traces of cursed chocolate near the bunny dens.",
                        "Whoever made this chocolate is poisoning the rabbits' minds!",
@@ -1083,8 +1112,7 @@ const NPC_DEFS = [
               action: { type: 'setFlag', flag: 'met_hermit' },
               giveQuest: 'ch3_hermit_task' },
             { cond: null,
-              lines: ["This cave is sealed. Only a special key can open it.",
-                       "Perhaps someone in the castle knows where it is..."] },
+              lines: ["Welcome to my cave. Make yourself at home."] },
         ],
     },
     // ==================== SHADOWCOAT FACTION ====================
