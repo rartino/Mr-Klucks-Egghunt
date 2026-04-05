@@ -3167,6 +3167,9 @@ class GameScene extends Phaser.Scene {
         this.touchDir = { x: 0, y: 0 };
         this.touchAnchor = null;
         this.touchMovePtrId = null;  // track which pointer is for movement
+        this.touchLastMovePos = null;
+        this.touchLastMoveTs = 0;
+        this.touchLastDashTs = 0;
 
         const W = this.scale.width, H = this.scale.height;
         const alpha = 0.45;
@@ -3182,11 +3185,13 @@ class GameScene extends Phaser.Scene {
             zone.on('pointerdown', cb);
             this.actionBtnZones.push({ x: bx, y: by, r: 30 });
         };
+        const btnLeftX = W - 120, btnRightX = W - 65;
+        const btnTopY = H - 110, btnBottomY = H - 55;
         const modalBlocked = () => this.dialogueActive || this.inventoryOpen || this.questLogOpen || this.menuOpen || this.paused || this.playerDead;
-        makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => { if (!modalBlocked()) this.useCrowPower(); });
-        makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => { if (!modalBlocked() && this.nearestNPC) this.showDialogue(this.nearestNPC); });
-        makeBtnCircle('BAG', W - 110, H - 105, 0x446622, () => { if (!modalBlocked()) this.toggleInventory(); });
-        makeBtnCircle('USE', W - 165, H - 55, 0x664422, () => { if (!modalBlocked()) this.useSelectedItem(); });
+        makeBtnCircle('BAG', btnLeftX, btnTopY, 0x446622, () => { if (!modalBlocked()) this.toggleInventory(); });
+        makeBtnCircle('CROW', btnRightX, btnTopY, 0x882200, () => { if (!modalBlocked()) this.useCrowPower(); });
+        makeBtnCircle('TALK', btnLeftX, btnBottomY, 0x224488, () => { if (!modalBlocked() && this.nearestNPC) this.showDialogue(this.nearestNPC); });
+        makeBtnCircle('USE', btnRightX, btnBottomY, 0x664422, () => { if (!modalBlocked()) this.useSelectedItem(); });
 
         // Pause button
         const pauseBtn = this.add.text(W / 2 - 55, 24, '|| Pause', {
@@ -3202,14 +3207,11 @@ class GameScene extends Phaser.Scene {
                 const dx = p.x - z.x, dy = p.y - z.y;
                 if (Math.sqrt(dx * dx + dy * dy) < z.r) return;
             }
-            // Second-finger tap while already moving triggers dash on touch devices.
-            if (this.touchMovePtrId !== null && this.touchMovePtrId !== p.id) {
-                const moving = Math.abs(this.touchDir.x) > 0.25 || Math.abs(this.touchDir.y) > 0.25;
-                if (!modalBlocked() && moving) this.useDash();
-                return;
-            }
+            if (this.touchMovePtrId !== null && this.touchMovePtrId !== p.id) return;
             this.touchAnchor = { x: p.x, y: p.y };
             this.touchMovePtrId = p.id;
+            this.touchLastMovePos = { x: p.x, y: p.y };
+            this.touchLastMoveTs = this.time.now;
             this.touchDir = { x: 0, y: 0 };
         });
 
@@ -3217,17 +3219,40 @@ class GameScene extends Phaser.Scene {
             if (this.touchMovePtrId !== p.id || !this.touchAnchor || !p.isDown) return;
             const dx = p.x - this.touchAnchor.x, dy = p.y - this.touchAnchor.y;
             const len = Math.sqrt(dx * dx + dy * dy);
+            const now = this.time.now;
             if (len > 10) {
                 this.touchDir = { x: dx / len, y: dy / len };
             } else {
                 this.touchDir = { x: 0, y: 0 };
             }
+
+            // Touch dash gesture: while dragging, quickly flick farther in the same direction.
+            if (!modalBlocked() && this.touchLastMovePos && !this.isDashing) {
+                const sdx = p.x - this.touchLastMovePos.x;
+                const sdy = p.y - this.touchLastMovePos.y;
+                const sLen = Math.sqrt(sdx * sdx + sdy * sdy);
+                const dt = Math.max(1, now - this.touchLastMoveTs);
+                const speed = sLen / dt; // px per ms
+                if (sLen > 0 && len > 16) {
+                    const sDirX = sdx / sLen;
+                    const sDirY = sdy / sLen;
+                    const dot = this.touchDir.x * sDirX + this.touchDir.y * sDirY;
+                    const rapidForwardFlick = speed > 0.9 && dot > 0.88;
+                    if (rapidForwardFlick && now - this.touchLastDashTs > 250) {
+                        this.touchLastDashTs = now;
+                        this.useDash();
+                    }
+                }
+            }
+            this.touchLastMovePos = { x: p.x, y: p.y };
+            this.touchLastMoveTs = now;
         });
 
         this.input.on('pointerup', (p) => {
             if (this.touchMovePtrId === p.id) {
                 this.touchAnchor = null;
                 this.touchMovePtrId = null;
+                this.touchLastMovePos = null;
                 this.touchDir = { x: 0, y: 0 };
             }
         });
@@ -3334,10 +3359,12 @@ class BasementScene extends Phaser.Scene {
             zone.on('pointerdown', cb);
             this.actionBtnZones.push({ x: bx, y: by, r: 30 });
         };
-        makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => {});
-        makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => {});
-        makeBtnCircle('BAG', W - 110, H - 105, 0x446622, () => {});
-        makeBtnCircle('USE', W - 165, H - 55, 0x664422, () => {});
+        const btnLeftX = W - 120, btnRightX = W - 65;
+        const btnTopY = H - 110, btnBottomY = H - 55;
+        makeBtnCircle('BAG', btnLeftX, btnTopY, 0x446622, () => {});
+        makeBtnCircle('CROW', btnRightX, btnTopY, 0x882200, () => {});
+        makeBtnCircle('TALK', btnLeftX, btnBottomY, 0x224488, () => {});
+        makeBtnCircle('USE', btnRightX, btnBottomY, 0x664422, () => {});
 
         this.input.on('pointerdown', p => {
             for (const z of this.actionBtnZones) {
@@ -3749,14 +3776,16 @@ class InteriorScene extends Phaser.Scene {
             this.actionBtnZones.push({ x: bx, y: by, r: 30 });
         };
         const modalBlocked = () => this.dialogueActive;
-        makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => {
+        const btnLeftX = W - 120, btnRightX = W - 65;
+        const btnTopY = H - 110, btnBottomY = H - 55;
+        makeBtnCircle('BAG', btnLeftX, btnTopY, 0x446622, () => {});
+        makeBtnCircle('CROW', btnRightX, btnTopY, 0x882200, () => {
             if (!modalBlocked() && this.crowReady) this.interiorCrowStun();
         });
-        makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => {
+        makeBtnCircle('TALK', btnLeftX, btnBottomY, 0x224488, () => {
             if (!modalBlocked() && this.nearestNPC) this.showInteriorDialogue(this.nearestNPC);
         });
-        makeBtnCircle('BAG', W - 110, H - 105, 0x446622, () => {});
-        makeBtnCircle('USE', W - 165, H - 55, 0x664422, () => {});
+        makeBtnCircle('USE', btnRightX, btnBottomY, 0x664422, () => {});
 
         this.input.on('pointerdown', p => {
             for (const z of this.actionBtnZones) {

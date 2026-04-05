@@ -1,7 +1,7 @@
 {
     "name": "Mr. Kluck's Egg Hunt",
     "short_name": "EggHunt",
-    "version": "4.4.3",
+    "version": "4.4.5",
     "description": "Help Mr. Kluck the rooster hunt down his stolen Easter eggs!",
     "start_url": ".",
     "display": "fullscreen",
