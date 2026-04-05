@@ -101,6 +101,311 @@ const EGG_COLORS = [
 const V1_X = 75, V1_Y = 75;   // main village
 const V2_X = 35, V2_Y = 75;   // second village
 
+// Castle and special location coordinates
+const CASTLE_X = 85, CASTLE_Y = 30;
+const HERMIT_X = 92, HERMIT_Y = 8;
+const SHADOW_CAMP_X = 30, SHADOW_CAMP_Y = 40;
+const POMPOM_X = 15, POMPOM_Y = 55;
+const FAIRY_SCOUT_X = 45, FAIRY_SCOUT_Y = 35;
+
+// ===================================================================
+//  STORY FLAGS
+// ===================================================================
+
+const STORY_FLAGS_DEFAULT = {
+    // Chapter 1: The Egg Collector
+    met_elder: false,
+    elder_quest_done: false,
+    // Chapter 2: The King's Court
+    met_guard_captain: false,
+    entered_castle: false,
+    met_king: false,
+    princess_gave_key: false,
+    // Chapter 3: The Hermit's Warning
+    found_hermit_cave: false,
+    met_hermit: false,
+    hermit_quest_done: false,
+    mountain_pass_bought: false,
+    // Chapter 4: The Shadowcoat Alliance
+    met_shadowcoats: false,
+    shadowcoat_task_done: false,
+    shadowcoat_alliance: false,
+    shadow_rogue_started: false,
+    shadow_rogue_done: false,
+    // Chapter 5: The Pom-pom Trust
+    met_pompoms: false,
+    pompom_gift_1: false,
+    pompom_gift_2: false,
+    pompom_gift_3: false,
+    pompom_trust: false,
+    // Chapter 6: The Labyrinth
+    entered_pyramid: false,
+    found_cursed_chocolate: false,
+    labyrinth_cleared: false,
+    // Chapter 7: The Fairy Blessing
+    met_fairy_scout: false,
+    entered_hollow_tree: false,
+    fairy_trial_done: false,
+    fairy_blessing: false,
+    // Chapter 8: King Blueberry Unmasked
+    discovered_blueberry: false,
+    found_witch_lair: false,
+    got_dispel_potion: false,
+    confronted_blueberry: false,
+    freed_real_king: false,
+    ceremony_complete: false,
+    // Side quests
+    lost_chick_started: false,
+    lost_chick_done: false,
+    trader_route_started: false,
+    trader_route_done: false,
+    snow_crystals_started: false,
+    snow_crystals_done: false,
+    shadow_fortune_started: false,
+    shadow_fortune_done: false,
+    baker_cake_started: false,
+    baker_cake_done: false,
+    // Map access
+    map2_unlocked: false,
+    map3_unlocked: false,
+};
+
+// ===================================================================
+//  ITEM DEFINITIONS
+// ===================================================================
+
+const ITEM_DEFS = {
+    hermit_key:       { name: "Hermit's Key",      desc: 'Opens the cave on the mountain path',     stackable: false },
+    mountain_pass:    { name: 'Mountain Pass',      desc: 'Toll receipt for the mountain gate',      stackable: false },
+    cursed_chocolate: { name: 'Cursed Chocolate',   desc: 'Something is very wrong with this...',    stackable: false },
+    shadowcoat_badge: { name: 'Shadowcoat Badge',   desc: 'Marks you as a friend of the shadows',   stackable: false },
+    pompom_charm:     { name: 'Pom-pom Charm',      desc: 'A tiny bell that tinkles softly',        stackable: false },
+    fairy_dust:       { name: 'Fairy Dust',          desc: 'Sparkles with ancient magic',            stackable: true, max: 5 },
+    rope:             { name: 'Rope',                desc: 'Useful for climbing',                    stackable: false },
+    lantern:          { name: 'Lantern',             desc: 'Lights up dark places',                  stackable: false },
+    dispel_potion:    { name: 'Dispel Potion',       desc: 'Breaks enchantments and illusions',      stackable: false },
+    jail_key:         { name: 'Jail Key',            desc: 'Opens the dungeon cells',                stackable: false },
+    royal_decree:     { name: 'Royal Decree',        desc: 'An official document with the royal seal', stackable: false },
+    ice_crystal:      { name: 'Ice Crystal',         desc: 'A shard of ancient frozen magic',        stackable: true, max: 5 },
+    cake_ingredient:  { name: 'Moonberry',           desc: 'A rare berry the baker needs',           stackable: true, max: 3 },
+    shadow_map:       { name: 'Shadow Map',          desc: 'Shows the location of the shadow vault', stackable: false },
+    witch_eye:        { name: "Witch's Eye",         desc: 'An enchanted seeing stone',              stackable: false },
+    golden_feather:   { name: 'Golden Feather',      desc: 'Proof of heroism recognized by all',     stackable: false },
+};
+
+// ===================================================================
+//  QUEST DEFINITIONS
+// ===================================================================
+
+const QUEST_DEFS = {
+    // --- Chapter 1: The Egg Collector ---
+    ch1_collect_eggs: {
+        id: 'ch1_collect_eggs', desc: 'Collect 15 eggs for Elder Cluck',
+        type: 'eggs', target: 15,
+        reward: { type: 'flag', flag: 'elder_quest_done' },
+    },
+    ch1_meet_guard: {
+        id: 'ch1_meet_guard', desc: 'Speak to Guard Captain Roost',
+        type: 'talk_to', target: 'guard',
+        reward: { type: 'flag', flag: 'met_guard_captain' },
+    },
+
+    // --- Chapter 2: The King's Court ---
+    ch2_enter_castle: {
+        id: 'ch2_enter_castle', desc: 'Enter the castle',
+        type: 'explore_area', target: { tx: CASTLE_X, ty: CASTLE_Y, radius: 5 },
+        reward: { type: 'flag', flag: 'entered_castle' },
+    },
+    ch2_meet_king: {
+        id: 'ch2_meet_king', desc: 'Speak to the King',
+        type: 'talk_to', target: 'king',
+        reward: { type: 'flag', flag: 'met_king' },
+    },
+
+    // --- Chapter 3: The Hermit's Warning ---
+    ch3_find_hermit: {
+        id: 'ch3_find_hermit', desc: "Find the Hermit's cave",
+        type: 'explore_area', target: { tx: HERMIT_X, ty: HERMIT_Y, radius: 3 },
+        requireItem: 'hermit_key',
+        reward: { type: 'flag', flag: 'found_hermit_cave' },
+    },
+    ch3_hermit_task: {
+        id: 'ch3_hermit_task', desc: 'Collect 10 eggs from the northern wilds',
+        type: 'eggs', target: 40,
+        reward: { type: 'flag', flag: 'hermit_quest_done' },
+    },
+    ch3_buy_pass: {
+        id: 'ch3_buy_pass', desc: 'Buy a Mountain Pass (30 eggs)',
+        type: 'pay_eggs', target: 30,
+        reward: { type: 'multi', effects: [
+            { type: 'flag', flag: 'mountain_pass_bought' },
+            { type: 'giveItem', item: 'mountain_pass' },
+        ]},
+    },
+
+    // --- Chapter 4: The Shadowcoat Alliance ---
+    ch4_find_shadowcoats: {
+        id: 'ch4_find_shadowcoats', desc: 'Find the Shadowcoat camp in the forest',
+        type: 'explore_area', target: { tx: SHADOW_CAMP_X, ty: SHADOW_CAMP_Y, radius: 5 },
+        reward: { type: 'flag', flag: 'met_shadowcoats' },
+    },
+    ch4_shadow_task: {
+        id: 'ch4_shadow_task', desc: 'Defeat 8 bunnies near the forest camp',
+        type: 'defeat_n', target: { type: 'any', count: 8 },
+        reward: { type: 'multi', effects: [
+            { type: 'flag', flag: 'shadowcoat_task_done' },
+            { type: 'giveItem', item: 'shadowcoat_badge' },
+        ]},
+    },
+    ch4_shadow_alliance: {
+        id: 'ch4_shadow_alliance', desc: 'Return to Shadow Vex with proof',
+        type: 'talk_to', target: 'shadow_vex',
+        reward: { type: 'flag', flag: 'shadowcoat_alliance' },
+    },
+
+    // --- Chapter 5: Pom-pom Trust ---
+    ch5_find_pompoms: {
+        id: 'ch5_find_pompoms', desc: 'Find the Pom-pom village in the hills',
+        type: 'explore_area', target: { tx: POMPOM_X, ty: POMPOM_Y, radius: 5 },
+        reward: { type: 'flag', flag: 'met_pompoms' },
+    },
+    ch5_gift_1: {
+        id: 'ch5_gift_1', desc: 'Bring 20 eggs to Elder Fluff',
+        type: 'pay_eggs', target: 20,
+        reward: { type: 'flag', flag: 'pompom_gift_1' },
+    },
+    ch5_gift_2: {
+        id: 'ch5_gift_2', desc: 'Bring a Moonberry to Elder Fluff',
+        type: 'deliver_item', target: { npc: 'pompom_elder', item: 'cake_ingredient' },
+        reward: { type: 'flag', flag: 'pompom_gift_2' },
+    },
+    ch5_gift_3: {
+        id: 'ch5_gift_3', desc: 'Defeat 5 bunnies threatening the Pom-poms',
+        type: 'defeat_n', target: { type: 'any', count: 5 },
+        reward: { type: 'multi', effects: [
+            { type: 'flag', flag: 'pompom_gift_3' },
+            { type: 'flag', flag: 'pompom_trust' },
+            { type: 'giveItem', item: 'pompom_charm' },
+        ]},
+    },
+
+    // --- Chapter 6: The Labyrinth ---
+    ch6_enter_pyramid: {
+        id: 'ch6_enter_pyramid', desc: 'Enter the desert pyramid',
+        type: 'explore_area', target: { tx: 130, ty: 75, radius: 5 },
+        reward: { type: 'flag', flag: 'entered_pyramid' },
+    },
+    ch6_find_chocolate: {
+        id: 'ch6_find_chocolate', desc: 'Find the cursed chocolate in the labyrinth',
+        type: 'fetch_item', target: 'cursed_chocolate',
+        reward: { type: 'flag', flag: 'found_cursed_chocolate' },
+    },
+    ch6_clear_labyrinth: {
+        id: 'ch6_clear_labyrinth', desc: 'Defeat the Cursed Rabbit King',
+        type: 'boss', target: 'labyrinth',
+        reward: { type: 'flag', flag: 'labyrinth_cleared' },
+    },
+
+    // --- Chapter 7: The Fairy Blessing ---
+    ch7_find_fairy: {
+        id: 'ch7_find_fairy', desc: 'Find the fairy scout in the forest',
+        type: 'talk_to', target: 'fairy_scout',
+        reward: { type: 'flag', flag: 'met_fairy_scout' },
+    },
+    ch7_fairy_offering: {
+        id: 'ch7_fairy_offering', desc: 'Bring 3 Fairy Dust to the Fairy Queen',
+        type: 'deliver_item', target: { npc: 'fairy_queen', item: 'fairy_dust' },
+        reward: { type: 'flag', flag: 'fairy_trial_done' },
+    },
+    ch7_fairy_blessing: {
+        id: 'ch7_fairy_blessing', desc: 'Receive the Fairy Blessing',
+        type: 'talk_to', target: 'fairy_queen',
+        reward: { type: 'multi', effects: [
+            { type: 'flag', flag: 'fairy_blessing' },
+            { type: 'giveItem', item: 'witch_eye' },
+        ]},
+    },
+
+    // --- Chapter 8: King Blueberry Unmasked ---
+    ch8_confront_king: {
+        id: 'ch8_confront_king', desc: 'Confront the false King',
+        type: 'talk_to', target: 'king',
+        reward: { type: 'flag', flag: 'confronted_blueberry' },
+    },
+    ch8_find_witch: {
+        id: 'ch8_find_witch', desc: "Find Witch Hexana's lair",
+        type: 'talk_to', target: 'witch_hexana',
+        reward: { type: 'flag', flag: 'found_witch_lair' },
+    },
+    ch8_brew_potion: {
+        id: 'ch8_brew_potion', desc: 'Deliver 3 Ice Crystals to Witch Hexana',
+        type: 'deliver_item', target: { npc: 'witch_hexana', item: 'ice_crystal' },
+        reward: { type: 'multi', effects: [
+            { type: 'flag', flag: 'got_dispel_potion' },
+            { type: 'giveItem', item: 'dispel_potion' },
+        ]},
+    },
+    ch8_free_king: {
+        id: 'ch8_free_king', desc: 'Free the real King from the dungeon',
+        type: 'use_item', target: { item: 'jail_key', location: { tx: CASTLE_X + 2, ty: CASTLE_Y + 5, radius: 3 } },
+        reward: { type: 'multi', effects: [
+            { type: 'flag', flag: 'freed_real_king' },
+            { type: 'removeItem', item: 'jail_key' },
+        ]},
+    },
+
+    // --- Side Quests ---
+    side_shadow_fortune: {
+        id: 'side_shadow_fortune', desc: 'Recover stolen eggs from the shadow vault',
+        type: 'explore_area', target: { tx: 25, ty: 25, radius: 3 },
+        requireItem: 'shadow_map',
+        reward: { type: 'multi', effects: [
+            { type: 'flag', flag: 'shadow_fortune_done' },
+            { type: 'eggs', amount: 100 },
+        ]},
+    },
+    side_lost_chick: {
+        id: 'side_lost_chick', desc: 'Find the lost chick in the swamp',
+        type: 'explore_area', target: { tx: 80, ty: 130, radius: 5 },
+        reward: { type: 'flag', flag: 'lost_chick_done' },
+    },
+    side_trader_route: {
+        id: 'side_trader_route', desc: 'Clear 10 bunnies from the trade road',
+        type: 'defeat_n', target: { type: 'any', count: 10 },
+        reward: { type: 'multi', effects: [
+            { type: 'flag', flag: 'trader_route_done' },
+            { type: 'eggs', amount: 50 },
+        ]},
+    },
+    side_snow_crystals: {
+        id: 'side_snow_crystals', desc: 'Collect 5 Ice Crystals in the mountains',
+        type: 'collect_items', target: { item: 'ice_crystal', count: 5 },
+        reward: { type: 'flag', flag: 'snow_crystals_done' },
+    },
+    side_baker_cake: {
+        id: 'side_baker_cake', desc: 'Bring 3 Moonberries to Baker Breadwing',
+        type: 'deliver_item', target: { npc: 'baker', item: 'cake_ingredient' },
+        reward: { type: 'multi', effects: [
+            { type: 'flag', flag: 'baker_cake_done' },
+            { type: 'life' },
+        ]},
+    },
+
+    // Legacy quests (preserving existing gameplay)
+    elder_eggs: {
+        id: 'elder_eggs', desc: 'Collect 30 eggs', type: 'eggs', target: 30,
+        reward: { type: 'life' },
+    },
+    desert_boss: {
+        id: 'desert_boss', desc: 'Defeat the Desert Boss', type: 'boss', target: 'desert',
+        reward: { type: 'score', amount: 500 },
+    },
+    golden_hunt: {
+        id: 'golden_hunt', desc: 'Collect 10 golden eggs', type: 'golden', target: 10,
+        reward: { type: 'speed' },
+    },
+};
+
 
 // ===================================================================
 //  NOISE / UTILITY
@@ -133,14 +438,120 @@ function fbm(x, y) {
 // ===================================================================
 //  WORLD GENERATION
 // ===================================================================
+//  MAP DEFINITIONS
+// ===================================================================
+
+const MAP_DEFS = {
+    map1: {
+        id: 'map1', name: 'Cluckshire',
+        width: 150, height: 150,
+        biomeFunc: 'getBiome_map1',
+        transitions: [
+            { tx: 75, ty: 0, w: 4, h: 1, toMap: 'map2', toTx: 100, toTy: 198,
+              requires: { item: 'mountain_pass' },
+              failMessage: 'The mountain gate is locked. You need a Mountain Pass!' },
+        ],
+    },
+    map2: {
+        id: 'map2', name: 'The Wildlands',
+        width: 200, height: 200,
+        biomeFunc: 'getBiome_map2',
+        transitions: [
+            { tx: 100, ty: 199, w: 4, h: 1, toMap: 'map1', toTx: 75, toTy: 2 },
+            { tx: 0, ty: 100, w: 1, h: 4, toMap: 'map3', toTx: 198, toTy: 100,
+              requires: { flag: 'labyrinth_cleared' },
+              failMessage: 'The western pass is sealed by dark magic. Clear the labyrinth first.' },
+        ],
+    },
+    map3: {
+        id: 'map3', name: 'The Dark Reaches',
+        width: 200, height: 200,
+        biomeFunc: 'getBiome_map3',
+        transitions: [
+            { tx: 199, ty: 100, w: 1, h: 4, toMap: 'map2', toTx: 2, toTy: 100 },
+        ],
+    },
+};
+
+// ===================================================================
+//  BIOME FUNCTIONS
+// ===================================================================
+
+function getBiome_map1(tx, ty) {
+    return getBiome(tx, ty);
+}
+
+function getBiome_map2(tx, ty) {
+    // Wildlands: large desert center, forest north, swamp south, hills west
+    const warp = fbm(tx * 0.04 + 500, ty * 0.04 + 500) * 18 - 9;
+    const warpX = fbm(tx * 0.05 + 600, ty * 0.05 + 600) * 18 - 9;
+    const wy = ty + warp, wx = tx + warpX;
+
+    // Oasis village at center
+    const cx = 100, cy = 100;
+    const dist = Math.sqrt((tx - cx) ** 2 + (ty - cy) ** 2);
+    if (dist < 8) return 'village';
+    if (dist < 18) return 'farmland';
+
+    // Pyramid area
+    if (Math.sqrt((tx - 150) ** 2 + (ty - 80) ** 2) < 10) return 'desert';
+
+    const wn = fbm(tx * 0.07 + 150, ty * 0.07 + 150);
+    if (wn < 0.15 && dist > 20 && dist < 60) return 'water';
+
+    if (wy < 40) return 'forest';
+    if (wy > 160) return 'swamp';
+    if (wx < 40) return 'hills';
+    if (wx > 140) return 'desert';
+
+    const bn = fbm(tx * 0.06 + 200, ty * 0.06 + 200);
+    if (wy < 60) return bn > 0.45 ? 'forest' : 'farmland';
+    if (wy > 140) return bn > 0.45 ? 'swamp' : 'farmland';
+    if (wx > 120) return bn > 0.42 ? 'desert' : 'farmland';
+
+    return 'desert';
+}
+
+function getBiome_map3(tx, ty) {
+    // Dark Reaches: dense forest, fairy glen, witch territory
+    const warp = fbm(tx * 0.04 + 800, ty * 0.04 + 800) * 18 - 9;
+    const warpX = fbm(tx * 0.05 + 900, ty * 0.05 + 900) * 18 - 9;
+    const wy = ty + warp, wx = tx + warpX;
+
+    // Fairy glen at center-west
+    const fx = 60, fy = 80;
+    if (Math.sqrt((tx - fx) ** 2 + (ty - fy) ** 2) < 12) return 'farmland'; // fairy meadow
+
+    // Hollow tree area
+    if (Math.sqrt((tx - 50) ** 2 + (ty - 50) ** 2) < 6) return 'forest';
+
+    // Witch's lair area
+    if (Math.sqrt((tx - 40) ** 2 + (ty - 150) ** 2) < 8) return 'swamp';
+
+    const wn = fbm(tx * 0.07 + 250, ty * 0.07 + 250);
+    if (wn < 0.12 && tx > 20 && ty > 20) return 'water';
+
+    if (wy < 50) return 'forest';
+    if (wy > 150) return 'swamp';
+    if (wx > 150) return 'hills';
+
+    const bn = fbm(tx * 0.06 + 300, ty * 0.06 + 300);
+    if (wy < 70) return bn > 0.4 ? 'forest' : 'farmland';
+    if (wy > 130) return bn > 0.4 ? 'swamp' : 'forest';
+
+    return 'forest';
+}
 
 function getBiome(tx, ty) {
     const dx = tx - V1_X, dy = ty - V1_Y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // Villages are hard-set
+    // Villages and castle are hard-set
     if (dist < 10) return 'village';
     if (Math.sqrt((tx - V2_X) ** 2 + (ty - V2_Y) ** 2) < 7) return 'village';
+    if (Math.sqrt((tx - CASTLE_X) ** 2 + (ty - CASTLE_Y) ** 2) < 12) return 'village';
+    if (Math.sqrt((tx - SHADOW_CAMP_X) ** 2 + (ty - SHADOW_CAMP_Y) ** 2) < 5) return 'forest';
+    if (Math.sqrt((tx - POMPOM_X) ** 2 + (ty - POMPOM_Y) ** 2) < 5) return 'hills';
 
     if (dist < 20) return 'farmland';
 
@@ -218,27 +629,51 @@ const V2_BUILDINGS = [
     { x: -3, y:  2, w: 3, h: 3                   },
     { x:  2, y:  2, w: 4, h: 3                   },
 ];
+// Castle — larger stone buildings near CASTLE_X, CASTLE_Y
+const CASTLE_BUILDINGS = [
+    { x: -5, y: -4, w: 10, h: 8, interior: 'castle_throne' },  // Main hall (throne room)
+    { x: -7, y: -2, w: 3, h: 4, interior: 'jail_cells'     },  // Left tower (dungeon)
+    { x:  5, y: -2, w: 3, h: 4                              },  // Right tower
+];
+// Shadowcoat camp — small structures
+const SHADOW_BUILDINGS = [
+    { x: -2, y: -2, w: 4, h: 3 },
+    { x:  2, y:  1, w: 3, h: 3, interior: 'shadow_vault' },
+];
+// Pom-pom village — tiny huts
+const POMPOM_BUILDINGS = [
+    { x: -2, y: -1, w: 3, h: 2 },
+    { x:  1, y:  1, w: 2, h: 2 },
+];
 
-function generateWorld() {
+function generateWorld(mapId) {
+    mapId = mapId || 'map1';
+    const mapDef = MAP_DEFS[mapId];
+    const mW = mapDef ? mapDef.width : WORLD_W;
+    const mH = mapDef ? mapDef.height : WORLD_H;
+    const biomeFuncName = mapDef ? mapDef.biomeFunc : 'getBiome_map1';
+    const biomeFunc = { getBiome_map1, getBiome_map2, getBiome_map3 }[biomeFuncName] || getBiome;
+
     const ground = [], walls = [], biomeMap = [];
-    for (let y = 0; y < WORLD_H; y++) {
+    for (let y = 0; y < mH; y++) {
         ground[y] = []; walls[y] = []; biomeMap[y] = [];
-        for (let x = 0; x < WORLD_W; x++) {
-            const b = getBiome(x, y);
+        for (let x = 0; x < mW; x++) {
+            const b = biomeFunc(x, y);
             biomeMap[y][x] = b;
             ground[y][x] = groundTileForBiome(b, x, y);
             walls[y][x] = wallTileForBiome(b, x, y);
         }
     }
 
-    // Place buildings and record basement locations
+    // Place buildings and record basement/interior locations
     const basements = [];
+    const interiors = [];
     const placeBuildings = (cx, cy, list) => {
         list.forEach(b => {
             for (let dy = 0; dy < b.h; dy++) {
                 for (let dx = 0; dx < b.w; dx++) {
                     const tx = cx + b.x + dx, ty = cy + b.y + dy;
-                    if (tx < 0 || ty < 0 || tx >= WORLD_W || ty >= WORLD_H) continue;
+                    if (tx < 0 || ty < 0 || tx >= mW || ty >= mH) continue;
                     const isEdge = dx === 0 || dx === b.w - 1 || dy === 0 || dy === b.h - 1;
                     const doorCenter = Math.floor(b.w / 2);
                     const isDoor = dy === b.h - 1 && (dx === doorCenter || dx === doorCenter - 1);
@@ -251,10 +686,16 @@ function generateWorld() {
                     }
                 }
             }
-            // Place stairs in basement buildings (top-left interior corner)
-            if (b.basement) {
+            if (b.interior) {
                 const sx = cx + b.x + 1, sy = cy + b.y + 1;
-                if (sx >= 0 && sy >= 0 && sx < WORLD_W && sy < WORLD_H) {
+                if (sx >= 0 && sy >= 0 && sx < mW && sy < mH) {
+                    ground[sy][sx] = T_STAIRS;
+                    walls[sy][sx] = -1;
+                    interiors.push({ stairsTx: sx, stairsTy: sy, interiorId: b.interior });
+                }
+            } else if (b.basement) {
+                const sx = cx + b.x + 1, sy = cy + b.y + 1;
+                if (sx >= 0 && sy >= 0 && sx < mW && sy < mH) {
                     ground[sy][sx] = T_STAIRS;
                     walls[sy][sx] = -1;
                     basements.push({ stairsTx: sx, stairsTy: sy, w: b.w, h: b.h });
@@ -262,56 +703,111 @@ function generateWorld() {
             }
         });
     };
-    placeBuildings(V1_X, V1_Y, V1_BUILDINGS);
-    placeBuildings(V2_X, V2_Y, V2_BUILDINGS);
 
-    // Village plaza cobblestone
-    for (let dy = -2; dy <= 2; dy++) {
-        for (let dx = -2; dx <= 2; dx++) {
-            const tx = V1_X + dx, ty = V1_Y + dy;
-            if (walls[ty][tx] < 0) ground[ty][tx] = T_COBBLE;
-        }
-    }
-    for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-            const tx = V2_X + dx, ty = V2_Y + dy;
-            if (walls[ty][tx] < 0) ground[ty][tx] = T_COBBLE;
-        }
-    }
+    // Map-specific buildings, plazas, and roads
+    if (mapId === 'map1') {
+        placeBuildings(V1_X, V1_Y, V1_BUILDINGS);
+        placeBuildings(V2_X, V2_Y, V2_BUILDINGS);
+        placeBuildings(CASTLE_X, CASTLE_Y, CASTLE_BUILDINGS);
+        placeBuildings(SHADOW_CAMP_X, SHADOW_CAMP_Y, SHADOW_BUILDINGS);
+        placeBuildings(POMPOM_X, POMPOM_Y, POMPOM_BUILDINGS);
+        // Hermit cave
+        placeBuildings(HERMIT_X, HERMIT_Y, [
+            { x: -2, y: -1, w: 4, h: 3, interior: 'hermit_cave' },
+        ]);
 
-    // Roads
-    // Main village cross roads
-    for (let i = -9; i <= 9; i++) {
-        const tx1 = V1_X + i, ty1 = V1_Y;
-        const tx2 = V1_X, ty2 = V1_Y + i;
-        if (tx1 >= 0 && tx1 < WORLD_W && walls[ty1][tx1] < 0) ground[ty1][tx1] = T_COBBLE;
-        if (ty2 >= 0 && ty2 < WORLD_H && walls[ty2][tx2] < 0) ground[ty2][tx2] = T_COBBLE;
-    }
-    // Road between villages (stone, 2 tiles wide)
-    for (let x = V2_X; x <= V1_X; x++) {
-        if (walls[V1_Y][x] < 0) ground[V1_Y][x] = T_STONE;
-        if (V1_Y + 1 < WORLD_H && walls[V1_Y + 1][x] < 0) ground[V1_Y + 1][x] = T_STONE;
-    }
-    // Roads out of main village (N, E, S) — stone, 2 tiles wide
-    for (let i = 0; i < 35; i++) {
-        const n = V1_Y - 10 - i, s = V1_Y + 10 + i, e = V1_X + 10 + i;
-        if (n >= 0) {
-            if (walls[n][V1_X] < 0) ground[n][V1_X] = T_STONE;
-            if (V1_X + 1 < WORLD_W && walls[n][V1_X + 1] < 0) ground[n][V1_X + 1] = T_STONE;
+        // Castle plaza
+        for (let dy = -6; dy <= 5; dy++) {
+            for (let dx = -8; dx <= 8; dx++) {
+                const tx = CASTLE_X + dx, ty = CASTLE_Y + dy;
+                if (tx >= 0 && ty >= 0 && tx < mW && ty < mH && walls[ty][tx] === -1 && ground[ty][tx] !== T_WOOD) {
+                    ground[ty][tx] = T_COBBLE;
+                }
+            }
         }
-        if (s < WORLD_H) {
-            if (walls[s][V1_X] < 0) ground[s][V1_X] = T_STONE;
-            if (V1_X + 1 < WORLD_W && walls[s][V1_X + 1] < 0) ground[s][V1_X + 1] = T_STONE;
+        // Village plazas
+        for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+                const tx = V1_X + dx, ty = V1_Y + dy;
+                if (walls[ty][tx] < 0) ground[ty][tx] = T_COBBLE;
+            }
         }
-        if (e < WORLD_W) {
-            if (walls[V1_Y][e] < 0) ground[V1_Y][e] = T_STONE;
-            if (V1_Y + 1 < WORLD_H && walls[V1_Y + 1][e] < 0) ground[V1_Y + 1][e] = T_STONE;
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                const tx = V2_X + dx, ty = V2_Y + dy;
+                if (walls[ty][tx] < 0) ground[ty][tx] = T_COBBLE;
+            }
         }
+        // Roads
+        for (let i = -9; i <= 9; i++) {
+            const tx1 = V1_X + i, ty1 = V1_Y;
+            const tx2 = V1_X, ty2 = V1_Y + i;
+            if (tx1 >= 0 && tx1 < mW && walls[ty1][tx1] < 0) ground[ty1][tx1] = T_COBBLE;
+            if (ty2 >= 0 && ty2 < mH && walls[ty2][tx2] < 0) ground[ty2][tx2] = T_COBBLE;
+        }
+        for (let x = V2_X; x <= V1_X; x++) {
+            if (walls[V1_Y][x] < 0) ground[V1_Y][x] = T_STONE;
+            if (V1_Y + 1 < mH && walls[V1_Y + 1][x] < 0) ground[V1_Y + 1][x] = T_STONE;
+        }
+        for (let i = 0; i < 35; i++) {
+            const n = V1_Y - 10 - i, s = V1_Y + 10 + i, e = V1_X + 10 + i;
+            if (n >= 0) {
+                if (walls[n][V1_X] < 0) ground[n][V1_X] = T_STONE;
+                if (V1_X + 1 < mW && walls[n][V1_X + 1] < 0) ground[n][V1_X + 1] = T_STONE;
+            }
+            if (s < mH) {
+                if (walls[s][V1_X] < 0) ground[s][V1_X] = T_STONE;
+                if (V1_X + 1 < mW && walls[s][V1_X + 1] < 0) ground[s][V1_X + 1] = T_STONE;
+            }
+            if (e < mW) {
+                if (walls[V1_Y][e] < 0) ground[V1_Y][e] = T_STONE;
+                if (V1_Y + 1 < mH && walls[V1_Y + 1][e] < 0) ground[V1_Y + 1][e] = T_STONE;
+            }
+        }
+        // Road to castle
+        for (let y = CASTLE_Y + 6; y <= V1_Y - 10; y++) {
+            const rx = V1_X + Math.round((CASTLE_X - V1_X) * (V1_Y - 10 - y) / (V1_Y - 10 - CASTLE_Y - 6));
+            if (rx >= 0 && rx < mW && y >= 0 && y < mH) {
+                if (walls[y][rx] < 0) ground[y][rx] = T_STONE;
+                if (rx + 1 < mW && walls[y][rx + 1] < 0) ground[y][rx + 1] = T_STONE;
+            }
+        }
+    } else if (mapId === 'map2') {
+        // Wildlands: oasis village at center
+        const oasisX = 100, oasisY = 100;
+        placeBuildings(oasisX, oasisY, [
+            { x: -4, y: -3, w: 4, h: 3 },
+            { x:  1, y: -3, w: 4, h: 3 },
+            { x: -3, y:  2, w: 3, h: 3, basement: true },
+        ]);
+        for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+                const tx = oasisX + dx, ty = oasisY + dy;
+                if (tx >= 0 && ty >= 0 && tx < mW && ty < mH && walls[ty][tx] < 0) ground[ty][tx] = T_COBBLE;
+            }
+        }
+        // Pyramid structure
+        placeBuildings(150, 80, [
+            { x: -6, y: -6, w: 12, h: 12, interior: 'labyrinth_f1' },
+        ]);
+    } else if (mapId === 'map3') {
+        // Dark Reaches: fairy glen structures, witch lair
+        placeBuildings(60, 80, [
+            { x: -3, y: -2, w: 6, h: 4, interior: 'fairy_glen' },
+        ]);
+        // Hollow tree — large circular area
+        placeBuildings(50, 50, [
+            { x: -4, y: -4, w: 8, h: 8, interior: 'hollow_tree' },
+        ]);
+        // Witch lair
+        placeBuildings(40, 150, [
+            { x: -3, y: -3, w: 6, h: 6, interior: 'witch_lair' },
+        ]);
     }
 
     // Clear walls on all road/path tiles
-    for (let y = 0; y < WORLD_H; y++) {
-        for (let x = 0; x < WORLD_W; x++) {
+    for (let y = 0; y < mH; y++) {
+        for (let x = 0; x < mW; x++) {
             if (ground[y][x] === T_COBBLE || ground[y][x] === T_DIRT || ground[y][x] === T_STONE) {
                 walls[y][x] = -1;
             }
@@ -337,8 +833,8 @@ function generateWorld() {
         for (let i = 0; i < cfg.rotten; i++) types.push('rotten');
         let placed = 0, attempts = 0;
         while (placed < types.length && attempts < 2000) {
-            const tx = Phaser.Math.Between(5, WORLD_W - 5);
-            const ty = Phaser.Math.Between(5, WORLD_H - 5);
+            const tx = Phaser.Math.Between(5, mW - 5);
+            const ty = Phaser.Math.Between(5, mH - 5);
             if (biomeMap[ty][tx] === biome && walls[ty][tx] < 0 && ground[ty][tx] !== T_WATER) {
                 eggs.push({ tx, ty, type: types[placed] });
                 placed++;
@@ -347,26 +843,33 @@ function generateWorld() {
         }
     });
 
+    // Scale egg/bunny counts for larger maps
+    const mapScale = (mW * mH) / (150 * 150);
+
     // Generate bunny positions
     const bunnies = [];
+    const isAdvancedMap = mapId === 'map2' || mapId === 'map3';
     const bunnyBiomeCfg = {
-        farmland: { normal: 3, fast: 0, patrol: 0, boss: false },
-        forest:   { normal: 2, fast: 3, patrol: 1, boss: false },
-        desert:   { normal: 2, fast: 1, patrol: 1, boss: true  },
-        swamp:    { normal: 1, fast: 1, patrol: 3, boss: false },
-        snow:     { normal: 2, fast: 2, patrol: 1, boss: true  },
-        hills:    { normal: 2, fast: 1, patrol: 0, boss: false },
+        farmland: { normal: 3, fast: 0, patrol: 0, boss: false, cursed: isAdvancedMap ? 1 : 0, shadow: 0 },
+        forest:   { normal: 2, fast: 3, patrol: 1, boss: false, cursed: isAdvancedMap ? 2 : 0, shadow: isAdvancedMap ? 1 : 0 },
+        desert:   { normal: 2, fast: 1, patrol: 1, boss: true,  cursed: isAdvancedMap ? 2 : 0, shadow: isAdvancedMap ? 1 : 0 },
+        swamp:    { normal: 1, fast: 1, patrol: 3, boss: false, cursed: isAdvancedMap ? 3 : 0, shadow: 0 },
+        snow:     { normal: 2, fast: 2, patrol: 1, boss: true,  cursed: 0, shadow: 0 },
+        hills:    { normal: 2, fast: 1, patrol: 0, boss: false, cursed: isAdvancedMap ? 1 : 0, shadow: isAdvancedMap ? 1 : 0 },
     };
     Object.entries(bunnyBiomeCfg).forEach(([biome, cfg]) => {
         const types = [];
-        for (let i = 0; i < cfg.normal; i++) types.push('normal');
-        for (let i = 0; i < cfg.fast; i++) types.push('fast');
-        for (let i = 0; i < cfg.patrol; i++) types.push('patrol');
+        const scale = Math.ceil(mapScale);
+        for (let i = 0; i < cfg.normal * scale; i++) types.push('normal');
+        for (let i = 0; i < cfg.fast * scale; i++) types.push('fast');
+        for (let i = 0; i < cfg.patrol * scale; i++) types.push('patrol');
+        for (let i = 0; i < (cfg.cursed || 0) * scale; i++) types.push('cursed');
+        for (let i = 0; i < (cfg.shadow || 0) * scale; i++) types.push('shadow');
         if (cfg.boss) types.push('boss');
         let placed = 0, attempts = 0;
-        while (placed < types.length && attempts < 1000) {
-            const tx = Phaser.Math.Between(5, WORLD_W - 5);
-            const ty = Phaser.Math.Between(5, WORLD_H - 5);
+        while (placed < types.length && attempts < 2000) {
+            const tx = Phaser.Math.Between(5, mW - 5);
+            const ty = Phaser.Math.Between(5, mH - 5);
             if (biomeMap[ty][tx] === biome && walls[ty][tx] < 0 && ground[ty][tx] !== T_WATER) {
                 bunnies.push({ tx, ty, type: types[placed], biome });
                 placed++;
@@ -375,7 +878,7 @@ function generateWorld() {
         }
     });
 
-    return { ground, walls, biomeMap, eggs, bunnies, basements };
+    return { ground, walls, biomeMap, eggs, bunnies, basements, interiors, mapWidth: mW, mapHeight: mH };
 }
 
 
@@ -384,26 +887,47 @@ function generateWorld() {
 // ===================================================================
 
 const NPC_DEFS = [
+    // ==================== CLUCKVILLE (Main Village) ====================
     {
         id: 'elder', name: 'Elder Cluck',
         body: 0x3344AA, hat: 0x6688DD, hatType: 'hood',
         tx: V1_X, ty: V1_Y - 1,
         dialogues: [
-            "Welcome, brave Mr. Kluck! The Easter Bunny's army has stolen all your eggs and scattered them across the land!",
-            "Explore the forests to the north, the desert to the east, the swamp to the south, and the snowy mountains beyond.",
-            "Beware of Boss Bunnies in the desert and snow — they require THREE crow stuns to defeat!",
-            "Collect 30 eggs and return to me. I shall reward your bravery!",
+            { cond: { flag: 'ceremony_complete' },
+              lines: ["The kingdom is at peace once more, thanks to you!",
+                       "You'll always be welcome in Cluckville, hero."] },
+            { cond: { flag: 'elder_quest_done', notFlag: 'met_guard_captain' },
+              lines: ["Well done collecting those eggs! But I've heard troubling rumors.",
+                       "The bunny attacks are getting worse. Go speak to Guard Roost at the north gate.",
+                       "He knows things about what's happening at the castle."],
+              giveQuest: 'ch1_meet_guard' },
+            { cond: { questActive: 'ch1_collect_eggs' },
+              lines: ["Keep collecting eggs, Mr. Kluck! The village needs them.",
+                       "The bunnies scattered them in every corner of the land."] },
+            { cond: null,
+              lines: ["Welcome, brave Mr. Kluck! The bunnies have stolen all our eggs!",
+                       "Explore the forests, the desert, the swamp, and the snowy mountains.",
+                       "Collect 15 eggs and return to me. I shall reward your bravery!"],
+              giveQuest: 'ch1_collect_eggs' },
         ],
-        quest: { id: 'elder_eggs', desc: 'Collect 30 eggs', type: 'eggs', target: 30, rewardType: 'life' },
     },
     {
         id: 'farmer', name: 'Farmer Hen',
         body: 0x886633, hat: 0xCCAA44, hatType: 'straw',
         tx: V1_X + 5, ty: V1_Y + 6,
         dialogues: [
-            "Those rascal bunnies trampled my crops and hid eggs everywhere!",
-            "Watch out for the GREEN eggs — those are rotten! They'll slow you down and cost you points.",
-            "The brown chocolate eggs give you a little speed boost when collected. Yum!",
+            { cond: { flag: 'lost_chick_done' },
+              lines: ["My little Pip is home safe! Thank you so much!",
+                       "Here, take these eggs as a token of my gratitude."] },
+            { cond: { flag: 'met_hermit' },
+              lines: ["Cursed chocolate?! So THAT'S why the bunnies went mad!",
+                       "My cousin's chick went missing in the swamp last week...",
+                       "Could you find little Pip? I'll tell you what I know about the castle."],
+              giveQuest: 'side_lost_chick' },
+            { cond: null,
+              lines: ["Those rascal bunnies trampled my crops!",
+                       "Watch out for GREEN eggs — they're rotten! Cost you points.",
+                       "The brown chocolate eggs give a little speed boost. Yum!"] },
         ],
     },
     {
@@ -411,29 +935,325 @@ const NPC_DEFS = [
         body: 0x774488, hat: 0xDDAA22, hatType: 'cap',
         tx: V1_X + 3, ty: V1_Y - 5,
         dialogues: [
-            "Welcome to my shop! Well... I don't have much left after the bunnies raided the place.",
-            "Power-ups appear near landmarks around the world. Speed boots, shields, magnets — keep your eyes peeled!",
-            "I heard a golden egg is hidden deep in every region. They're worth 50 points each!",
+            { cond: { flag: 'mountain_pass_bought' },
+              lines: ["Your mountain pass is still valid. Safe travels north!",
+                       "I hear the Wildlands beyond are vast and dangerous."] },
+            { cond: { questActive: 'ch3_buy_pass' },
+              lines: ["Ready to pay? 30 eggs for a Mountain Pass!",
+                       "Step right up, best deal in the kingdom!"],
+              payQuest: 'ch3_buy_pass' },
+            { cond: { flag: 'hermit_quest_done' },
+              lines: ["Need a Mountain Pass to go north? 30 eggs is the toll.",
+                       "The mountain gate won't open without one!",
+                       "Talk to me again when you're ready to pay."],
+              giveQuest: 'ch3_buy_pass' },
+            { cond: null,
+              lines: ["Welcome to my shop! The bunnies raided the place, sadly.",
+                       "Power-ups appear near landmarks. Speed, shields, magnets!",
+                       "Golden eggs are worth 50 points. Keep your eyes peeled!"] },
         ],
     },
     {
-        id: 'guard', name: 'Guard Roost',
+        id: 'guard', name: 'Guard Captain Roost',
         body: 0x777788, hat: 0x555566, hatType: 'helmet',
         tx: V1_X, ty: V1_Y - 9,
         dialogues: [
-            "Halt! Oh, it's you, Mr. Kluck. The road north leads to the forest. Be careful — fast bunnies lurk there.",
-            "Use your Crow Power with SPACE to stun nearby bunnies. And SHIFT gives you a quick dash!",
-            "If you see a bunny with a crown, that's a Boss Bunny. You'll need to stun it three times to defeat it.",
+            { cond: { flag: 'confronted_blueberry' },
+              lines: ["The false king has been exposed! We stand with you, Mr. Kluck!",
+                       "The royal guards are... confused. Some still follow orders."] },
+            { cond: { flag: 'met_guard_captain', notFlag: 'entered_castle' },
+              lines: ["The castle is north of here. The King wants to see you.",
+                       "But between you and me... something feels wrong up there.",
+                       "The King used to love eggs. Now he seems to despise them."],
+              giveQuest: 'ch2_enter_castle' },
+            { cond: { flag: 'elder_quest_done' },
+              lines: ["Halt! Ah, Mr. Kluck. I've been expecting you.",
+                       "The King has summoned anyone who can fight these bunnies.",
+                       "Head to the castle and seek an audience. But be careful..."],
+              action: { type: 'setFlag', flag: 'met_guard_captain' } },
+            { cond: null,
+              lines: ["Halt! The road north leads to the forest. Fast bunnies lurk there.",
+                       "Use SPACE for Crow Power to stun bunnies. SHIFT gives a quick dash!",
+                       "Boss Bunnies need THREE stuns to defeat. Watch for crowns!"] },
         ],
     },
+    // ==================== CASTLE ====================
+    {
+        id: 'king', name: 'King Reginald',
+        body: 0xAA2233, hat: 0xFFD700, hatType: 'crown',
+        tx: CASTLE_X, ty: CASTLE_Y,
+        dialogues: [
+            { cond: { flag: 'freed_real_king' },
+              lines: ["Blueberry has been defeated! The kingdom is saved!",
+                       "Mr. Kluck... I owe you everything.",
+                       "We shall hold a grand ceremony in your honor!"],
+              action: { type: 'setFlag', flag: 'ceremony_complete' } },
+            { cond: { flag: 'fairy_blessing' },
+              lines: ["Welcome back, roost— wait. Your eyes...",
+                       "You... you can SEE me? The real me?!",
+                       "GUARDS! Seize this meddlesome rooster!",
+                       "...Fine. Yes. I am King Blueberry. And I'm KEEPING this throne."],
+              action: { type: 'multi', effects: [
+                  { type: 'setFlag', flag: 'discovered_blueberry' },
+                  { type: 'setFlag', flag: 'confronted_blueberry' },
+              ]},
+              giveQuest: 'ch8_find_witch' },
+            { cond: { flag: 'met_king' },
+              lines: ["You again? I told you the rabbit situation is under control.",
+                       "Stop asking questions and go collect eggs like a good rooster."] },
+            { cond: { flag: 'entered_castle' },
+              lines: ["Who dares enter my throne room? Ah... a rooster.",
+                       "The rabbit attacks? A minor nuisance. I have it handled.",
+                       "Now leave me be. Kings have important king things to do.",
+                       "...What? No, I am NOT acting suspicious. Guards!"],
+              action: { type: 'setFlag', flag: 'met_king' } },
+            { cond: null,
+              lines: ["The castle is ahead. Only those with business may enter."] },
+        ],
+    },
+    {
+        id: 'princess', name: 'Princess Featheria',
+        body: 0xDD7799, hat: 0xFFAAAA, hatType: 'tiara',
+        tx: CASTLE_X + 3, ty: CASTLE_Y + 1,
+        dialogues: [
+            { cond: { flag: 'freed_real_king' },
+              lines: ["Father is free! Oh, Mr. Kluck, you've saved us all!",
+                       "I knew that impostor wasn't my real father. He never once asked for eggs."] },
+            { cond: { flag: 'confronted_blueberry' },
+              lines: ["He admitted it?! Blueberry is mad with power!",
+                       "Father must be in the dungeon below the castle.",
+                       "Here — I stole this from the guard room. The jail key!"],
+              giveItem: 'jail_key',
+              giveQuest: 'ch8_free_king' },
+            { cond: { flag: 'met_king', notFlag: 'princess_gave_key' },
+              lines: ["Psst! Mr. Kluck! Over here, quickly!",
+                       "Father is acting strange. He's NOT himself. I mean literally.",
+                       "Take this key. Find the hermit in the mountain cave.",
+                       "He knows things. Trust no one else in the castle!"],
+              giveItem: 'hermit_key',
+              action: { type: 'setFlag', flag: 'princess_gave_key' },
+              giveQuest: 'ch3_find_hermit' },
+            { cond: null,
+              lines: ["Oh! A visitor! Father doesn't usually allow guests.",
+                       "Please, speak to the King first. I'll wait here."] },
+        ],
+    },
+    {
+        id: 'royal_guard', name: 'Royal Guard',
+        body: 0x666677, hat: 0x555566, hatType: 'helmet',
+        tx: CASTLE_X - 3, ty: CASTLE_Y + 2,
+        dialogues: [
+            { cond: { flag: 'confronted_blueberry' },
+              lines: ["The King is... not the King? I'm so confused.",
+                       "I just stand here and guard things. That's what I do."] },
+            { cond: null,
+              lines: ["No funny business in the castle, rooster.",
+                       "The King's word is law. Even when it makes no sense."] },
+        ],
+    },
+    // ==================== HERMIT'S CAVE ====================
+    {
+        id: 'hermit', name: 'Hermit Grizzle',
+        body: 0x887766, hat: 0x665544, hatType: 'hood',
+        tx: HERMIT_X, ty: HERMIT_Y,
+        dialogues: [
+            { cond: { flag: 'fairy_blessing' },
+              lines: ["The fairy blessing! Now you can see through illusions!",
+                       "Go to the castle. Confront the false King.",
+                       "The truth will be plain as day to your enchanted eyes."],
+              giveQuest: 'ch8_confront_king' },
+            { cond: { flag: 'hermit_quest_done' },
+              lines: ["You've proven yourself capable. Listen carefully.",
+                       "Four factions hold the key to unraveling this mystery.",
+                       "The Shadowcoats in the forest. The Pom-poms in the hills.",
+                       "And somewhere... fairies who can reveal hidden truths.",
+                       "Start with the Shadowcoats. They've been tracking the bunnies."],
+              giveQuest: 'ch4_find_shadowcoats' },
+            { cond: { flag: 'found_hermit_cave' },
+              lines: ["Ah, the Princess sent you! I've been waiting.",
+                       "The rabbit attacks are NOT natural. Someone is controlling them.",
+                       "I found traces of cursed chocolate near the bunny dens.",
+                       "Whoever made this chocolate is poisoning the rabbits' minds!",
+                       "Collect more eggs to prove you can survive what's coming."],
+              action: { type: 'setFlag', flag: 'met_hermit' },
+              giveQuest: 'ch3_hermit_task' },
+            { cond: null,
+              lines: ["This cave is sealed. Only a special key can open it.",
+                       "Perhaps someone in the castle knows where it is..."] },
+        ],
+    },
+    // ==================== SHADOWCOAT FACTION ====================
+    {
+        id: 'shadow_vex', name: 'Shadow Vex',
+        body: 0x222233, hat: 0x333344, hatType: 'bandana',
+        tx: SHADOW_CAMP_X, ty: SHADOW_CAMP_Y,
+        dialogues: [
+            { cond: { flag: 'shadowcoat_alliance' },
+              lines: ["Our alliance holds. For now.",
+                       "My scouts say the pyramid in the east hides something big.",
+                       "A labyrinth beneath the sands. That's where the curse originates.",
+                       "You'll need a lantern. Take this one."],
+              giveItem: 'lantern',
+              giveQuest: 'ch6_enter_pyramid' },
+            { cond: { flag: 'shadowcoat_task_done' },
+              lines: ["You cleared those bunnies? Impressive for a chicken.",
+                       "Fine. The Shadowcoats will share what we know.",
+                       "The bunnies are being fed cursed chocolate from somewhere east.",
+                       "We'll help you investigate. Take this badge — our people will recognize it."],
+              action: { type: 'setFlag', flag: 'shadowcoat_alliance' } },
+            { cond: { flag: 'met_shadowcoats' },
+              lines: ["A rooster in our camp? Bold. Or stupid. Perhaps both.",
+                       "I am Shadow Vex. We Shadowcoats have our own code.",
+                       "We want the bunnies gone too. But trust must be earned.",
+                       "Clear 8 bunnies from around our camp. Then we'll talk."],
+              giveQuest: 'ch4_shadow_task' },
+            { cond: null,
+              lines: ["You shouldn't be here. The forest has eyes.",
+                       "...Unless someone sent you? Hmm."] },
+        ],
+    },
+    {
+        id: 'shadow_dagger', name: 'Shadow Dagger',
+        body: 0x2A2A3A, hat: 0x3A3A4A, hatType: 'bandana',
+        tx: SHADOW_CAMP_X + 3, ty: SHADOW_CAMP_Y + 2,
+        dialogues: [
+            { cond: { flag: 'shadow_fortune_done' },
+              lines: ["You found Whisper's stash?! Ha! She'll be furious!",
+                       "Good riddance. She was giving us all a bad name."] },
+            { cond: { flag: 'shadowcoat_alliance' },
+              lines: ["Vex trusts you. That's rare. Don't waste it.",
+                       "Watch out for Shadow Whisper though. She's... ambitious.",
+                       "Rumor is she's been hoarding stolen eggs in a vault up north.",
+                       "The townsfolk are furious. Might want to look into that."],
+              giveQuest: 'side_shadow_fortune' },
+            { cond: null,
+              lines: ["Another outsider. Vex will decide what to do with you.",
+                       "I'd keep my beak shut if I were you."] },
+        ],
+    },
+    {
+        id: 'shadow_whisper', name: 'Shadow Whisper',
+        body: 0x1A1A2A, hat: 0x2A2A3A, hatType: 'bandana',
+        tx: SHADOW_CAMP_X - 2, ty: SHADOW_CAMP_Y - 1,
+        dialogues: [
+            { cond: { flag: 'shadow_fortune_done' },
+              lines: ["You found my vault?! That was MY retirement fund!",
+                       "...Fine. I suppose the alliance is more important. Barely."] },
+            { cond: { flag: 'shadowcoat_alliance' },
+              lines: ["So we're allies now? How... quaint.",
+                       "I have my own plans, rooster. Don't get in my way."] },
+            { cond: null,
+              lines: ["Go away. I don't talk to poultry."] },
+        ],
+    },
+    // ==================== POM-POM FACTION ====================
+    {
+        id: 'pompom_elder', name: 'Elder Fluff',
+        body: 0xFFBBDD, hat: 0xFFDDEE, hatType: 'pompom_hat',
+        tx: POMPOM_X, ty: POMPOM_Y,
+        dialogues: [
+            { cond: { flag: 'pompom_trust' },
+              lines: ["The Pom-poms are forever your friends, Mr. Kluck!",
+                       "When the time comes, we will fight by your side.",
+                       "Our warriors can grow to TEN TIMES their size when angry!",
+                       "The bunnies won't know what hit them. Literally."] },
+            { cond: { flag: 'pompom_gift_2' },
+              lines: ["Two gifts! Your generosity warms our fuzzy hearts.",
+                       "One final test of friendship... the bunnies threaten our village.",
+                       "Defeat 5 of them nearby and we shall be allies forever!"],
+              giveQuest: 'ch5_gift_3' },
+            { cond: { flag: 'pompom_gift_1' },
+              lines: ["Thank you for the eggs! You ARE kind.",
+                       "But... could you bring us a Moonberry? We love those!",
+                       "They grow near the forest edges. Small, glowing pink berries."],
+              giveQuest: 'ch5_gift_2' },
+            { cond: { flag: 'met_pompoms' },
+              lines: ["*squeak* A big creature! Don't hurt us!",
+                       "We are the Pom-poms. Humans think we're fairy tales.",
+                       "We are small but... when threatened... we grow. A lot.",
+                       "Bring us 20 eggs as a gift and maybe we'll trust you."],
+              giveQuest: 'ch5_gift_1' },
+            { cond: null,
+              lines: ["*squeak* *squeak*",
+                       "The bushes seem to be... squeaking at you? How odd."] },
+        ],
+    },
+    {
+        id: 'pompom_scout', name: 'Scout Bounce',
+        body: 0xAADDFF, hat: 0xCCEEFF, hatType: 'pompom_hat',
+        tx: POMPOM_X + 4, ty: POMPOM_Y - 3,
+        dialogues: [
+            { cond: { flag: 'pompom_trust' },
+              lines: ["Bounce bounce! We're friends now! BEST friends!",
+                       "I'll bounce extra high to scout for bunnies for you!"] },
+            { cond: { flag: 'met_pompoms' },
+              lines: ["*bounces nervously*",
+                       "Elder Fluff says you might be okay. Maybe.",
+                       "I'm watching you though! With my BIG cute eyes!"] },
+            { cond: null,
+              lines: ["A bush bounces away from you.",
+                       "...That was definitely not normal bush behavior."] },
+        ],
+    },
+    {
+        id: 'pompom_warrior', name: 'Warrior Thud',
+        body: 0xFFAACC, hat: 0xFFCCDD, hatType: 'pompom_hat',
+        tx: POMPOM_X - 2, ty: POMPOM_Y + 2,
+        dialogues: [
+            { cond: { flag: 'pompom_trust' },
+              lines: ["THUD SMASH BUNNIES FOR FRIEND KLUCK!",
+                       "...ahem. I mean, we shall aid you in battle.",
+                       "When I transform, I'm twelve feet tall. It's quite impressive."] },
+            { cond: { flag: 'met_pompoms' },
+              lines: ["*flexes tiny arms* I am the MIGHTIEST Pom-pom!",
+                       "Don't let my cuteness fool you. I bench-press acorns."] },
+            { cond: null,
+              lines: ["A surprisingly buff shrub stares at you menacingly.",
+                       "...Never mind. Just a shrub. Probably."] },
+        ],
+    },
+    // ==================== FAIRY FACTION ====================
+    {
+        id: 'fairy_scout', name: 'Fairy Glimmer',
+        body: 0xAAFFAA, hat: 0xDDFFDD, hatType: 'fairy_wings',
+        tx: FAIRY_SCOUT_X, ty: FAIRY_SCOUT_Y,
+        dialogues: [
+            { cond: { flag: 'fairy_blessing' },
+              lines: ["The blessing shines upon you! You can see all truths now.",
+                       "Go, Mr. Kluck. Unmask the deceiver!"] },
+            { cond: { flag: 'pompom_trust', flag2: 'shadowcoat_alliance' },
+              lines: ["You've united the factions! The fairy realm awaits.",
+                       "Seek the great Hollow Tree to the far west.",
+                       "Bring 3 Fairy Dust — they shimmer in enchanted glades.",
+                       "The Queen will grant you the Blessing of True Sight."],
+              giveQuest: 'ch7_fairy_offering' },
+            { cond: { flag: 'met_fairy_scout' },
+              lines: ["Still gathering allies? Good. You'll need them all.",
+                       "The Shadowcoats and Pom-poms must stand with you first."] },
+            { cond: { flag: 'met_hermit' },
+              lines: ["*a tiny light flickers before you*",
+                       "I am Glimmer. The fairies have watched your journey.",
+                       "We know of the curse. But our Queen must trust you first.",
+                       "Unite the other factions. Then seek us in the Hollow Tree."],
+              action: { type: 'setFlag', flag: 'met_fairy_scout' } },
+            { cond: null,
+              lines: ["A faint sparkle drifts past. Probably just a firefly.",
+                       "...Fireflies don't usually giggle, though."] },
+        ],
+    },
+    // ==================== EXISTING WORLD NPCs (upgraded) ====================
     {
         id: 'herbalist', name: 'Sage Feathers',
         body: 0x338844, hat: 0x55AA66, hatType: 'hood',
         tx: V1_X - 45, ty: V1_Y - 30,
         dialogues: [
-            "Ah... a visitor in my forest glade. Few wander this deep.",
-            "The forest hides many eggs among the trees. Move carefully — the fast bunnies here are relentless.",
-            "Collect eggs quickly one after another to build a combo multiplier. Timing is everything!",
+            { cond: { flag: 'found_cursed_chocolate' },
+              lines: ["Cursed chocolate! I knew it! The forest herbs warned me.",
+                       "Someone powerful created this. Someone with a grudge."] },
+            { cond: null,
+              lines: ["Ah... few wander this deep into the forest.",
+                       "Collect eggs quickly for a combo multiplier!",
+                       "And I've seen strange dark-cloaked figures nearby..."] },
         ],
     },
     {
@@ -441,20 +1261,36 @@ const NPC_DEFS = [
         body: 0xBB8844, hat: 0xDDCC88, hatType: 'hood',
         tx: V1_X + 38, ty: V1_Y + 3,
         dialogues: [
-            "The desert sands stretch far. Eggs hide near the cacti and rocks.",
-            "A fearsome Boss Bunny rules the eastern reaches. Approach with caution!",
-            "Defeat the Desert Boss and you'll earn a massive score bonus.",
+            { cond: { flag: 'labyrinth_cleared' },
+              lines: ["You cleared the labyrinth?! Legends will speak of this!",
+                       "The desert is safer already. The traders can move again."] },
+            { cond: { flag: 'shadowcoat_alliance' },
+              lines: ["The pyramid! An ancient structure east of here.",
+                       "The Shadowcoats say a labyrinth lies beneath.",
+                       "But the trade road is overrun with bunnies first...",
+                       "Clear the road and I'll show you the pyramid entrance."],
+              giveQuest: 'side_trader_route' },
+            { cond: null,
+              lines: ["The desert sands stretch far. Eggs hide near the cacti.",
+                       "A fearsome Boss Bunny rules the eastern reaches!",
+                       "Defeat it for a massive score bonus."],
+              giveQuest: 'desert_boss' },
         ],
-        quest: { id: 'desert_boss', desc: 'Defeat the Desert Boss', type: 'boss', target: 'desert', rewardType: 'score500' },
     },
     {
-        id: 'witch', name: 'Swamp Witch',
+        id: 'witch', name: 'Swamp Witch Mossclaw',
         body: 0x553366, hat: 0x7744AA, hatType: 'pointed',
         tx: V1_X + 5, ty: V1_Y + 42,
         dialogues: [
-            "Heh heh... a brave little rooster ventures into my swamp...",
-            "Rotten eggs are EVERYWHERE here. The bunnies love to leave traps in the muck.",
-            "But if you're clever, you'll find golden eggs hidden where others fear to tread...",
+            { cond: { flag: 'found_cursed_chocolate' },
+              lines: ["Cursed chocolate, eh? That's Hexana's handiwork.",
+                       "She lives far to the west, in the Dark Reaches.",
+                       "We trained together. She was always the jealous type.",
+                       "You'll need fairy magic to find her hidden lair."] },
+            { cond: null,
+              lines: ["Heh heh... a brave rooster ventures into my swamp...",
+                       "Rotten eggs are EVERYWHERE here. The bunnies love traps.",
+                       "But golden eggs hide where others fear to tread..."] },
         ],
     },
     {
@@ -462,21 +1298,39 @@ const NPC_DEFS = [
         body: 0xCCCCDD, hat: 0xAABBFF, hatType: 'hood',
         tx: V1_X - 5, ty: V1_Y - 58,
         dialogues: [
-            "Welcome to the frozen peaks, Mr. Kluck. The ice makes travel treacherous.",
-            "Chocolate eggs are plentiful up here — they'll warm your feathers and speed you up!",
-            "A Boss Bunny guards the highest reaches. Defeat it to prove your worth.",
-            "Collect 10 golden eggs across the land, and you shall be a true hero!",
+            { cond: { flag: 'snow_crystals_done' },
+              lines: ["Five crystals! The ancient magic resonates!",
+                       "These crystals hold memories of the old kingdom.",
+                       "Long ago, a boy named Blueberry was the King's best friend...",
+                       "But jealousy consumed him. He vanished for years.",
+                       "Now the King acts strange. Coincidence? I think not."] },
+            { cond: { flag: 'met_hermit' },
+              lines: ["Ice Crystals grow in the deepest snowdrifts here.",
+                       "Ancient magic is frozen within them.",
+                       "Collect 5 and I shall reveal what they remember."],
+              giveQuest: 'side_snow_crystals' },
+            { cond: null,
+              lines: ["Welcome to the frozen peaks. The ice is treacherous.",
+                       "Chocolate eggs are plentiful — they warm your feathers!",
+                       "Collect 10 golden eggs to prove your worth!"],
+              giveQuest: 'golden_hunt' },
         ],
-        quest: { id: 'golden_hunt', desc: 'Collect 10 golden eggs', type: 'golden', target: 10, rewardType: 'speed' },
     },
     {
         id: 'v2elder', name: 'Village Elder Bawk',
         body: 0x886644, hat: 0xCCBB88, hatType: 'straw',
         tx: V2_X, ty: V2_Y - 1,
         dialogues: [
-            "Welcome to Westwick! Our little village has suffered from the bunny raids too.",
-            "The hills around here aren't as dangerous as the deep wilderness, but stay alert!",
-            "The road east leads back to Cluckville. Safe travels, friend.",
+            { cond: { flag: 'shadowcoat_alliance' },
+              lines: ["I hear you've allied with those Shadowcoats!",
+                       "Bold move. They're thieves, but we need all the help we can get.",
+                       "The hills folk — the Pom-poms — they might help too.",
+                       "If they even exist, that is. Most think they're fairy tales."],
+              giveQuest: 'ch5_find_pompoms' },
+            { cond: null,
+              lines: ["Welcome to Westwick! We've suffered from bunny raids too.",
+                       "The hills aren't as dangerous as the deep wilderness.",
+                       "The road east leads to Cluckville. Safe travels!"] },
         ],
     },
     {
@@ -484,9 +1338,15 @@ const NPC_DEFS = [
         body: 0x993322, hat: 0x444444, hatType: 'helmet',
         tx: V2_X + 3, ty: V2_Y + 3,
         dialogues: [
-            "I used to forge the finest plows. Now I sharpen my tools against those bunnies!",
-            "Your Dash ability is your best friend in tight spots. Use SHIFT while moving to burst forward!",
-            "You're invincible during a dash. Use it to escape bunny ambushes!",
+            { cond: { flag: 'met_hermit' },
+              lines: ["A hermit in the mountains? I've heard legends.",
+                       "If what he says is true, this is bigger than bunny raids.",
+                       "Here, take this rope. You might need it in dark places."],
+              giveItem: 'rope' },
+            { cond: null,
+              lines: ["I used to forge plows. Now I sharpen tools against bunnies!",
+                       "SHIFT while moving gives a quick dash. You're invincible during it!",
+                       "Use it to escape bunny ambushes!"] },
         ],
     },
     {
@@ -494,9 +1354,14 @@ const NPC_DEFS = [
         body: 0x4466AA, hat: 0xBBBB88, hatType: 'straw',
         tx: V1_X - 18, ty: V1_Y + 12,
         dialogues: [
-            "I sit here fishing, but there's no fish left... just eggs floating in the water.",
-            "Can't walk on water, of course. But you can find eggs on the shoreline!",
-            "Watch the minimap in the corner — it shows the whole world. Very handy for navigation.",
+            { cond: { flag: 'met_hermit' },
+              lines: ["Cursed chocolate controlling bunnies? What's next, flying pigs?",
+                       "...Actually in this kingdom that wouldn't surprise me.",
+                       "Watch the minimap. It shows the whole world!"] },
+            { cond: null,
+              lines: ["I sit here fishing, but there's no fish — just floating eggs!",
+                       "Can't walk on water. But eggs wash up on the shoreline!",
+                       "Watch the minimap in the corner — handy for navigation!"] },
         ],
     },
     {
@@ -504,9 +1369,151 @@ const NPC_DEFS = [
         body: 0x558855, hat: 0x446644, hatType: 'cap',
         tx: V1_X + 20, ty: V1_Y - 20,
         dialogues: [
-            "I've been scouting the border between the farmland and the forest.",
-            "Patrol bunnies are the tricky ones — they walk in circles until you get close, then they CHARGE!",
-            "If you see an exclamation mark near someone, press E to talk. You never know what you'll learn!",
+            { cond: { flag: 'shadowcoat_alliance' },
+              lines: ["You've been to the Shadowcoat camp? And survived?!",
+                       "They're usually not friendly to outsiders.",
+                       "I've seen Fairy Dust shimmer in the deep forest glades.",
+                       "Tiny sparkling motes. Very rare. Very magical."] },
+            { cond: null,
+              lines: ["I've been scouting the farmland-forest border.",
+                       "Patrol bunnies walk in circles until you get close — then CHARGE!",
+                       "Press E near anyone to talk. You never know what you'll learn!"] },
+        ],
+    },
+    // ==================== ADDITIONAL VILLAGE NPCs ====================
+    {
+        id: 'baker', name: 'Baker Breadwing',
+        body: 0xCC9966, hat: 0xFFFFCC, hatType: 'cap',
+        tx: V1_X - 3, ty: V1_Y + 3,
+        dialogues: [
+            { cond: { flag: 'baker_cake_done' },
+              lines: ["The Moonberry cake is MAGNIFICENT! Best I've ever baked!",
+                       "Here, have an extra life. You've earned it!"] },
+            { cond: { flag: 'met_hermit' },
+              lines: ["I need Moonberries for my famous Moonberry Cake!",
+                       "They grow at the edges of the forest, glowing pink.",
+                       "Bring me 3 and I'll bake you something special!"],
+              giveQuest: 'side_baker_cake' },
+            { cond: null,
+              lines: ["Welcome! My bakery survived the bunny raids, barely.",
+                       "I'd offer you bread but I'm all out of Moonberries.",
+                       "Those glowing pink berries make the BEST cakes!"] },
+        ],
+    },
+    {
+        id: 'tax_collector', name: 'Tax Collector Pennywing',
+        body: 0x556655, hat: 0x445544, hatType: 'cap',
+        tx: V1_X + 6, ty: V1_Y - 3,
+        dialogues: [
+            { cond: { flag: 'ceremony_complete' },
+              lines: ["Tax exemption for the hero of the kingdom!",
+                       "...For one day only. Offer expires at midnight."] },
+            { cond: null,
+              lines: ["Eggs are the currency of this realm, rooster.",
+                       "Need to cross a bridge? Eggs. Mountain pass? Eggs.",
+                       "Even I take bribes in eggs. Hypothetically. Ahem."] },
+        ],
+    },
+    {
+        id: 'town_crier', name: 'Town Crier Bawk',
+        body: 0x8888AA, hat: 0xDD8844, hatType: 'cap',
+        tx: V1_X - 5, ty: V1_Y - 2,
+        dialogues: [
+            { cond: { flag: 'ceremony_complete' },
+              lines: ["HEAR YE! Mr. Kluck, SAVIOR of the realm!",
+                       "King Blueberry has been vanquished! The real King restored!",
+                       "Free eggs for everyone! ...Well, metaphorical free eggs."] },
+            { cond: { flag: 'confronted_blueberry' },
+              lines: ["HEAR YE! The King is a FRAUD?! What do you mean?!",
+                       "This is the biggest news since the Great Egg Famine of '09!"] },
+            { cond: { flag: 'met_hermit' },
+              lines: ["HEAR YE! Strange goings-on in the kingdom!",
+                       "Bunnies attacking more than ever! Castle guards doubled!",
+                       "Rumors of dark-cloaked figures in the forest! Be alert!"] },
+            { cond: null,
+              lines: ["HEAR YE! Bunny attacks on the rise!",
+                       "Citizens are advised to stay indoors! Eggs are disappearing!",
+                       "Will no hero save us?! ...Oh, hello there, rooster."] },
+        ],
+    },
+    // ==================== MAP 3 NPCs (Dark Reaches) ====================
+    {
+        id: 'witch_hexana', name: 'Witch Hexana',
+        body: 0x442266, hat: 0x663399, hatType: 'pointed',
+        tx: 40, ty: 150,
+        dialogues: [
+            { cond: { flag: 'got_dispel_potion' },
+              lines: ["The potion is brewed. Use it wisely, rooster.",
+                       "Pour it on the impostor and his disguise will shatter.",
+                       "Then find the real king in the dungeon below the castle."] },
+            { cond: { flag: 'found_witch_lair' },
+              lines: ["So you need a Dispel Potion? Tricky magic, that.",
+                       "I'll need 3 Ice Crystals from the frozen peaks.",
+                       "The cold magic in them is the key ingredient.",
+                       "Bring them to me and I'll brew what you need."],
+              giveQuest: 'ch8_brew_potion' },
+            { cond: { flag: 'confronted_blueberry' },
+              lines: ["Ah, I've been expecting you. Word travels fast.",
+                       "Yes, I know of King Blueberry's disguise magic.",
+                       "It was MY spell he stole, the ungrateful wretch!",
+                       "I can brew a Dispel Potion... for a price."],
+              action: { type: 'setFlag', flag: 'found_witch_lair' } },
+            { cond: null,
+              lines: ["Hee hee... lost, are we? This swamp doesn't welcome visitors.",
+                       "Come back when you have a REASON to disturb me."] },
+        ],
+    },
+    {
+        id: 'real_king', name: 'King Reginald (Imprisoned)',
+        body: 0x9A7B4F, hat: 0xBB9955, hatType: 'hood',
+        tx: CASTLE_X - 6, ty: CASTLE_Y - 2,
+        dialogues: [
+            { cond: { flag: 'freed_real_king' },
+              lines: ["Free at last! That scoundrel Blueberry locked me away!",
+                       "He was my childhood friend, but jealousy consumed him.",
+                       "He stole a witch's spell and took my form.",
+                       "Mr. Kluck... you have saved the kingdom. Let us return to the throne.",
+                       "There shall be a ceremony in your honor!"],
+              action: { type: 'setFlag', flag: 'ceremony_complete' } },
+            { cond: { flag: 'got_dispel_potion' },
+              lines: ["*muffled voice from behind bars*",
+                       "Please... is someone there? I am the REAL King Reginald!",
+                       "That impostor locked me down here months ago!",
+                       "If you have a key... please, free me!"] },
+            { cond: null,
+              lines: ["*silence* The dungeon is dark and empty.",
+                       "...Or is it? You hear faint scratching behind a wall."] },
+        ],
+    },
+    {
+        id: 'fairy_queen', name: 'Fairy Queen Luminara',
+        body: 0xDDFFDD, hat: 0xAAFFAA, hatType: 'fairy_wings',
+        tx: 60, ty: 80,
+        dialogues: [
+            { cond: { flag: 'fairy_blessing' },
+              lines: ["The Blessing of True Sight shines upon you!",
+                       "Go forth, Mr. Kluck. Unmask the deceiver.",
+                       "All of fairy-kind watches over you."] },
+            { cond: { flag: 'fairy_trial_done' },
+              lines: ["The Fairy Dust resonates with your courage!",
+                       "I grant you the Blessing of True Sight.",
+                       "With it, you will see through any illusion or disguise.",
+                       "The Witch's Eye stone will guide you to hidden truths.",
+                       "Go now. The false king's deception cannot withstand your gaze."],
+              action: { type: 'multi', effects: [
+                  { type: 'setFlag', flag: 'fairy_blessing' },
+              ]},
+              giveItem: 'witch_eye' },
+            { cond: { flag: 'met_fairy_scout' },
+              lines: ["Welcome to the Fairy Glen, Mr. Kluck.",
+                       "I am Queen Luminara. Glimmer told me of your quest.",
+                       "To receive the Blessing, bring me 3 Fairy Dust.",
+                       "They grow in enchanted groves — seek the Hollow Tree nearby."],
+              giveQuest: 'ch7_fairy_offering' },
+            { cond: null,
+              lines: ["*a radiant light fills the glen*",
+                       "You are not yet ready to receive our blessing.",
+                       "Unite the factions first. Then return."] },
         ],
     },
 ];
@@ -529,6 +1536,12 @@ function generateAllTextures(scene) {
     createPatrolBunnyTexture(scene, 'patrol_bunny_stunned', true);
     createBossBunnyTexture(scene, 'boss_bunny', false);
     createBossBunnyTexture(scene, 'boss_bunny_stunned', true);
+    // Cursed rabbit — dark red/purple with glowing eyes
+    createBunnyTexture(scene, 'cursed_rabbit', 0x661133, 0x882244, 0xCC3355, 0xFF0000);
+    createBunnyTexture(scene, 'cursed_rabbit_stunned', 0x442233, 0x553344, 0x884466, 0x6666AA);
+    // Shadow thief — dark gray/black, sneaky
+    createBunnyTexture(scene, 'shadow_thief', 0x222222, 0x333333, 0x555555, 0xFFDD00);
+    createBunnyTexture(scene, 'shadow_thief_stunned', 0x1A1A1A, 0x2A2A2A, 0x444444, 0x6666AA);
     EGG_COLORS.forEach((ec, i) => createEggTexture(scene, ec.hex, 'egg' + i));
     createGoldenEggTexture(scene);
     createChocolateEggTexture(scene);
@@ -868,6 +1881,27 @@ function createNPCTexture(scene, key, bodyColor, hatColor, hatType) {
     } else if (hatType === 'cap') {
         g.fillEllipse(s/2+2, s/2-11, 18, 7);
         g.fillRect(s/2, s/2-13, 10, 3);
+    } else if (hatType === 'crown') {
+        g.fillStyle(0xFFD700); g.fillRect(s/2-7, s/2-14, 14, 6);
+        g.fillTriangle(s/2-7, s/2-14, s/2-7, s/2-19, s/2-3, s/2-14);
+        g.fillTriangle(s/2, s/2-14, s/2, s/2-20, s/2+1, s/2-14);
+        g.fillTriangle(s/2+7, s/2-14, s/2+7, s/2-19, s/2+3, s/2-14);
+        g.fillStyle(0xFF0000); g.fillCircle(s/2, s/2-12, 1.5);
+    } else if (hatType === 'tiara') {
+        g.fillStyle(0xFFAAAA); g.fillEllipse(s/2, s/2-11, 16, 5);
+        g.fillStyle(0xFFD700); g.fillTriangle(s/2-2, s/2-13, s/2+2, s/2-13, s/2, s/2-18);
+        g.fillStyle(0xFF88CC); g.fillCircle(s/2, s/2-15, 1);
+    } else if (hatType === 'bandana') {
+        g.fillStyle(hatColor); g.fillEllipse(s/2, s/2-9, 18, 6);
+        g.fillTriangle(s/2+6, s/2-8, s/2+14, s/2-4, s/2+6, s/2-6);
+    } else if (hatType === 'pompom_hat') {
+        g.fillStyle(hatColor); g.fillEllipse(s/2, s/2-10, 14, 5);
+        g.fillCircle(s/2, s/2-15, 4);
+    } else if (hatType === 'fairy_wings') {
+        g.fillStyle(hatColor); g.setAlpha(0.6);
+        g.fillEllipse(s/2-8, s/2-2, 8, 12);
+        g.fillEllipse(s/2+8, s/2-2, 8, 12);
+        g.setAlpha(1.0);
     }
     // Feet
     g.fillStyle(0x333333); g.fillRect(s/2-4, s/2+11, 3, 4); g.fillRect(s/2+1, s/2+11, 3, 4);
@@ -918,6 +1952,7 @@ class BootScene extends Phaser.Scene {
         this.add.text(W/2, 320, [
             'WASD/Arrows: Move   |   E: Talk to NPCs',
             'SPACE: Crow Stun    |   SHIFT: Dash',
+            'I: Inventory  |  Q: Quest Log  |  F5: Save',
         ].join('\n'), {
             fontSize: '12px', fontFamily: 'Arial', fill: '#88DDAA', align: 'center', lineSpacing: 3,
         }).setOrigin(0.5);
@@ -938,10 +1973,26 @@ class BootScene extends Phaser.Scene {
         }
 
         this.add.text(W/2, H-65, `v${APP_VERSION}`, { fontSize: '12px', fill: '#888' }).setOrigin(0.5);
+
+        // Check for save data
+        const hasSave = !!localStorage.getItem('mrkluckSave');
+
         const tap = this.add.text(W/2, H-40, 'Tap or Press SPACE to Play', {
             fontSize: '18px', fontFamily: 'Arial', fill: '#FFD700',
         }).setOrigin(0.5);
         this.tweens.add({ targets: tap, alpha: 0, yoyo: true, repeat: -1, duration: 700 });
+
+        if (hasSave) {
+            const contBtn = this.add.text(W/2, H-90, '[ Continue Saved Game ]', {
+                fontSize: '16px', fontFamily: 'Arial', fill: '#88FF88',
+                backgroundColor: '#00000088', padding: { x: 12, y: 6 },
+            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+            contBtn.on('pointerdown', () => {
+                this.game.loop.targetFps = 60;
+                const save = JSON.parse(localStorage.getItem('mrkluckSave'));
+                this.scene.start('GameScene', save);
+            });
+        }
 
         // Throttle CPU — boot screen is mostly static
         this.game.loop.targetFps = 15;
@@ -951,7 +2002,11 @@ class BootScene extends Phaser.Scene {
             this.scene.start('GameScene');
         };
         this.input.keyboard.once('keydown-SPACE', start);
-        this.input.once('pointerdown', start);
+        this.input.once('pointerdown', (p) => {
+            // Don't start new game if clicking Continue button
+            if (hasSave && p.y > H - 110 && p.y < H - 70) return;
+            start();
+        });
     }
 }
 
@@ -963,9 +2018,25 @@ class BootScene extends Phaser.Scene {
 class GameScene extends Phaser.Scene {
     constructor() { super('GameScene'); }
 
-    init() {
-        this.score = 0;
-        this.lives = 3;
+    init(data) {
+        // Persistent state (preserved across map transitions)
+        this.score = (data && data.score) || 0;
+        this.lives = (data && data.lives) || 3;
+        this.totalEggsCollected = (data && data.totalEggsCollected) || 0;
+        this.goldenEggsCollected = (data && data.goldenEggsCollected) || 0;
+        this.bossesDefeated = (data && data.bossesDefeated) || {};
+        this.storyFlags = (data && data.storyFlags) || JSON.parse(JSON.stringify(STORY_FLAGS_DEFAULT));
+        this.inventory = (data && data.inventory) || [];
+        this.activeQuests = (data && data.activeQuests) || [];
+        this.completedQuests = (data && data.completedQuests) || {};
+        this.currentMapId = (data && data.currentMapId) || 'map1';
+        this.defeatedEnemies = (data && data.defeatedEnemies) || 0;
+
+        // Spawn position (for map transitions)
+        this.spawnTx = (data && data.spawnTx) || null;
+        this.spawnTy = (data && data.spawnTy) || null;
+
+        // Transient state (reset each scene start)
         this.isInvincible = false;
         this.invincibleTimer = null;
         this.crowReady = true;
@@ -978,44 +2049,53 @@ class GameScene extends Phaser.Scene {
         this.comboMult = 1;
         this.comboTimer = null;
 
-        this.totalEggsCollected = 0;
-        this.goldenEggsCollected = 0;
-        this.bossesDefeated = {};
-
         this.activePowerups = {};
         this.shieldSprite = null;
 
+        // Dialogue state
         this.dialogueActive = false;
         this.dialogueNPC = null;
-        this.dialogueIdx = 0;
+        this.dialogueQueue = [];
+        this.dialogueLineIdx = 0;
+        this.dialogueEntry = null;
         this.typewriterTimer = null;
         this.typewriterDone = false;
         this.currentFullText = '';
 
-        this.activeQuests = [];
-        this.completedQuests = {};
+        // Inventory UI state
+        this.inventoryOpen = false;
+        this.selectedItem = null;
+        // Quest log UI state
+        this.questLogOpen = false;
+        this.questLogPanel = null;
+        this.questLogTitle = null;
+        this.questLogTexts = [];
 
         this.lastVelocity = { x: 0, y: 0 };
         this.playerOnIce = false;
 
-        this.basementCooldown = false; // prevent re-entering immediately after exiting
+        this.basementCooldown = false;
     }
 
     preload() { generateAllTextures(this); }
 
     create() {
-        // Generate world data
-        this.worldData = generateWorld();
+        // Generate world data for current map
+        this.worldData = generateWorld(this.currentMapId);
+        const curW = this.worldData.mapWidth;
+        const curH = this.worldData.mapHeight;
+        this.mapWidth = curW;
+        this.mapHeight = curH;
 
         // Build tilemap
-        const map = this.make.tilemap({ tileWidth: TILE, tileHeight: TILE, width: WORLD_W, height: WORLD_H });
+        const map = this.make.tilemap({ tileWidth: TILE, tileHeight: TILE, width: curW, height: curH });
         const tileset = map.addTilesetImage('tiles', 'tiles', TILE, TILE, 0, 0);
 
         this.groundLayer = map.createBlankLayer('ground', tileset);
         this.wallLayer = map.createBlankLayer('walls', tileset);
 
-        for (let y = 0; y < WORLD_H; y++) {
-            for (let x = 0; x < WORLD_W; x++) {
+        for (let y = 0; y < curH; y++) {
+            for (let x = 0; x < curW; x++) {
                 this.groundLayer.putTileAt(this.worldData.ground[y][x], x, y);
                 if (this.worldData.walls[y][x] >= 0) {
                     this.wallLayer.putTileAt(this.worldData.walls[y][x], x, y);
@@ -1027,10 +2107,21 @@ class GameScene extends Phaser.Scene {
         this.wallLayer.setCollisionByExclusion([-1]);
 
         // Physics world bounds
-        this.physics.world.setBounds(0, 0, WORLD_W * TILE, WORLD_H * TILE);
+        this.physics.world.setBounds(0, 0, curW * TILE, curH * TILE);
 
-        // Player
-        this.player = this.physics.add.sprite(V1_X * TILE + TILE/2, V1_Y * TILE + TILE/2, 'player');
+        // Player — spawn at transition target or default location
+        let spawnX, spawnY;
+        if (this.spawnTx !== null && this.spawnTy !== null) {
+            spawnX = this.spawnTx * TILE + TILE / 2;
+            spawnY = this.spawnTy * TILE + TILE / 2;
+        } else if (this.currentMapId === 'map1') {
+            spawnX = V1_X * TILE + TILE / 2;
+            spawnY = V1_Y * TILE + TILE / 2;
+        } else {
+            spawnX = Math.floor(curW / 2) * TILE + TILE / 2;
+            spawnY = Math.floor(curH / 2) * TILE + TILE / 2;
+        }
+        this.player = this.physics.add.sprite(spawnX, spawnY, 'player');
         this.player.body.setSize(16, 16);
         this.player.body.setOffset(10, 14);
         this.player.setCollideWorldBounds(true);
@@ -1072,10 +2163,12 @@ class GameScene extends Phaser.Scene {
         this.worldData.bunnies.forEach(b => {
             const px = b.tx * TILE + TILE/2, py = b.ty * TILE + TILE/2;
             let key, speed, texKey, stunKey;
-            if (b.type === 'fast')   { key = 'fast_bunny'; speed = 130; texKey = 'fast_bunny'; stunKey = 'fast_bunny_stunned'; }
-            else if (b.type === 'patrol') { key = 'patrol_bunny'; speed = 80; texKey = 'patrol_bunny'; stunKey = 'patrol_bunny_stunned'; }
-            else if (b.type === 'boss')   { key = 'boss_bunny'; speed = 70; texKey = 'boss_bunny'; stunKey = 'boss_bunny_stunned'; }
-            else                          { key = 'bunny'; speed = 90; texKey = 'bunny'; stunKey = 'bunny_stunned'; }
+            if (b.type === 'fast')          { key = 'fast_bunny'; speed = 130; texKey = 'fast_bunny'; stunKey = 'fast_bunny_stunned'; }
+            else if (b.type === 'patrol')  { key = 'patrol_bunny'; speed = 80; texKey = 'patrol_bunny'; stunKey = 'patrol_bunny_stunned'; }
+            else if (b.type === 'boss')    { key = 'boss_bunny'; speed = 70; texKey = 'boss_bunny'; stunKey = 'boss_bunny_stunned'; }
+            else if (b.type === 'cursed')  { key = 'cursed_rabbit'; speed = 150; texKey = 'cursed_rabbit'; stunKey = 'cursed_rabbit_stunned'; }
+            else if (b.type === 'shadow')  { key = 'shadow_thief'; speed = 110; texKey = 'shadow_thief'; stunKey = 'shadow_thief_stunned'; }
+            else                           { key = 'bunny'; speed = 90; texKey = 'bunny'; stunKey = 'bunny_stunned'; }
             const bunny = this.bunnyGroup.create(px, py, key);
             bunny.setCollideWorldBounds(true);
             bunny.setData('speed', speed);
@@ -1095,6 +2188,10 @@ class GameScene extends Phaser.Scene {
                 bunny.setData('bossHP', 3);
                 bunny.setScale(1.2);
             }
+            if (b.type === 'cursed') {
+                bunny.setTint(0xFF4444);
+                bunny.setScale(1.1);
+            }
         });
 
         // Overlaps
@@ -1104,7 +2201,8 @@ class GameScene extends Phaser.Scene {
 
         // Spawn NPCs
         this.npcs = [];
-        NPC_DEFS.forEach(d => {
+        NPC_DEFS.filter(d => !d.mapId || d.mapId === this.currentMapId).forEach(d => {
+            if (d.tx < 0 || d.ty < 0 || d.tx >= this.mapWidth || d.ty >= this.mapHeight) return;
             const npc = this.add.image(d.tx * TILE + TILE/2, d.ty * TILE + TILE/2, 'npc_' + d.id);
             npc.setDepth(8);
             npc.setData('npcDef', d);
@@ -1114,7 +2212,7 @@ class GameScene extends Phaser.Scene {
         });
 
         // Camera
-        this.cameras.main.setBounds(0, 0, WORLD_W * TILE, WORLD_H * TILE);
+        this.cameras.main.setBounds(0, 0, this.mapWidth * TILE, this.mapHeight * TILE);
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
         // Input
@@ -1126,6 +2224,10 @@ class GameScene extends Phaser.Scene {
         this.crowKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.dashKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        this.inventoryKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
+        this.useItemKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.U);
+        this.saveKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F5);
+        this.questLogKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
 
         this.setupTouchControls();
 
@@ -1133,6 +2235,7 @@ class GameScene extends Phaser.Scene {
         this.createHUD();
         this.createMinimap();
         this.createDialogueUI();
+        this.createInventoryUI();
 
         // Power-up spawn timer
         this.time.addEvent({ delay: 12000, callback: this.spawnPowerup, callbackScope: this, loop: true });
@@ -1189,9 +2292,9 @@ class GameScene extends Phaser.Scene {
             [T_SAND]: 0xD4B896, [T_SNOW]: 0xDDDDFF, [T_WATER]: 0x2266AA, [T_SWAMP]: 0x3D5C2E,
             [T_FOREST]: 0x1A5C14, [T_ICE]: 0xAADDFF, [T_COBBLE]: 0x888888, [T_WOOD]: 0x9B7340,
         };
-        const scaleX = mmW / WORLD_W, scaleY = mmH / WORLD_H;
-        for (let y = 0; y < WORLD_H; y++) {
-            for (let x = 0; x < WORLD_W; x++) {
+        const scaleX = mmW / this.mapWidth, scaleY = mmH / this.mapHeight;
+        for (let y = 0; y < this.mapHeight; y++) {
+            for (let x = 0; x < this.mapWidth; x++) {
                 g.fillStyle(colorMap[this.worldData.ground[y][x]] || 0x2D8C27);
                 g.fillRect(Math.floor(x * scaleX), Math.floor(y * scaleY), Math.ceil(scaleX), Math.ceil(scaleY));
             }
@@ -1265,6 +2368,7 @@ class GameScene extends Phaser.Scene {
         this.updateMagnet();
         this.updateEnvironment();
         this.checkStairs();
+        this.checkMapTransitions();
     }
 
     handleInput() {
@@ -1283,7 +2387,7 @@ class GameScene extends Phaser.Scene {
 
         // Mud check
         const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
-        const groundTile = (ptx >= 0 && pty >= 0 && ptx < WORLD_W && pty < WORLD_H) ? this.worldData.ground[pty][ptx] : T_GRASS;
+        const groundTile = (ptx >= 0 && pty >= 0 && ptx < this.mapWidth && pty < this.mapHeight) ? this.worldData.ground[pty][ptx] : T_GRASS;
         if (groundTile === T_SWAMP && !this.activePowerups.speed) speed *= 0.55;
         this.playerOnIce = (groundTile === T_ICE);
 
@@ -1309,6 +2413,10 @@ class GameScene extends Phaser.Scene {
         if (Phaser.Input.Keyboard.JustDown(this.crowKey)) this.useCrowPower();
         if (Phaser.Input.Keyboard.JustDown(this.dashKey)) this.useDash();
         if (Phaser.Input.Keyboard.JustDown(this.interactKey) && this.nearestNPC) this.showDialogue(this.nearestNPC);
+        if (Phaser.Input.Keyboard.JustDown(this.inventoryKey)) this.toggleInventory();
+        if (Phaser.Input.Keyboard.JustDown(this.useItemKey)) this.useSelectedItem();
+        if (Phaser.Input.Keyboard.JustDown(this.saveKey)) this.saveGame();
+        if (Phaser.Input.Keyboard.JustDown(this.questLogKey)) this.toggleQuestLog();
     }
 
     updateBunnies(delta) {
@@ -1393,8 +2501,8 @@ class GameScene extends Phaser.Scene {
     }
 
     updateMinimap() {
-        const px = (this.player.x / (WORLD_W * TILE)) * this.mmW + this.mmX;
-        const py = (this.player.y / (WORLD_H * TILE)) * this.mmH + this.mmY;
+        const px = (this.player.x / (this.mapWidth * TILE)) * this.mmW + this.mmX;
+        const py = (this.player.y / (this.mapHeight * TILE)) * this.mmH + this.mmY;
         this.minimapDot.clear();
         this.minimapDot.fillStyle(0xFF0000);
         this.minimapDot.fillCircle(px, py, 3);
@@ -1412,10 +2520,11 @@ class GameScene extends Phaser.Scene {
 
         // Biome name
         const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
-        if (ptx >= 0 && pty >= 0 && ptx < WORLD_W && pty < WORLD_H) {
+        if (ptx >= 0 && pty >= 0 && ptx < this.mapWidth && pty < this.mapHeight) {
             const b = this.worldData.biomeMap[pty][ptx];
             const names = { village: 'Village', farmland: 'Farmland', forest: 'Forest', desert: 'Desert', swamp: 'Swamp', snow: 'Snowy Mountains', hills: 'Hills', water: 'Water' };
-            this.biomeText.setText(names[b] || b);
+            const mapName = MAP_DEFS[this.currentMapId] ? MAP_DEFS[this.currentMapId].name : '';
+            this.biomeText.setText(`${mapName} - ${names[b] || b}`);
         }
 
         // Crow/Dash labels
@@ -1424,15 +2533,19 @@ class GameScene extends Phaser.Scene {
         this.dashLabel.setText(this.dashReady ? 'DASH!' : 'dash...');
         this.dashLabel.setStyle({ fill: this.dashReady ? '#FF8800' : '#666', backgroundColor: this.dashReady ? '#442200' : '#222' });
 
-        // Quest tracker
+        // Quest tracker (show up to 4 active quests)
         if (this.activeQuests.length > 0) {
-            const lines = this.activeQuests.map(q => {
+            const lines = this.activeQuests.slice(0, 4).map(q => {
                 let prog = '';
                 if (q.type === 'eggs') prog = ` (${Math.min(this.totalEggsCollected, q.target)}/${q.target})`;
                 if (q.type === 'golden') prog = ` (${Math.min(this.goldenEggsCollected, q.target)}/${q.target})`;
                 if (q.type === 'boss') prog = this.bossesDefeated[q.target] ? ' (Done!)' : '';
+                if (q.type === 'defeat_n' && q.target) prog = ` (${Math.min(this.defeatedEnemies, q.target.count)}/${q.target.count})`;
+                if (q.type === 'pay_eggs') prog = ` (${this.totalEggsCollected}/${q.target} eggs)`;
+                if (q.type === 'collect_items' && q.target) prog = ` (${this.getItemCount(q.target.item)}/${q.target.count})`;
                 return `> ${q.desc}${prog}`;
             });
+            if (this.activeQuests.length > 4) lines.push(`  ...and ${this.activeQuests.length - 4} more`);
             this.questText.setText(lines.join('\n'));
         } else {
             this.questText.setText('');
@@ -1473,6 +2586,7 @@ class GameScene extends Phaser.Scene {
     // ------------------------------------------------------------------
 
     showDialogue(npc) {
+        if (this.inventoryOpen) this.toggleInventory();
         const def = npc.getData('npcDef');
         this.dialogueActive = true;
         this.dialogueTapped = false;
@@ -1483,22 +2597,50 @@ class GameScene extends Phaser.Scene {
         this._dialogueTapHandler = () => { if (this.dialogueActive) this.dialogueTapped = true; };
         this.input.on('pointerdown', this._dialogueTapHandler);
 
-        // Activate quest if NPC has one and not already active/completed
-        if (def.quest && !this.completedQuests[def.quest.id] && !this.activeQuests.find(q => q.id === def.quest.id)) {
-            this.activeQuests.push(def.quest);
-        }
+        // Find first matching dialogue entry
+        const entry = this.findMatchingDialogue(def);
+        if (!entry) { this.closeDialogue(); return; }
 
-        const idx = npc.getData('dialogueIdx');
-        const text = def.dialogues[idx % def.dialogues.length];
-        npc.setData('dialogueIdx', idx + 1);
+        // Store multi-line dialogue queue
+        this.dialogueQueue = [...entry.lines];
+        this.dialogueEntry = entry;
+        this.dialogueLineIdx = 0;
 
         this.dlgBox.setVisible(true);
         this.dlgName.setText(def.name).setVisible(true);
         this.dlgText.setText('').setVisible(true);
         this.dlgPrompt.setVisible(true);
 
+        this.showNextDialogueLine();
+    }
+
+    findMatchingDialogue(def) {
+        for (const entry of def.dialogues) {
+            if (!entry.cond) return entry;
+            if (this.checkCondition(entry.cond)) return entry;
+        }
+        return def.dialogues[def.dialogues.length - 1];
+    }
+
+    checkCondition(cond) {
+        if (cond.flag && !this.storyFlags[cond.flag]) return false;
+        if (cond.flag2 && !this.storyFlags[cond.flag2]) return false;
+        if (cond.notFlag && this.storyFlags[cond.notFlag]) return false;
+        if (cond.hasItem && !this.hasItem(cond.hasItem)) return false;
+        if (cond.questComplete && !this.completedQuests[cond.questComplete]) return false;
+        if (cond.questActive && !this.activeQuests.find(q => q.id === cond.questActive)) return false;
+        if (cond.flagGte && this.storyFlags[cond.flagGte.flag] < cond.flagGte.value) return false;
+        if (cond.minEggs && this.totalEggsCollected < cond.minEggs) return false;
+        if (cond.and) return cond.and.every(c => this.checkCondition(c));
+        if (cond.or) return cond.or.some(c => this.checkCondition(c));
+        return true;
+    }
+
+    showNextDialogueLine() {
+        const text = this.dialogueQueue[this.dialogueLineIdx];
         this.currentFullText = text;
         this.typewriterDone = false;
+        this.dlgText.setText('');
         this.startTypewriter(text);
     }
 
@@ -1518,19 +2660,86 @@ class GameScene extends Phaser.Scene {
 
     advanceDialogue() {
         if (!this.typewriterDone) {
-            // Skip to full text
             if (this.typewriterTimer) this.typewriterTimer.remove();
             this.dlgText.setText(this.currentFullText);
             this.typewriterDone = true;
             return;
         }
-        this.closeDialogue();
+        this.dialogueLineIdx++;
+        if (this.dialogueLineIdx < this.dialogueQueue.length) {
+            this.showNextDialogueLine();
+        } else {
+            this.executeDialogueActions(this.dialogueEntry);
+            this.closeDialogue();
+        }
+    }
+
+    executeDialogueActions(entry) {
+        if (!entry) return;
+        if (entry.action) this.executeAction(entry.action);
+        if (entry.giveQuest) this.activateQuest(entry.giveQuest);
+        if (entry.giveItem) this.addItem(entry.giveItem);
+        if (entry.removeItem) this.removeItem(entry.removeItem);
+        if (entry.payQuest) this.payEggs(entry.payQuest);
+
+        // Check talk_to and deliver_item quests
+        const def = this.dialogueNPC ? this.dialogueNPC.getData('npcDef') : null;
+        if (def) {
+            this.activeQuests = this.activeQuests.filter(q => {
+                if (q.type === 'talk_to' && q.target === def.id) {
+                    this.completeQuest(q);
+                    return false;
+                }
+                if (q.type === 'deliver_item' && q.target && q.target.npc === def.id && this.hasItem(q.target.item)) {
+                    this.removeItem(q.target.item);
+                    this.completeQuest(q);
+                    return false;
+                }
+                return true;
+            });
+        }
+    }
+
+    executeAction(action) {
+        if (!action) return;
+        if (action.type === 'setFlag') {
+            this.storyFlags[action.flag] = true;
+            if (action.flag === 'ceremony_complete') this.showCeremony();
+        } else if (action.type === 'multi') {
+            (action.effects || []).forEach(e => this.executeAction(e));
+        } else if (action.type === 'giveItem') {
+            this.addItem(action.item);
+        } else if (action.type === 'removeItem') {
+            this.removeItem(action.item);
+        } else if (action.type === 'addEggs') {
+            this.totalEggsCollected += action.amount || 0;
+            this.score += (action.amount || 0) * EGG_POINTS;
+        }
+    }
+
+    activateQuest(questId) {
+        const qd = QUEST_DEFS[questId];
+        if (!qd) return;
+        if (this.completedQuests[qd.id]) return;
+        if (this.activeQuests.find(q => q.id === qd.id)) return;
+        this.activeQuests.push({ ...qd });
+        this.showFloatingText(this.player.x, this.player.y - 30, `New Quest: ${qd.desc}`, '#88DDFF');
+    }
+
+    showFloatingText(x, y, text, color) {
+        color = color || '#FFD700';
+        const ft = this.add.text(x, y, text, {
+            fontSize: '14px', fill: color, stroke: '#000', strokeThickness: 3,
+        }).setOrigin(0.5).setDepth(200);
+        this.tweens.add({ targets: ft, y: y - 40, alpha: 0, duration: 2000, onComplete: () => ft.destroy() });
     }
 
     closeDialogue() {
         this.dialogueActive = false;
         this.dialogueTapped = false;
         this.dialogueNPC = null;
+        this.dialogueQueue = [];
+        this.dialogueEntry = null;
         if (this._dialogueTapHandler) {
             this.input.off('pointerdown', this._dialogueTapHandler);
             this._dialogueTapHandler = null;
@@ -1541,8 +2750,185 @@ class GameScene extends Phaser.Scene {
         this.dlgPrompt.setVisible(false);
         if (this.typewriterTimer) this.typewriterTimer.remove();
 
-        // Check quest completion after dialogue
         this.checkQuests();
+    }
+
+    // ------------------------------------------------------------------
+    //  INVENTORY
+    // ------------------------------------------------------------------
+
+    hasItem(itemId) { return this.inventory.some(i => i.itemId === itemId); }
+
+    getItemCount(itemId) {
+        const item = this.inventory.find(i => i.itemId === itemId);
+        return item ? item.count : 0;
+    }
+
+    addItem(itemId, count) {
+        count = count || 1;
+        const def = ITEM_DEFS[itemId];
+        if (!def) return;
+        const existing = this.inventory.find(i => i.itemId === itemId);
+        if (existing && def.stackable) {
+            existing.count = Math.min(existing.count + count, def.max || 99);
+        } else if (!existing) {
+            this.inventory.push({ itemId, count });
+        }
+        this.showFloatingText(this.player.x, this.player.y - 20, `Got: ${def.name}`, '#88FF88');
+    }
+
+    removeItem(itemId, count) {
+        count = count || 1;
+        const idx = this.inventory.findIndex(i => i.itemId === itemId);
+        if (idx < 0) return;
+        this.inventory[idx].count -= count;
+        if (this.inventory[idx].count <= 0) this.inventory.splice(idx, 1);
+    }
+
+    createInventoryUI() {
+        const W = this.scale.width, H = this.scale.height;
+        const panelW = 220, panelH = 280;
+        const px = W / 2 - panelW / 2, py = H / 2 - panelH / 2;
+
+        this.invPanel = this.add.graphics().setScrollFactor(0).setDepth(210).setVisible(false);
+        this.invPanel.fillStyle(0x111122, 0.95);
+        this.invPanel.fillRoundedRect(px, py, panelW, panelH, 12);
+        this.invPanel.lineStyle(2, 0x4466AA, 0.8);
+        this.invPanel.strokeRoundedRect(px, py, panelW, panelH, 12);
+
+        this.invTitle = this.add.text(W / 2, py + 14, 'Inventory [I]', {
+            fontSize: '16px', fontFamily: 'Georgia, serif', fill: '#FFD700',
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(211).setVisible(false);
+
+        this.invSlots = [];
+        for (let i = 0; i < 10; i++) {
+            const slot = this.add.text(px + 14, py + 40 + i * 22, '', {
+                fontSize: '13px', fontFamily: 'Arial', fill: '#EEEEEE',
+            }).setScrollFactor(0).setDepth(211).setVisible(false).setInteractive();
+            slot.on('pointerdown', () => {
+                if (i < this.inventory.length) {
+                    this.selectedItem = i;
+                    this.refreshInventoryDisplay();
+                }
+            });
+            this.invSlots.push(slot);
+        }
+
+        this.invHint = this.add.text(W / 2, py + panelH - 18, '[U] Use selected item', {
+            fontSize: '11px', fill: '#AAAAAA',
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(211).setVisible(false);
+    }
+
+    toggleInventory() {
+        this.inventoryOpen = !this.inventoryOpen;
+        this.invPanel.setVisible(this.inventoryOpen);
+        this.invTitle.setVisible(this.inventoryOpen);
+        this.invHint.setVisible(this.inventoryOpen);
+        if (this.inventoryOpen) {
+            this.refreshInventoryDisplay();
+        } else {
+            this.invSlots.forEach(s => s.setVisible(false));
+        }
+    }
+
+    toggleQuestLog() {
+        if (this.questLogOpen) {
+            this.questLogOpen = false;
+            if (this.questLogPanel) this.questLogPanel.setVisible(false);
+            if (this.questLogTitle) this.questLogTitle.setVisible(false);
+            this.questLogTexts.forEach(t => t.setVisible(false));
+            return;
+        }
+        this.questLogOpen = true;
+        const W = this.scale.width, H = this.scale.height;
+        const panelW = 300, panelH = 250;
+        const px = W / 2 - panelW / 2, py = H / 2 - panelH / 2;
+        if (!this.questLogPanel) {
+            this.questLogPanel = this.add.graphics().setScrollFactor(0).setDepth(150);
+            this.questLogTitle = this.add.text(W / 2, py + 12, 'Quest Log (Q)', {
+                fontSize: '16px', fill: '#FFD700', fontFamily: 'Georgia, serif',
+            }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(151);
+            this.questLogTexts = [];
+            for (let i = 0; i < 10; i++) {
+                const t = this.add.text(px + 14, py + 40 + i * 20, '', {
+                    fontSize: '12px', fill: '#EEEEEE', wordWrap: { width: panelW - 28 },
+                }).setScrollFactor(0).setDepth(151).setVisible(false);
+                this.questLogTexts.push(t);
+            }
+        }
+        this.questLogPanel.clear();
+        this.questLogPanel.fillStyle(0x111122, 0.92);
+        this.questLogPanel.fillRoundedRect(px, py, panelW, panelH, 12);
+        this.questLogPanel.lineStyle(2, 0x4466AA, 0.8);
+        this.questLogPanel.strokeRoundedRect(px, py, panelW, panelH, 12);
+        this.questLogPanel.setVisible(true);
+        this.questLogTitle.setVisible(true);
+        this.questLogTexts.forEach((t, i) => {
+            if (i < this.activeQuests.length) {
+                const q = this.activeQuests[i];
+                let progress = '';
+                if (q.type === 'eggs' && q.target) progress = ` (${Math.min(this.totalEggsCollected, q.target)}/${q.target})`;
+                if (q.type === 'defeat_n' && q.target) progress = ` (${Math.min(this.defeatedEnemies, q.target.count)}/${q.target.count})`;
+                t.setText(`- ${q.desc}${progress}`).setStyle({ fill: '#FFFFCC' }).setVisible(true);
+            } else if (i === this.activeQuests.length && this.activeQuests.length === 0) {
+                t.setText('No active quests.').setStyle({ fill: '#888888' }).setVisible(true);
+            } else {
+                t.setVisible(false);
+            }
+        });
+    }
+
+    refreshInventoryDisplay() {
+        this.invSlots.forEach((slot, i) => {
+            if (i < this.inventory.length) {
+                const item = this.inventory[i];
+                const def = ITEM_DEFS[item.itemId];
+                const sel = this.selectedItem === i ? '> ' : '  ';
+                const cnt = item.count > 1 ? ` x${item.count}` : '';
+                slot.setText(`${sel}${def ? def.name : item.itemId}${cnt}`);
+                slot.setStyle({ fill: this.selectedItem === i ? '#FFD700' : '#EEEEEE' });
+                slot.setVisible(true);
+            } else {
+                slot.setVisible(false);
+            }
+        });
+        if (this.inventory.length === 0) {
+            this.invSlots[0].setText('  (empty)').setStyle({ fill: '#888888' }).setVisible(true);
+        }
+    }
+
+    useSelectedItem() {
+        if (this.selectedItem === null || this.selectedItem >= this.inventory.length) {
+            this.showFloatingText(this.player.x, this.player.y, 'No item selected', '#FF6666');
+            return;
+        }
+        const item = this.inventory[this.selectedItem];
+        const ptx = Math.floor(this.player.x / TILE);
+        const pty = Math.floor(this.player.y / TILE);
+
+        // Check use_item quests
+        let used = false;
+        this.activeQuests = this.activeQuests.filter(q => {
+            if (q.type === 'use_item' && q.target && q.target.item === item.itemId) {
+                const loc = q.target.location;
+                if (loc) {
+                    const dx = ptx - loc.tx, dy = pty - loc.ty;
+                    if (Math.sqrt(dx * dx + dy * dy) <= (loc.radius || 3)) {
+                        this.completeQuest(q);
+                        used = true;
+                        return false;
+                    }
+                }
+            }
+            return true;
+        });
+
+        if (used) {
+            this.showFloatingText(this.player.x, this.player.y - 20, `Used: ${ITEM_DEFS[item.itemId].name}`, '#88FF88');
+            if (this.inventoryOpen) this.refreshInventoryDisplay();
+        } else {
+            this.showFloatingText(this.player.x, this.player.y, "Can't use that here", '#FF6666');
+        }
     }
 
     // ------------------------------------------------------------------
@@ -1556,6 +2942,22 @@ class GameScene extends Phaser.Scene {
             if (q.type === 'eggs' && this.totalEggsCollected >= q.target) done = true;
             if (q.type === 'golden' && this.goldenEggsCollected >= q.target) done = true;
             if (q.type === 'boss' && this.bossesDefeated[q.target]) done = true;
+            if (q.type === 'defeat_n' && q.target && this.defeatedEnemies >= q.target.count) done = true;
+            if (q.type === 'explore_area' && q.target) {
+                const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
+                const dx = ptx - q.target.tx, dy = pty - q.target.ty;
+                if (Math.sqrt(dx * dx + dy * dy) <= (q.target.radius || 3)) {
+                    if (!q.requireItem || this.hasItem(q.requireItem)) done = true;
+                }
+            }
+            if (q.type === 'collect_items' && q.target) {
+                if (this.getItemCount(q.target.item) >= q.target.count) done = true;
+            }
+            if (q.type === 'use_item' && q.target) {
+                // Checked in useSelectedItem
+            }
+            // talk_to and deliver_item are checked in executeDialogueActions
+            // pay_eggs is triggered manually via NPC interaction
             if (done) {
                 this.completeQuest(q);
                 return false;
@@ -1567,14 +2969,16 @@ class GameScene extends Phaser.Scene {
     completeQuest(quest) {
         this.completedQuests[quest.id] = true;
 
-        // Reward
+        // Process reward
+        if (quest.reward) {
+            this.processReward(quest.reward);
+        }
+        // Legacy support
         if (quest.rewardType === 'life') {
             this.lives = Math.min(this.lives + 1, 5);
             this.createHeartDisplay();
         } else if (quest.rewardType === 'score500') {
             this.score += 500;
-        } else if (quest.rewardType === 'speed') {
-            // Permanent slight speed boost — handled by checking completedQuests in input
         }
 
         // Notification
@@ -1584,6 +2988,49 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(150);
         this.tweens.add({ targets: notify, y: 50, alpha: 0, duration: 3000, onComplete: () => notify.destroy() });
         this.cameras.main.flash(400, 255, 215, 0);
+
+        // Chain to next quest if specified
+        if (quest.nextQuest) {
+            this.time.delayedCall(500, () => this.activateQuest(quest.nextQuest));
+        }
+    }
+
+    processReward(reward) {
+        if (!reward) return;
+        if (reward.type === 'flag') {
+            this.storyFlags[reward.flag] = true;
+        } else if (reward.type === 'life') {
+            this.lives = Math.min(this.lives + 1, 5);
+            this.createHeartDisplay();
+        } else if (reward.type === 'score') {
+            this.score += reward.amount || 0;
+        } else if (reward.type === 'speed') {
+            // Permanent speed handled in input
+        } else if (reward.type === 'eggs') {
+            this.totalEggsCollected += reward.amount || 0;
+            this.score += (reward.amount || 0) * EGG_POINTS;
+        } else if (reward.type === 'giveItem') {
+            this.addItem(reward.item);
+        } else if (reward.type === 'removeItem') {
+            this.removeItem(reward.item);
+        } else if (reward.type === 'multi') {
+            (reward.effects || []).forEach(e => this.processReward(e));
+        }
+    }
+
+    payEggs(questId) {
+        const q = this.activeQuests.find(q => q.id === questId && q.type === 'pay_eggs');
+        if (!q) return false;
+        if (this.totalEggsCollected >= q.target) {
+            this.totalEggsCollected -= q.target;
+            this.completeQuest(q);
+            this.activeQuests = this.activeQuests.filter(aq => aq.id !== questId);
+            return true;
+        } else {
+            this.showFloatingText(this.player.x, this.player.y,
+                `Need ${q.target} eggs (have ${this.totalEggsCollected})`, '#FF6666');
+            return false;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -1619,6 +3066,7 @@ class GameScene extends Phaser.Scene {
 
             if (hp <= 0) {
                 this.bossesDefeated[bunny.getData('biome')] = true;
+                this.defeatedEnemies++;
                 this.score += 200;
                 const dt = this.add.text(bunny.x, bunny.y - 20, 'BOSS DEFEATED! +200', {
                     fontSize: '18px', fill: '#FFD700', stroke: '#000', strokeThickness: 3,
@@ -1631,6 +3079,7 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        this.defeatedEnemies++;
         bunny.setData('stunned', true);
         bunny.setVelocity(0, 0);
         bunny.setTexture(bunny.getData('stunnedTextureKey'));
@@ -1692,7 +3141,7 @@ class GameScene extends Phaser.Scene {
         const dist = 100 + Math.random() * 150;
         const px = this.player.x + Math.cos(angle) * dist;
         const py = this.player.y + Math.sin(angle) * dist;
-        if (px < TILE || py < TILE || px > (WORLD_W - 1) * TILE || py > (WORLD_H - 1) * TILE) return;
+        if (px < TILE || py < TILE || px > (this.mapWidth - 1) * TILE || py > (this.mapHeight - 1) * TILE) return;
 
         const pu = this.powerupGroup.create(px, py, 'powerup_' + type);
         pu.setData('powerupType', type);
@@ -1741,9 +3190,30 @@ class GameScene extends Phaser.Scene {
     onCaughtByBunny(player, bunny) {
         if (this.isInvincible || bunny.getData('stunned') || this.dialogueActive) return;
 
-        this.lives--;
+        const bType = bunny.getData('bunnyType');
+
+        // Shadow thief steals eggs instead of doing damage
+        if (bType === 'shadow') {
+            const stolen = Math.min(this.score, 5);
+            if (stolen > 0) {
+                this.score -= stolen;
+                this.showFloatingText(player.x, player.y - 20, `-${stolen} eggs stolen!`, '#FFDD00');
+                this.cameras.main.flash(200, 200, 200, 0);
+            }
+            this.isInvincible = true;
+            this.time.delayedCall(1000, () => { if (!this.activePowerups.shield) this.isInvincible = false; });
+            return;
+        }
+
+        // Cursed rabbits deal 2 damage
+        const damage = bType === 'cursed' ? 2 : 1;
+        this.lives = Math.max(0, this.lives - damage);
         this.comboCount = 0; this.comboMult = 1;
         this.createHeartDisplay();
+
+        if (damage > 1) {
+            this.showFloatingText(player.x, player.y - 30, `${damage} damage!`, '#FF3333');
+        }
 
         if (this.lives <= 0) { this.gameOver(); return; }
 
@@ -1817,6 +3287,26 @@ class GameScene extends Phaser.Scene {
     //  GAME OVER / PAUSE
     // ------------------------------------------------------------------
 
+    saveGame() {
+        const save = {
+            score: this.score,
+            lives: this.lives,
+            totalEggsCollected: this.totalEggsCollected,
+            goldenEggsCollected: this.goldenEggsCollected,
+            bossesDefeated: this.bossesDefeated,
+            storyFlags: this.storyFlags,
+            inventory: this.inventory,
+            activeQuests: this.activeQuests.map(q => ({ id: q.id, desc: q.desc, type: q.type, target: q.target, reward: q.reward, progress: q.progress })),
+            completedQuests: this.completedQuests,
+            currentMapId: this.currentMapId,
+            defeatedEnemies: this.defeatedEnemies,
+            spawnTx: Math.floor(this.player.x / TILE),
+            spawnTy: Math.floor(this.player.y / TILE),
+        };
+        localStorage.setItem('mrkluckSave', JSON.stringify(save));
+        this.showFloatingText(this.player.x, this.player.y - 30, 'Game Saved!', '#88FF88');
+    }
+
     gameOver() {
         this.playerDead = true;
         this.player.setVelocity(0, 0);
@@ -1868,14 +3358,78 @@ class GameScene extends Phaser.Scene {
     }
 
     // ------------------------------------------------------------------
+    //  CEREMONY / CREDITS
+    // ------------------------------------------------------------------
+
+    showCeremony() {
+        this.paused = true;
+        this.player.setVelocity(0, 0);
+        this.cameras.main.flash(1000, 255, 215, 0);
+
+        const W = this.scale.width, H = this.scale.height;
+        const overlay = this.add.graphics().setScrollFactor(0).setDepth(300);
+        overlay.fillStyle(0x000000, 0);
+        this.tweens.add({
+            targets: { alpha: 0 }, alpha: 0.85, duration: 2000,
+            onUpdate: (tw, target) => {
+                overlay.clear(); overlay.fillStyle(0x000000, target.alpha);
+                overlay.fillRect(0, 0, W, H);
+            },
+        });
+
+        this.time.delayedCall(2500, () => {
+            const lines = [
+                { text: 'THE KINGDOM IS SAVED!', y: H * 0.12, size: '28px', color: '#FFD700', delay: 0 },
+                { text: 'Mr. Kluck, Hero of Cluckshire', y: H * 0.22, size: '20px', color: '#FFFFFF', delay: 500 },
+                { text: '---', y: H * 0.30, size: '14px', color: '#666666', delay: 800 },
+                { text: 'King Blueberry has been unmasked and banished.', y: H * 0.36, size: '14px', color: '#CCCCCC', delay: 1200 },
+                { text: 'The real King Reginald has been freed.', y: H * 0.42, size: '14px', color: '#CCCCCC', delay: 1600 },
+                { text: 'The cursed chocolate supply has been destroyed.', y: H * 0.48, size: '14px', color: '#CCCCCC', delay: 2000 },
+                { text: 'The bunnies are returning to their peaceful ways.', y: H * 0.54, size: '14px', color: '#CCCCCC', delay: 2400 },
+                { text: '---', y: H * 0.62, size: '14px', color: '#666666', delay: 3000 },
+                { text: `Final Score: ${this.score}`, y: H * 0.68, size: '18px', color: '#88FF88', delay: 3500 },
+                { text: `Eggs Collected: ${this.totalEggsCollected}`, y: H * 0.74, size: '14px', color: '#88DDFF', delay: 3800 },
+                { text: `Bosses Defeated: ${Object.keys(this.bossesDefeated).length}`, y: H * 0.79, size: '14px', color: '#FF8888', delay: 4100 },
+                { text: 'Thank you for playing!', y: H * 0.88, size: '20px', color: '#FFD700', delay: 5000 },
+                { text: 'Press E to continue exploring...', y: H * 0.94, size: '12px', color: '#888888', delay: 6000 },
+            ];
+            const ceremonyTexts = [];
+            lines.forEach(l => {
+                this.time.delayedCall(l.delay, () => {
+                    const t = this.add.text(W / 2, l.y, l.text, {
+                        fontSize: l.size, fill: l.color, fontFamily: 'Georgia, serif',
+                        stroke: '#000000', strokeThickness: 2,
+                    }).setOrigin(0.5).setScrollFactor(0).setDepth(301).setAlpha(0);
+                    this.tweens.add({ targets: t, alpha: 1, duration: 800 });
+                    ceremonyTexts.push(t);
+                });
+            });
+
+            // Allow dismissing after 6 seconds
+            this.time.delayedCall(6500, () => {
+                const dismiss = () => {
+                    overlay.destroy();
+                    ceremonyTexts.forEach(t => t.destroy());
+                    this.paused = false;
+                    this.interactKey.off('down', dismiss);
+                };
+                this.interactKey.on('down', dismiss);
+            });
+        });
+    }
+
+    // ------------------------------------------------------------------
     //  BASEMENTS
     // ------------------------------------------------------------------
 
     checkStairs() {
         if (this.basementCooldown) return;
         const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
-        if (ptx < 0 || pty < 0 || ptx >= WORLD_W || pty >= WORLD_H) return;
+        if (ptx < 0 || pty < 0 || ptx >= this.mapWidth || pty >= this.mapHeight) return;
         if (this.worldData.ground[pty][ptx] === T_STAIRS) {
+            // Check interiors first, then basements
+            const inter = this.worldData.interiors.find(i => i.stairsTx === ptx && i.stairsTy === pty);
+            if (inter) { this.enterInterior(inter); return; }
             const bsmt = this.worldData.basements.find(b => b.stairsTx === ptx && b.stairsTy === pty);
             if (bsmt) this.enterBasement(bsmt);
         }
@@ -1893,13 +3447,74 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    enterInterior(inter) {
+        this.scene.pause();
+        this.scene.launch('InteriorScene', {
+            parentScene: this,
+            interiorId: inter.interiorId,
+            returnX: this.player.x,
+            returnY: this.player.y,
+            score: this.score,
+            storyFlags: this.storyFlags,
+            inventory: this.inventory,
+        });
+    }
+
     returnFromBasement(data) {
         if (data && data.score !== undefined) this.score = data.score;
+        if (data && data.storyFlags) this.storyFlags = data.storyFlags;
+        if (data && data.inventory) this.inventory = data.inventory;
         this.scene.resume();
-        // Move player slightly off stairs so they don't re-enter
         this.player.y += TILE;
         this.basementCooldown = true;
         this.time.delayedCall(800, () => { this.basementCooldown = false; });
+    }
+
+    checkMapTransitions() {
+        const mapDef = MAP_DEFS[this.currentMapId];
+        if (!mapDef || !mapDef.transitions) return;
+        const ptx = Math.floor(this.player.x / TILE);
+        const pty = Math.floor(this.player.y / TILE);
+        for (const t of mapDef.transitions) {
+            const inX = ptx >= t.tx && ptx < t.tx + (t.w || 1);
+            const inY = pty >= t.ty && pty < t.ty + (t.h || 1);
+            if (inX && inY) {
+                // Check requirements
+                if (t.requires) {
+                    if (t.requires.item && !this.hasItem(t.requires.item)) {
+                        this.showFloatingText(this.player.x, this.player.y - 20, t.failMessage || 'Locked!', '#FF6666');
+                        this.player.y += (t.h === 1 ? TILE : 0);
+                        this.player.x += (t.w === 1 ? TILE : 0);
+                        return;
+                    }
+                    if (t.requires.flag && !this.storyFlags[t.requires.flag]) {
+                        this.showFloatingText(this.player.x, this.player.y - 20, t.failMessage || 'Blocked!', '#FF6666');
+                        this.player.y += (t.h === 1 ? TILE : 0);
+                        this.player.x += (t.w === 1 ? TILE : 0);
+                        return;
+                    }
+                }
+                // Auto-save before transition
+                this.saveGame();
+                // Transition!
+                this.scene.start('GameScene', {
+                    score: this.score,
+                    lives: this.lives,
+                    totalEggsCollected: this.totalEggsCollected,
+                    goldenEggsCollected: this.goldenEggsCollected,
+                    bossesDefeated: this.bossesDefeated,
+                    storyFlags: this.storyFlags,
+                    inventory: this.inventory,
+                    activeQuests: this.activeQuests,
+                    completedQuests: this.completedQuests,
+                    currentMapId: t.toMap,
+                    defeatedEnemies: this.defeatedEnemies,
+                    spawnTx: t.toTx,
+                    spawnTy: t.toTy,
+                });
+                return;
+            }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -1928,6 +3543,8 @@ class GameScene extends Phaser.Scene {
         makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => this.useCrowPower());
         makeBtnCircle('DASH', W - 55, H - 55, 0x884400, () => this.useDash());
         makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => { if (this.nearestNPC && !this.dialogueActive) this.showDialogue(this.nearestNPC); });
+        makeBtnCircle('BAG', W - 110, H - 105, 0x446622, () => this.toggleInventory());
+        makeBtnCircle('USE', W - 165, H - 55, 0x664422, () => this.useSelectedItem());
 
         // Pause button
         const pauseBtn = this.add.text(W / 2 - 55, 24, '|| Pause', {
@@ -2116,13 +3733,610 @@ class BasementScene extends Phaser.Scene {
 
 
 // ===================================================================
+//  INTERIOR SCENE — Generalized dungeon/room scene
+// ===================================================================
+
+// Interior definitions: hand-crafted or generated rooms
+const INTERIOR_DEFS = {
+    castle_throne: {
+        width: 16, height: 12,
+        groundTile: T_COBBLE, wallTile: W_STONE_WALL,
+        title: 'Castle Throne Room',
+        npcs: ['king', 'princess', 'royal_guard'],
+        eggs: 3,
+    },
+    hermit_cave: {
+        width: 10, height: 8,
+        groundTile: T_BASEMENT, wallTile: W_BASEMENT_WALL,
+        title: "Hermit's Cave",
+        npcs: ['hermit'],
+        eggs: 2,
+    },
+    labyrinth_f1: {
+        width: 25, height: 25,
+        groundTile: T_BASEMENT, wallTile: W_BASEMENT_WALL,
+        title: 'Labyrinth - Floor 1',
+        generated: true,
+        eggs: 10,
+        nextFloor: 'labyrinth_f2',
+    },
+    labyrinth_f2: {
+        width: 30, height: 30,
+        groundTile: T_BASEMENT, wallTile: W_BASEMENT_WALL,
+        title: 'Labyrinth - Floor 2',
+        generated: true,
+        eggs: 15,
+        nextFloor: 'labyrinth_f3',
+        findItem: 'cursed_chocolate',
+    },
+    labyrinth_f3: {
+        width: 35, height: 35,
+        groundTile: T_BASEMENT, wallTile: W_BASEMENT_WALL,
+        title: 'Labyrinth - Floor 3',
+        generated: true,
+        eggs: 20,
+        hasBoss: true,
+    },
+    hollow_tree: {
+        width: 14, height: 20,
+        groundTile: T_WOOD, wallTile: W_WOOD_WALL,
+        title: 'Inside the Hollow Tree',
+        eggs: 8,
+        findItem: 'fairy_dust',
+    },
+    fairy_glen: {
+        width: 16, height: 16,
+        groundTile: T_GRASS, wallTile: W_TREE,
+        title: 'Fairy Glen',
+        npcs: ['fairy_queen'],
+        eggs: 5,
+        findItem: 'fairy_dust',
+    },
+    jail_cells: {
+        width: 12, height: 10,
+        groundTile: T_BASEMENT, wallTile: W_STONE_WALL,
+        title: 'Castle Dungeon',
+        npcs: ['real_king'],
+        eggs: 0,
+    },
+    witch_lair: {
+        width: 12, height: 12,
+        groundTile: T_SWAMP, wallTile: W_BASEMENT_WALL,
+        title: "Witch Hexana's Lair",
+        npcs: ['witch_hexana'],
+        eggs: 5,
+    },
+    shadow_vault: {
+        width: 14, height: 10,
+        groundTile: T_BASEMENT, wallTile: W_STONE_WALL,
+        title: 'Shadow Vault',
+        eggs: 25,
+    },
+};
+
+class InteriorScene extends Phaser.Scene {
+    constructor() { super('InteriorScene'); }
+
+    init(data) {
+        this.parentScene = data.parentScene;
+        this.interiorId = data.interiorId;
+        this.config = INTERIOR_DEFS[data.interiorId];
+        this.returnX = data.returnX;
+        this.returnY = data.returnY;
+        this.score = data.score || 0;
+        this.storyFlags = data.storyFlags || {};
+        this.inventory = data.inventory || [];
+    }
+
+    preload() { generateAllTextures(this); }
+
+    create() {
+        const cfg = this.config;
+        if (!cfg) { this.exitInterior(); return; }
+        const mapW = cfg.width, mapH = cfg.height;
+
+        const map = this.make.tilemap({ tileWidth: TILE, tileHeight: TILE, width: mapW, height: mapH });
+        const tileset = map.addTilesetImage('tiles', 'tiles', TILE, TILE, 0, 0);
+        const ground = map.createBlankLayer('iground', tileset);
+        const walls = map.createBlankLayer('iwalls', tileset);
+
+        if (cfg.generated) {
+            this.generateMaze(ground, walls, mapW, mapH, cfg);
+        } else {
+            for (let y = 0; y < mapH; y++) {
+                for (let x = 0; x < mapW; x++) {
+                    ground.putTileAt(cfg.groundTile, x, y);
+                    if (x === 0 || x === mapW - 1 || y === 0 || y === mapH - 1) {
+                        walls.putTileAt(cfg.wallTile, x, y);
+                    }
+                }
+            }
+        }
+
+        // Exit stairs at bottom center
+        const sx = Math.floor(mapW / 2), sy = mapH - 2;
+        ground.putTileAt(T_STAIRS, sx, sy);
+        walls.putTileAt(-1, sx, sy); // ensure no wall on stairs
+
+        // Next floor stairs (for labyrinth)
+        if (cfg.nextFloor) {
+            const nx = Math.floor(mapW / 2), ny = 1;
+            ground.putTileAt(T_STAIRS, nx, ny);
+            walls.putTileAt(-1, nx, ny);
+            this.nextFloorX = nx;
+            this.nextFloorY = ny;
+        }
+
+        walls.setCollisionByExclusion([-1]);
+        this.physics.world.setBounds(0, 0, mapW * TILE, mapH * TILE);
+
+        // Camera
+        if (mapW * TILE < this.scale.width && mapH * TILE < this.scale.height) {
+            const camX = (this.scale.width - mapW * TILE) / 2;
+            const camY = (this.scale.height - mapH * TILE) / 2;
+            this.cameras.main.setScroll(-camX, -camY);
+        } else {
+            this.cameras.main.setBounds(0, 0, mapW * TILE, mapH * TILE);
+        }
+
+        // Dark background
+        const bg = this.add.graphics();
+        bg.fillStyle(0x111118);
+        bg.fillRect(-this.scale.width, -this.scale.height, this.scale.width * 3, this.scale.height * 3);
+        bg.setDepth(-1);
+
+        // Player
+        this.player = this.physics.add.sprite(sx * TILE + TILE / 2, (sy - 1) * TILE + TILE / 2, 'player');
+        this.player.body.setSize(16, 16);
+        this.player.body.setOffset(10, 14);
+        this.player.setCollideWorldBounds(true);
+        this.player.setDepth(10);
+        this.physics.add.collider(this.player, walls);
+
+        // Follow player if map is large
+        if (mapW * TILE > this.scale.width || mapH * TILE > this.scale.height) {
+            this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+        }
+
+        // Eggs
+        this.eggGroup = this.physics.add.staticGroup();
+        const eggCount = cfg.eggs || 0;
+        for (let i = 0; i < eggCount; i++) {
+            const ex = Phaser.Math.Between(2, mapW - 3) * TILE + TILE / 2;
+            const ey = Phaser.Math.Between(2, mapH - 3) * TILE + TILE / 2;
+            const ci = i % EGG_COLORS.length;
+            const isGolden = i === 0 && eggCount > 3;
+            const egg = this.eggGroup.create(ex, ey, isGolden ? 'goldenegg' : 'egg' + ci);
+            egg.setData('points', isGolden ? GOLDEN_EGG_POINTS : EGG_POINTS);
+            egg.setData('eggType', isGolden ? 'golden' : 'normal');
+            egg.setDepth(5);
+            this.tweens.add({ targets: egg, y: ey - 4, yoyo: true, repeat: -1, duration: 600, ease: 'Sine.easeInOut' });
+        }
+        this.physics.add.overlap(this.player, this.eggGroup, this.collectEgg, null, this);
+
+        // Special item pickup
+        if (cfg.findItem) {
+            const itemDef = ITEM_DEFS[cfg.findItem];
+            if (itemDef) {
+                const ix = Phaser.Math.Between(3, mapW - 4) * TILE + TILE / 2;
+                const iy = Phaser.Math.Between(3, mapH - 4) * TILE + TILE / 2;
+                this.specialItem = this.physics.add.staticImage(ix, iy, 'goldenegg');
+                this.specialItem.setTint(0xFF00FF);
+                this.specialItem.setDepth(6);
+                this.specialItem.setData('itemId', cfg.findItem);
+                this.tweens.add({ targets: this.specialItem, y: iy - 6, yoyo: true, repeat: -1, duration: 500, ease: 'Sine.easeInOut' });
+                this.add.text(ix, iy + 18, itemDef.name, {
+                    fontSize: '9px', fill: '#FF88FF',
+                }).setOrigin(0.5).setDepth(6);
+                this.physics.add.overlap(this.player, this.specialItem, () => {
+                    const existing = this.inventory.find(i => i.itemId === cfg.findItem);
+                    if (!existing) {
+                        this.inventory.push({ itemId: cfg.findItem, count: 1 });
+                        const ft = this.add.text(this.specialItem.x, this.specialItem.y - 20, `Found: ${itemDef.name}!`, {
+                            fontSize: '14px', fill: '#FF88FF', stroke: '#000', strokeThickness: 3,
+                        }).setOrigin(0.5).setDepth(30);
+                        this.tweens.add({ targets: ft, y: ft.y - 40, alpha: 0, duration: 1500, onComplete: () => ft.destroy() });
+                        if (cfg.findItem === 'cursed_chocolate') this.storyFlags.found_cursed_chocolate = true;
+                    }
+                    this.specialItem.destroy();
+                }, null, this);
+            }
+        }
+
+        // Interior enemies (labyrinth floors)
+        this.enemyGroup = this.physics.add.group();
+        if (cfg.generated) {
+            const enemyCount = cfg.hasBoss ? 6 : Math.floor(mapW * mapH / 80);
+            for (let i = 0; i < enemyCount; i++) {
+                let ex, ey, attempts = 0;
+                do {
+                    ex = Phaser.Math.Between(2, mapW - 3);
+                    ey = Phaser.Math.Between(2, mapH - 3);
+                    attempts++;
+                } while (attempts < 200 && walls.getTileAt(ex, ey));
+                const bx = ex * TILE + TILE / 2, by = ey * TILE + TILE / 2;
+                const enemy = this.enemyGroup.create(bx, by, 'cursed_rabbit');
+                enemy.setCollideWorldBounds(true);
+                enemy.setData('speed', 100);
+                enemy.setData('stunned', false);
+                enemy.setData('type', 'cursed');
+                enemy.setTint(0xFF4444);
+                enemy.setDepth(9);
+            }
+            // Boss on final labyrinth floor
+            if (cfg.hasBoss) {
+                const bossX = Math.floor(mapW / 2) * TILE + TILE / 2;
+                const bossY = 3 * TILE + TILE / 2;
+                const boss = this.enemyGroup.create(bossX, bossY, 'boss_bunny');
+                boss.setCollideWorldBounds(true);
+                boss.setData('speed', 90);
+                boss.setData('stunned', false);
+                boss.setData('type', 'boss');
+                boss.setData('bossHP', 5);
+                boss.setScale(1.4);
+                boss.setDepth(9);
+            }
+            this.physics.add.collider(this.enemyGroup, walls);
+            this.physics.add.overlap(this.player, this.enemyGroup, this.onInteriorEnemyHit, null, this);
+        }
+
+        // Stun key
+        this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.crowReady = true;
+
+        // Interior NPCs
+        this.interiorNPCs = [];
+        if (cfg.npcs) {
+            cfg.npcs.forEach((npcId, idx) => {
+                const def = NPC_DEFS.find(d => d.id === npcId);
+                if (!def) return;
+                const nx = (3 + idx * 3) * TILE + TILE / 2;
+                const ny = 3 * TILE + TILE / 2;
+                const npc = this.add.image(nx, ny, 'npc_' + def.id);
+                npc.setDepth(8);
+                npc.setData('npcDef', def);
+                npc.setData('dialogueIdx', 0);
+                this.interiorNPCs.push(npc);
+                this.tweens.add({ targets: npc, y: ny - 3, yoyo: true, repeat: -1, duration: 800, ease: 'Sine.easeInOut' });
+            });
+        }
+
+        // Input
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.wasd = this.input.keyboard.addKeys({
+            up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
+            left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D,
+        });
+        this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+
+        // Touch drag
+        this.touchDir = { x: 0, y: 0 };
+        this.touchAnchor = null;
+        this.input.on('pointerdown', p => { this.touchAnchor = { x: p.x, y: p.y }; });
+        this.input.on('pointermove', p => {
+            if (!this.touchAnchor || !p.isDown) return;
+            const dx = p.x - this.touchAnchor.x, dy = p.y - this.touchAnchor.y;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len > 10) { this.touchDir = { x: dx / len, y: dy / len }; } else { this.touchDir = { x: 0, y: 0 }; }
+        });
+        this.input.on('pointerup', () => { this.touchAnchor = null; this.touchDir = { x: 0, y: 0 }; });
+
+        // Title label
+        this.add.text(mapW * TILE / 2, 6, `-- ${cfg.title || 'Interior'} --`, {
+            fontSize: '12px', fill: '#AAAACC',
+        }).setOrigin(0.5, 0).setDepth(20);
+
+        // Exit label
+        this.add.text(sx * TILE + TILE / 2, (sy + 1) * TILE, 'Exit', {
+            fontSize: '11px', fill: '#FFD700',
+        }).setOrigin(0.5).setDepth(20);
+
+        if (cfg.nextFloor) {
+            this.add.text(this.nextFloorX * TILE + TILE / 2, (this.nextFloorY - 1) * TILE, 'Deeper', {
+                fontSize: '11px', fill: '#FF8888',
+            }).setOrigin(0.5).setDepth(20);
+        }
+
+        // NPC interact prompt
+        this.interactPrompt = this.add.text(0, 0, '[E] Talk', {
+            fontSize: '11px', fill: '#FFD700', backgroundColor: '#00000088', padding: { x: 2, y: 1 },
+        }).setOrigin(0.5).setDepth(20).setVisible(false);
+
+        this.stairsX = sx;
+        this.stairsY = sy;
+        this.nearestNPC = null;
+        this.interiorInvincible = false;
+
+        // Dialogue UI (simplified)
+        this.dialogueActive = false;
+        this.createSimpleDialogueUI();
+    }
+
+    createSimpleDialogueUI() {
+        const W = this.scale.width, H = this.scale.height;
+        const boxH = 110, boxW = W - 40, boxX = 20, boxY = H - boxH - 10;
+        this.dlgBox = this.add.graphics().setScrollFactor(0).setDepth(200).setVisible(false);
+        this.dlgBox.fillStyle(0x111122, 0.92);
+        this.dlgBox.fillRoundedRect(boxX, boxY, boxW, boxH, 12);
+        this.dlgBox.lineStyle(2, 0x4466AA, 0.8);
+        this.dlgBox.strokeRoundedRect(boxX, boxY, boxW, boxH, 12);
+        this.dlgName = this.add.text(boxX + 14, boxY + 8, '', {
+            fontSize: '16px', fontFamily: 'Georgia, serif', fill: '#FFD700',
+        }).setScrollFactor(0).setDepth(201).setVisible(false);
+        this.dlgText = this.add.text(boxX + 14, boxY + 32, '', {
+            fontSize: '13px', fontFamily: 'Arial', fill: '#EEEEEE', wordWrap: { width: boxW - 28 }, lineSpacing: 4,
+        }).setScrollFactor(0).setDepth(201).setVisible(false);
+
+        this.input.on('pointerdown', () => {
+            if (this.dialogueActive) this.advanceInteriorDialogue();
+        });
+    }
+
+    generateMaze(ground, walls, w, h, cfg) {
+        // Fill everything with walls first
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                ground.putTileAt(cfg.groundTile, x, y);
+                walls.putTileAt(cfg.wallTile, x, y);
+            }
+        }
+        // Recursive backtracking maze
+        const grid = Array.from({ length: h }, () => Array(w).fill(true));
+        const carve = (cx, cy) => {
+            grid[cy][cx] = false;
+            walls.putTileAt(-1, cx, cy);
+            const dirs = [[0,-2],[0,2],[-2,0],[2,0]].sort(() => Math.random() - 0.5);
+            for (const [dx, dy] of dirs) {
+                const nx = cx + dx, ny = cy + dy;
+                if (nx > 0 && nx < w - 1 && ny > 0 && ny < h - 1 && grid[ny][nx]) {
+                    grid[cy + dy / 2][cx + dx / 2] = false;
+                    walls.putTileAt(-1, cx + dx / 2, cy + dy / 2);
+                    carve(nx, ny);
+                }
+            }
+        };
+        carve(1, 1);
+        // Ensure exit and entrance are clear
+        walls.putTileAt(-1, Math.floor(w / 2), h - 2);
+        walls.putTileAt(-1, Math.floor(w / 2), 1);
+    }
+
+    update() {
+        if (this.dialogueActive) {
+            if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
+                this.advanceInteriorDialogue();
+            }
+            return;
+        }
+
+        const left  = this.cursors.left.isDown  || this.wasd.left.isDown  || this.touchDir.x < -0.3;
+        const right = this.cursors.right.isDown || this.wasd.right.isDown || this.touchDir.x > 0.3;
+        const up    = this.cursors.up.isDown    || this.wasd.up.isDown    || this.touchDir.y < -0.3;
+        const down  = this.cursors.down.isDown  || this.wasd.down.isDown  || this.touchDir.y > 0.3;
+
+        let vx = 0, vy = 0;
+        if (left)  vx = -PLAYER_SPEED;
+        if (right) vx =  PLAYER_SPEED;
+        if (up)    vy = -PLAYER_SPEED;
+        if (down)  vy =  PLAYER_SPEED;
+        if (vx !== 0 && vy !== 0) { const d = 1 / Math.SQRT2; vx *= d; vy *= d; }
+        this.player.setVelocity(vx, vy);
+        if (vx < 0) this.player.setFlipX(true);
+        if (vx > 0) this.player.setFlipX(false);
+
+        // NPC proximity
+        this.nearestNPC = null;
+        let nearDist = Infinity;
+        this.interiorNPCs.forEach(npc => {
+            const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, npc.x, npc.y);
+            if (d < NPC_INTERACT_DIST && d < nearDist) { this.nearestNPC = npc; nearDist = d; }
+        });
+        if (this.nearestNPC) {
+            this.interactPrompt.setPosition(this.nearestNPC.x, this.nearestNPC.y - 24).setVisible(true);
+            if (Phaser.Input.Keyboard.JustDown(this.interactKey)) this.showInteriorDialogue(this.nearestNPC);
+        } else {
+            this.interactPrompt.setVisible(false);
+        }
+
+        // Crow stun (SPACE)
+        if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && this.crowReady) {
+            this.interiorCrowStun();
+        }
+
+        // Enemy AI
+        this.enemyGroup.getChildren().forEach(enemy => {
+            if (enemy.getData('stunned')) return;
+            const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
+            const speed = enemy.getData('speed');
+            if (dist < 200) {
+                const a = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+                const wobble = Math.sin(this.time.now / 500 + enemy.x) * 0.3;
+                this.physics.velocityFromRotation(a + wobble, speed, enemy.body.velocity);
+            } else {
+                const wa = Math.sin(this.time.now / 2000 + enemy.x * 0.1) * Math.PI;
+                this.physics.velocityFromRotation(wa, speed * 0.3, enemy.body.velocity);
+            }
+            if (enemy.body.velocity.x < 0) enemy.setFlipX(true);
+            else enemy.setFlipX(false);
+        });
+
+        // Check stairs
+        const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
+        if (ptx === this.stairsX && pty === this.stairsY) {
+            this.exitInterior();
+        }
+        if (this.config.nextFloor && ptx === this.nextFloorX && pty === this.nextFloorY) {
+            this.goDeeper();
+        }
+    }
+
+    showInteriorDialogue(npc) {
+        const def = npc.getData('npcDef');
+        this.dialogueActive = true;
+        this.player.setVelocity(0, 0);
+
+        // Use same conditional dialogue system — check parent scene's flags
+        let entry = null;
+        for (const e of def.dialogues) {
+            if (!e.cond) { entry = e; break; }
+            if (this.checkSimpleCondition(e.cond)) { entry = e; break; }
+        }
+        if (!entry) entry = def.dialogues[def.dialogues.length - 1];
+
+        this.dialogueQueue = [...entry.lines];
+        this.dialogueEntry = entry;
+        this.dialogueLineIdx = 0;
+
+        this.dlgBox.setVisible(true);
+        this.dlgName.setText(def.name).setVisible(true);
+        this.dlgText.setText(this.dialogueQueue[0]).setVisible(true);
+    }
+
+    checkSimpleCondition(cond) {
+        if (cond.flag && !this.storyFlags[cond.flag]) return false;
+        if (cond.flag2 && !this.storyFlags[cond.flag2]) return false;
+        if (cond.notFlag && this.storyFlags[cond.notFlag]) return false;
+        return true;
+    }
+
+    advanceInteriorDialogue() {
+        this.dialogueLineIdx++;
+        if (this.dialogueLineIdx < this.dialogueQueue.length) {
+            this.dlgText.setText(this.dialogueQueue[this.dialogueLineIdx]);
+        } else {
+            this.dialogueActive = false;
+            this.dlgBox.setVisible(false);
+            this.dlgName.setVisible(false);
+            this.dlgText.setVisible(false);
+
+            // Execute actions
+            const entry = this.dialogueEntry;
+            if (entry && entry.action) {
+                if (entry.action.type === 'setFlag') this.storyFlags[entry.action.flag] = true;
+                if (entry.action.type === 'multi') {
+                    (entry.action.effects || []).forEach(e => {
+                        if (e.type === 'setFlag') this.storyFlags[e.flag] = true;
+                    });
+                }
+            }
+            if (entry && entry.giveItem) {
+                const def = ITEM_DEFS[entry.giveItem];
+                if (def) {
+                    const existing = this.inventory.find(i => i.itemId === entry.giveItem);
+                    if (existing && def.stackable) {
+                        existing.count = Math.min(existing.count + 1, def.max || 99);
+                    } else if (!existing) {
+                        this.inventory.push({ itemId: entry.giveItem, count: 1 });
+                    }
+                }
+            }
+        }
+    }
+
+    interiorCrowStun() {
+        this.crowReady = false;
+        // Visual burst
+        const burst = this.add.circle(this.player.x, this.player.y, CROW_STUN_RADIUS, 0xFFDD00, 0.3).setDepth(15);
+        this.tweens.add({ targets: burst, alpha: 0, scaleX: 1.5, scaleY: 1.5, duration: 400, onComplete: () => burst.destroy() });
+
+        this.enemyGroup.getChildren().forEach(enemy => {
+            if (Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y) < CROW_STUN_RADIUS) {
+                this.stunInteriorEnemy(enemy);
+            }
+        });
+        this.time.delayedCall(CROW_COOLDOWN, () => { this.crowReady = true; });
+    }
+
+    stunInteriorEnemy(enemy) {
+        const type = enemy.getData('type');
+        if (type === 'boss') {
+            let hp = enemy.getData('bossHP') - 1;
+            enemy.setData('bossHP', hp);
+            const hpText = this.add.text(enemy.x, enemy.y - 30, `HP: ${hp}/5`, {
+                fontSize: '14px', fill: '#FF4444', stroke: '#000', strokeThickness: 2,
+            }).setOrigin(0.5).setDepth(15);
+            this.tweens.add({ targets: hpText, y: hpText.y - 30, alpha: 0, duration: 1200, onComplete: () => hpText.destroy() });
+            if (hp <= 0) {
+                this.score += 500;
+                this.storyFlags.labyrinth_cleared = true;
+                const dt = this.add.text(enemy.x, enemy.y - 20, 'LABYRINTH BOSS DEFEATED! +500', {
+                    fontSize: '16px', fill: '#FFD700', stroke: '#000', strokeThickness: 3,
+                }).setOrigin(0.5).setDepth(30);
+                this.tweens.add({ targets: dt, y: dt.y - 60, alpha: 0, duration: 2000, onComplete: () => dt.destroy() });
+                enemy.destroy();
+                this.cameras.main.flash(800, 255, 215, 0);
+                return;
+            }
+        }
+        enemy.setData('stunned', true);
+        enemy.setVelocity(0, 0);
+        enemy.setAlpha(0.5);
+        const stars = this.add.text(enemy.x, enemy.y - 20, '***', { fontSize: '14px', fill: '#FFFF00' }).setDepth(15);
+        this.tweens.add({ targets: stars, y: enemy.y - 50, alpha: 0, duration: CROW_STUN_DURATION, onComplete: () => stars.destroy() });
+        this.time.delayedCall(type === 'boss' ? 1500 : CROW_STUN_DURATION, () => {
+            if (enemy.active) { enemy.setData('stunned', false); enemy.setAlpha(1); }
+        });
+    }
+
+    onInteriorEnemyHit(player, enemy) {
+        if (this.interiorInvincible || enemy.getData('stunned')) return;
+        this.interiorInvincible = true;
+        this.score = Math.max(0, this.score - 3);
+        this.cameras.main.flash(300, 255, 0, 0);
+        this.player.setAlpha(0.5);
+        const ft = this.add.text(player.x, player.y - 20, '-3 eggs!', {
+            fontSize: '14px', fill: '#FF4444', stroke: '#000', strokeThickness: 2,
+        }).setOrigin(0.5).setDepth(30);
+        this.tweens.add({ targets: ft, y: ft.y - 40, alpha: 0, duration: 800, onComplete: () => ft.destroy() });
+        this.time.delayedCall(1500, () => {
+            this.interiorInvincible = false;
+            if (this.player.active) this.player.setAlpha(1);
+        });
+    }
+
+    collectEgg(player, egg) {
+        const pts = egg.getData('points');
+        this.score += pts;
+        const ft = this.add.text(egg.x, egg.y, `+${pts}`, {
+            fontSize: '18px', fill: egg.getData('eggType') === 'golden' ? '#FFD700' : '#FFF', stroke: '#000', strokeThickness: 3,
+        }).setOrigin(0.5).setDepth(30);
+        this.tweens.add({ targets: ft, y: ft.y - 40, alpha: 0, duration: 700, onComplete: () => ft.destroy() });
+        egg.destroy();
+    }
+
+    goDeeper() {
+        const nextId = this.config.nextFloor;
+        if (!nextId) return;
+        this.scene.start('InteriorScene', {
+            parentScene: this.parentScene,
+            interiorId: nextId,
+            returnX: this.returnX,
+            returnY: this.returnY,
+            score: this.score,
+            storyFlags: this.storyFlags,
+            inventory: this.inventory,
+        });
+    }
+
+    exitInterior() {
+        this.parentScene.returnFromBasement({
+            score: this.score,
+            storyFlags: this.storyFlags,
+            inventory: this.inventory,
+        });
+        this.scene.stop();
+    }
+}
+
+
+// ===================================================================
 //  PHASER CONFIG
 // ===================================================================
 
 const config = {
     type: Phaser.AUTO,
     backgroundColor: '#111111',
-    scene: [BootScene, GameScene, BasementScene],
+    scene: [BootScene, GameScene, BasementScene, InteriorScene],
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
