@@ -1369,6 +1369,23 @@ class GameScene extends Phaser.Scene {
         this.basementVisitTimes = (data && data.basementVisitTimes) || {};
 
         this._migrateQuestStateForCurrentData();
+        this.activeQuests.forEach(q => this._ensureQuestRuntimeStart(q));
+    }
+
+    _ensureQuestRuntimeStart(q) {
+        if (!q) return;
+        if (q.type === 'eggs' && q.startEggs === undefined) q.startEggs = this.totalEggsCollected;
+        if (q.type === 'golden' && q.startGoldenEggs === undefined) q.startGoldenEggs = this.goldenEggsCollected;
+        if (q.type === 'defeat_n' && q.startDefeatedEnemies === undefined) q.startDefeatedEnemies = this.defeatedEnemies;
+    }
+
+    _getQuestProgress(q) {
+        if (!q) return 0;
+        this._ensureQuestRuntimeStart(q);
+        if (q.type === 'eggs') return Math.max(0, this.totalEggsCollected - (q.startEggs || 0));
+        if (q.type === 'golden') return Math.max(0, this.goldenEggsCollected - (q.startGoldenEggs || 0));
+        if (q.type === 'defeat_n') return Math.max(0, this.defeatedEnemies - (q.startDefeatedEnemies || 0));
+        return 0;
     }
 
     preload() { generateAllTextures(this); }
@@ -1909,10 +1926,10 @@ class GameScene extends Phaser.Scene {
         if (this.activeQuests.length > 0) {
             const lines = this.activeQuests.slice(0, 4).map(q => {
                 let prog = '';
-                if (q.type === 'eggs') prog = ` (${Math.min(this.totalEggsCollected, q.target)}/${q.target})`;
-                if (q.type === 'golden') prog = ` (${Math.min(this.goldenEggsCollected, q.target)}/${q.target})`;
+                if (q.type === 'eggs') prog = ` (${Math.min(this._getQuestProgress(q), q.target)}/${q.target})`;
+                if (q.type === 'golden') prog = ` (${Math.min(this._getQuestProgress(q), q.target)}/${q.target})`;
                 if (q.type === 'boss') prog = this.bossesDefeated[q.target] ? ' (Done!)' : '';
-                if (q.type === 'defeat_n' && q.target) prog = ` (${Math.min(this.defeatedEnemies, q.target.count)}/${q.target.count})`;
+                if (q.type === 'defeat_n' && q.target) prog = ` (${Math.min(this._getQuestProgress(q), q.target.count)}/${q.target.count})`;
                 if (q.type === 'pay_eggs') prog = ` (${this.totalEggsCollected}/${q.target} eggs)`;
                 if (q.type === 'collect_items' && q.target) prog = ` (${this.getItemCount(q.target.item)}/${q.target.count})`;
                 if (q.type === 'deliver_item' && q.target) prog = ` (${Math.min(this.getItemCount(q.target.item), q.target.count || 1)}/${q.target.count || 1})`;
@@ -2097,7 +2114,9 @@ class GameScene extends Phaser.Scene {
         if (!qd) return;
         if (this.completedQuests[qd.id]) return;
         if (this.activeQuests.find(q => q.id === qd.id)) return;
-        this.activeQuests.push({ ...qd });
+        const q = { ...qd };
+        this._ensureQuestRuntimeStart(q);
+        this.activeQuests.push(q);
         this.showFloatingText(this.player.x, this.player.y - 30, `New Quest: ${qd.desc}`, '#88DDFF');
     }
 
@@ -2254,8 +2273,8 @@ class GameScene extends Phaser.Scene {
             if (i < this.activeQuests.length) {
                 const q = this.activeQuests[i];
                 let progress = '';
-                if (q.type === 'eggs' && q.target) progress = ` (${Math.min(this.totalEggsCollected, q.target)}/${q.target})`;
-                if (q.type === 'defeat_n' && q.target) progress = ` (${Math.min(this.defeatedEnemies, q.target.count)}/${q.target.count})`;
+                if (q.type === 'eggs' && q.target) progress = ` (${Math.min(this._getQuestProgress(q), q.target)}/${q.target})`;
+                if (q.type === 'defeat_n' && q.target) progress = ` (${Math.min(this._getQuestProgress(q), q.target.count)}/${q.target.count})`;
                 if (q.type === 'deliver_item' && q.target) progress = ` (${Math.min(this.getItemCount(q.target.item), q.target.count || 1)}/${q.target.count || 1})`;
                 if (q.type === 'collect_items' && q.target) progress = ` (${Math.min(this.getItemCount(q.target.item), q.target.count)}/${q.target.count})`;
                 t.setText(`- ${q.desc}${progress}`).setStyle({ fill: '#FFFFCC' }).setVisible(true);
@@ -2343,10 +2362,10 @@ class GameScene extends Phaser.Scene {
         this.activeQuests = this.activeQuests.filter(q => {
             if (this.completedQuests[q.id]) return false;
             let done = false;
-            if (q.type === 'eggs' && this.totalEggsCollected >= q.target) done = true;
-            if (q.type === 'golden' && this.goldenEggsCollected >= q.target) done = true;
+            if (q.type === 'eggs' && this._getQuestProgress(q) >= q.target) done = true;
+            if (q.type === 'golden' && this._getQuestProgress(q) >= q.target) done = true;
             if (q.type === 'boss' && this.bossesDefeated[q.target]) done = true;
-            if (q.type === 'defeat_n' && q.target && this.defeatedEnemies >= q.target.count) done = true;
+            if (q.type === 'defeat_n' && q.target && this._getQuestProgress(q) >= q.target.count) done = true;
             if (q.type === 'explore_area' && q.target) {
                 if (!q.target.mapId || q.target.mapId === this.currentMapId) {
                     const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
@@ -2708,7 +2727,7 @@ class GameScene extends Phaser.Scene {
             bossesDefeated: this.bossesDefeated,
             storyFlags: this.storyFlags,
             inventory: this.inventory,
-            activeQuests: this.activeQuests.map(q => ({ id: q.id, desc: q.desc, type: q.type, target: q.target, reward: q.reward, progress: q.progress })),
+            activeQuests: this.activeQuests.map(q => ({ ...q })),
             completedQuests: this.completedQuests,
             currentMapId: this.currentMapId,
             defeatedEnemies: this.defeatedEnemies,
@@ -2762,8 +2781,9 @@ class GameScene extends Phaser.Scene {
             const respawn = () => {
                 // Reset egg progress on quests
                 const resetQuests = this.activeQuests.map(q => {
-                    const out = { id: q.id, desc: q.desc, type: q.type, target: q.target, reward: q.reward, progress: q.progress };
-                    if (q.type === 'eggs' || q.type === 'golden' || q.type === 'pay_eggs') out.progress = 0;
+                    const out = { ...q };
+                    if (q.type === 'eggs') out.startEggs = 0;
+                    if (q.type === 'golden') out.startGoldenEggs = 0;
                     return out;
                 });
                 this.scene.start('GameScene', {
