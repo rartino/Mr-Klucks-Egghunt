@@ -43,5 +43,6 @@
   "baker_cake_started": false,
   "baker_cake_done": false,
   "map2_unlocked": false,
-  "map3_unlocked": false
+  "map3_unlocked": false,
+  "pyramid_revealed": false
 }

@@ -97,11 +97,11 @@
       "type": "flag",
       "flag": "hermit_quest_done"
     },
-    "nextQuest": "ch3_buy_pass"
+    "nextQuest": "ch4_find_shadowcoats"
   },
   "ch3_buy_pass": {
     "id": "ch3_buy_pass",
-    "desc": "Buy a Mountain Pass (30 eggs)",
+    "desc": "Buy a Mountain Pass (30 eggs) for the northern gate",
     "type": "pay_eggs",
     "target": 30,
     "reward": {
@@ -117,17 +117,17 @@
         }
       ]
     },
-    "nextQuest": "ch4_find_shadowcoats"
+    "nextQuest": "ch5_find_pompoms"
   },
   "ch4_find_shadowcoats": {
     "id": "ch4_find_shadowcoats",
-    "desc": "Find the Shadowcoat camp in the Wildlands forest",
+    "desc": "Find the Shadowcoat camp in the western forest",
     "type": "explore_area",
     "target": {
       "tx": 30,
       "ty": 40,
       "radius": 5,
-      "mapId": "map2"
+      "mapId": "map1"
     },
     "reward": {
       "type": "flag",
@@ -171,7 +171,14 @@
         }
       ]
     },
-    "nextQuest": "ch6_enter_pyramid"
+    "nextQuest": "ch4_meet_nomad"
+  },
+  "ch4_meet_nomad": {
+    "id": "ch4_meet_nomad",
+    "desc": "Talk to the Desert Nomad in the eastern sands",
+    "type": "talk_to",
+    "target": "nomad",
+    "nextQuest": "side_trader_route"
   },
   "ch5_find_pompoms": {
     "id": "ch5_find_pompoms",
@@ -243,13 +250,13 @@
   },
   "ch6_enter_pyramid": {
     "id": "ch6_enter_pyramid",
-    "desc": "Find the desert pyramid and enter the labyrinth below",
+    "desc": "Find the hidden pyramid entrance in the far eastern desert",
     "type": "explore_area",
     "target": {
-      "tx": 150,
+      "tx": 138,
       "ty": 80,
       "radius": 8,
-      "mapId": "map2"
+      "mapId": "map1"
     },
     "reward": {
       "type": "flag",
@@ -266,7 +273,17 @@
       "type": "flag",
       "flag": "found_cursed_chocolate"
     },
-    "nextQuest": "ch6_clear_labyrinth"
+    "nextQuest": "ch6_report_hermit"
+  },
+  "ch6_report_hermit": {
+    "id": "ch6_report_hermit",
+    "desc": "Return to Hermit Grizzle with news of the cursed chocolate",
+    "type": "talk_to",
+    "target": [
+      "hermit",
+      "hermit_outside"
+    ],
+    "nextQuest": "ch3_buy_pass"
   },
   "ch6_clear_labyrinth": {
     "id": "ch6_clear_labyrinth",
@@ -429,7 +446,7 @@
   },
   "side_trader_route": {
     "id": "side_trader_route",
-    "desc": "Clear 10 bunnies from the trade road",
+    "desc": "Clear 10 bunnies from the eastern trade road",
     "type": "defeat_n",
     "target": {
       "type": "any",
@@ -447,7 +464,19 @@
           "amount": 50
         }
       ]
-    }
+    },
+    "nextQuest": "ch4_report_nomad"
+  },
+  "ch4_report_nomad": {
+    "id": "ch4_report_nomad",
+    "desc": "Report back to the Desert Nomad",
+    "type": "talk_to",
+    "target": "nomad",
+    "reward": {
+      "type": "flag",
+      "flag": "pyramid_revealed"
+    },
+    "nextQuest": "ch6_enter_pyramid"
   },
   "side_snow_crystals": {
     "id": "side_snow_crystals",

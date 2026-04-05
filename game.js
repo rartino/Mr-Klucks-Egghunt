@@ -507,10 +507,17 @@ function generateWorld(mapId) {
         placeBuildings(V1_X, V1_Y, V1_BUILDINGS);
         placeBuildings(V2_X, V2_Y, V2_BUILDINGS);
         placeBuildings(CASTLE_X, CASTLE_Y, CASTLE_BUILDINGS);
+        // Shadowcoat camp in western forest (early story arc)
+        placeBuildings(SHADOW_CAMP_X, SHADOW_CAMP_Y, SHADOW_BUILDINGS);
         // Hermit cave
         placeBuildings(HERMIT_X, HERMIT_Y, [
             { x: -2, y: -1, w: 4, h: 3, interior: 'hermit_cave',
               requires: { flag: 'found_hermit_cave' }, failMessage: 'The cave is sealed. You need a key.' },
+        ]);
+        // Eastern desert pyramid (story-gated reveal)
+        placeBuildings(138, 80, [
+            { x: -6, y: -6, w: 12, h: 12, interior: 'labyrinth_f1',
+              requires: { flag: 'pyramid_revealed' }, failMessage: 'You cannot find a way through the dunes yet.' },
         ]);
 
         // Castle plaza
@@ -608,8 +615,7 @@ function generateWorld(mapId) {
             }
         }
     } else if (mapId === 'map2') {
-        // Wildlands: faction camps and oasis village
-        placeBuildings(SHADOW_CAMP_X, SHADOW_CAMP_Y, SHADOW_BUILDINGS);
+        // Wildlands: oasis village and Pom-pom region
         placeBuildings(POMPOM_X, POMPOM_Y, POMPOM_BUILDINGS);
         // Oasis village at center
         const oasisX = 100, oasisY = 100;
@@ -675,10 +681,7 @@ function generateWorld(mapId) {
                 }
             }
         }
-        // Pyramid structure
-        placeBuildings(150, 80, [
-            { x: -6, y: -6, w: 12, h: 12, interior: 'labyrinth_f1' },
-        ]);
+        // Pyramid moved to map1 for earlier story pacing.
     } else if (mapId === 'map3') {
         // Dark Reaches: fairy glen structures, witch lair
         placeBuildings(60, 80, [
@@ -1295,6 +1298,13 @@ class BootScene extends Phaser.Scene {
 class GameScene extends Phaser.Scene {
     constructor() { super('GameScene'); }
 
+    _migrateQuestStateForCurrentData() {
+        // Keep saves compatible when quest definitions shift across releases.
+        if (this.storyFlags.found_cursed_chocolate && !this.storyFlags.hermit_quest_done) {
+            this.storyFlags.hermit_quest_done = true;
+        }
+    }
+
     init(data) {
         // Persistent state (preserved across map transitions)
         this.score = (data && data.score) || 0;
@@ -1357,6 +1367,8 @@ class GameScene extends Phaser.Scene {
 
         this.basementCooldown = false;
         this.basementVisitTimes = (data && data.basementVisitTimes) || {};
+
+        this._migrateQuestStateForCurrentData();
     }
 
     preload() { generateAllTextures(this); }

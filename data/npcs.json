@@ -130,12 +130,12 @@
       },
       {
         "cond": {
-          "flag": "hermit_quest_done"
+          "flag": "found_cursed_chocolate"
         },
         "lines": [
-          "Need a Mountain Pass to go north? 30 eggs is the toll.",
-          "The mountain gate won't open without one!",
-          "Talk to me again when you're ready to pay."
+          "Back from the eastern ruins already? Then you are ready.",
+          "Mountain Pass is 30 eggs. This unlocks the northern gate.",
+          "Talk to me again when you are ready to pay."
         ],
         "giveQuest": "ch3_buy_pass"
       },
@@ -523,7 +523,7 @@
     "body": 2236979,
     "hat": 3355460,
     "hatType": "bandana",
-    "mapId": "map2",
+    "mapId": "map1",
     "tx": 30,
     "ty": 40,
     "dialogues": [
@@ -544,12 +544,12 @@
         "lines": [
           "You cleared those bunnies? Impressive for a chicken.",
           "Fine. The Shadowcoats will share what we know.",
-          "The bunnies are being fed cursed chocolate from somewhere east.",
-          "We'll help you investigate. Take this badge — our people will recognize it.",
-          "My scouts say a pyramid in the far east desert hides something big.",
-          "Look for stairs inside the pyramid — a labyrinth lies beneath.",
-          "You'll need a lantern. Take this one."
-        ]
+          "There is an old contact in the eastern sands: the Desert Nomad.",
+          "Find him and clear the trade road he uses. He knows where the pyramid lies.",
+          "Take this badge. Our allies will recognize it.",
+          "And take this lantern. If ruins have depths, you will need light."
+        ],
+        "giveQuest": "ch4_shadow_alliance"
       },
       {
         "cond": {
@@ -577,7 +577,7 @@
     "body": 2763322,
     "hat": 3816010,
     "hatType": "bandana",
-    "mapId": "map2",
+    "mapId": "map1",
     "tx": 33,
     "ty": 42,
     "dialogues": [
@@ -617,7 +617,7 @@
     "body": 1710634,
     "hat": 2763322,
     "hatType": "bandana",
-    "mapId": "map2",
+    "mapId": "map1",
     "tx": 28,
     "ty": 39,
     "dialogues": [
@@ -881,7 +881,7 @@
     "body": 12290116,
     "hat": 14535816,
     "hatType": "hood",
-    "mapId": "map2",
+    "mapId": "map1",
     "tx": 120,
     "ty": 95,
     "dialogues": [
@@ -890,8 +890,48 @@
           "flag": "labyrinth_cleared"
         },
         "lines": [
-          "You cleared the labyrinth?! Legends will speak of this!",
-          "The desert is safer already. The traders can move again."
+          "You cleared the labyrinth? Incredible.",
+          "The eastern desert is finally quiet again."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "found_cursed_chocolate",
+          "notFlag": "labyrinth_cleared"
+        },
+        "lines": [
+          "You made it inside and found cursed chocolate? Then the rumors were true.",
+          "If you can, go back and finish the Rabbit King below. That place still poisons the sands."
+        ],
+        "giveQuest": "ch6_clear_labyrinth"
+      },
+      {
+        "cond": {
+          "questActive": "ch4_report_nomad"
+        },
+        "lines": [
+          "Excellent work. The trade road is safe again.",
+          "The pyramid entrance is east from here, beyond the split dunes.",
+          "Follow the stone markers and watch for hidden stairs."
+        ]
+      },
+      {
+        "cond": {
+          "questActive": "side_trader_route"
+        },
+        "lines": [
+          "Still too many bunnies on the road.",
+          "Clear them out, then return and I will show you the way."
+        ]
+      },
+      {
+        "cond": {
+          "questActive": "ch4_meet_nomad"
+        },
+        "lines": [
+          "So Vex sent you? Good timing.",
+          "The road to the pyramid is overrun with bunnies.",
+          "Clear the route and report back. Then I will reveal the entrance."
         ]
       },
       {
@@ -899,19 +939,15 @@
           "flag": "shadowcoat_alliance"
         },
         "lines": [
-          "The pyramid! An ancient structure east of here.",
-          "The Shadowcoats say a labyrinth lies beneath.",
-          "But the trade road is overrun with bunnies first...",
-          "Clear the road and I'll show you the pyramid entrance."
-        ],
-        "giveQuest": "side_trader_route"
+          "The desert hides many ruins.",
+          "If you need the pyramid, earn the route first."
+        ]
       },
       {
         "cond": null,
         "lines": [
-          "The desert sands stretch far. Eggs hide near the cacti.",
-          "A fearsome Boss Bunny rules the eastern reaches!",
-          "Defeat it for a massive score bonus."
+          "The eastern sands are dangerous.",
+          "Travelers disappear there all the time."
         ],
         "giveQuest": "desert_boss"
       }
