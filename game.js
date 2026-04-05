@@ -109,66 +109,43 @@ const POMPOM_X = 15, POMPOM_Y = 55;
 const FAIRY_SCOUT_X = 45, FAIRY_SCOUT_Y = 35;
 
 // ===================================================================
-//  STORY FLAGS
+//  EXTERNAL GAME DATA (LOADED AT BOOT)
 // ===================================================================
 
-const STORY_FLAGS_DEFAULT = {
-    // Chapter 1: The Egg Collector
-    met_elder: false,
-    elder_quest_done: false,
-    // Chapter 2: The King's Court
-    met_guard_captain: false,
-    entered_castle: false,
-    met_king: false,
-    princess_gave_key: false,
-    // Chapter 3: The Hermit's Warning
-    found_hermit_cave: false,
-    met_hermit: false,
-    hermit_quest_done: false,
-    mountain_pass_bought: false,
-    // Chapter 4: The Shadowcoat Alliance
-    met_shadowcoats: false,
-    shadowcoat_task_done: false,
-    shadowcoat_alliance: false,
-    shadow_rogue_started: false,
-    shadow_rogue_done: false,
-    // Chapter 5: The Pom-pom Trust
-    met_pompoms: false,
-    pompom_gift_1: false,
-    pompom_gift_2: false,
-    pompom_gift_3: false,
-    pompom_trust: false,
-    // Chapter 6: The Labyrinth
-    entered_pyramid: false,
-    found_cursed_chocolate: false,
-    labyrinth_cleared: false,
-    // Chapter 7: The Fairy Blessing
-    met_fairy_scout: false,
-    entered_hollow_tree: false,
-    fairy_trial_done: false,
-    fairy_blessing: false,
-    // Chapter 8: King Blueberry Unmasked
-    discovered_blueberry: false,
-    found_witch_lair: false,
-    got_dispel_potion: false,
-    confronted_blueberry: false,
-    freed_real_king: false,
-    ceremony_complete: false,
-    // Side quests
-    lost_chick_started: false,
-    lost_chick_done: false,
-    trader_route_started: false,
-    trader_route_done: false,
-    snow_crystals_started: false,
-    snow_crystals_done: false,
-    shadow_fortune_started: false,
-    shadow_fortune_done: false,
-    baker_cake_started: false,
-    baker_cake_done: false,
-    // Map access
-    map2_unlocked: false,
-    map3_unlocked: false,
-};
+let STORY_FLAGS_DEFAULT = {};
+let QUEST_DEFS = {};
+
+async function loadJSON(path) {
+    const response = await fetch(path);
+    if (!response.ok) throw new Error(`Failed to load ${path}: ${response.status} ${response.statusText}`);
+    return response.json();
+}
+
+function validateLoadedGameData(storyFlags, questDefs) {
+    if (!storyFlags || typeof storyFlags !== 'object' || Array.isArray(storyFlags)) {
+        throw new Error('Invalid story_flags.json format');
+    }
+    if (!questDefs || typeof questDefs !== 'object' || Array.isArray(questDefs)) {
+        throw new Error('Invalid quests.json format');
+    }
+    Object.entries(questDefs).forEach(([questId, def]) => {
+        if (!def || typeof def !== 'object') throw new Error(`Quest ${questId} is not an object`);
+        if (def.id !== questId) throw new Error(`Quest key/id mismatch: key=${questId}, id=${def.id}`);
+        if (def.nextQuest && !questDefs[def.nextQuest]) {
+            throw new Error(`Quest ${questId} references missing nextQuest ${def.nextQuest}`);
+        }
+    });
+}
+
+async function loadExternalGameData() {
+    const [storyFlags, questDefs] = await Promise.all([
+        loadJSON('./data/story_flags.json'),
+        loadJSON('./data/quests.json'),
+    ]);
+    validateLoadedGameData(storyFlags, questDefs);
+    STORY_FLAGS_DEFAULT = storyFlags;
+    QUEST_DEFS = questDefs;
+}
 
 // ===================================================================
 //  ITEM DEFINITIONS
@@ -192,221 +169,6 @@ const ITEM_DEFS = {
     witch_eye:        { name: "Witch's Eye",         desc: 'An enchanted seeing stone',              stackable: false },
     golden_feather:   { name: 'Golden Feather',      desc: 'Proof of heroism recognized by all',     stackable: false },
 };
-
-// ===================================================================
-//  QUEST DEFINITIONS
-// ===================================================================
-
-const QUEST_DEFS = {
-    // --- Chapter 1: The Egg Collector ---
-    ch1_collect_eggs: {
-        id: 'ch1_collect_eggs', desc: 'Collect 15 eggs for Elder Cluck',
-        type: 'eggs', target: 15,
-        reward: { type: 'flag', flag: 'elder_quest_done' },
-    },
-    ch1_meet_guard: {
-        id: 'ch1_meet_guard', desc: 'Speak to Guard Captain Roost',
-        type: 'talk_to', target: 'guard',
-        reward: { type: 'flag', flag: 'met_guard_captain' },
-    },
-
-    // --- Chapter 2: The King's Court ---
-    ch2_enter_castle: {
-        id: 'ch2_enter_castle', desc: 'Enter the castle',
-        type: 'explore_area', target: { tx: CASTLE_X, ty: CASTLE_Y, radius: 5 },
-        reward: { type: 'flag', flag: 'entered_castle' },
-    },
-    ch2_meet_king: {
-        id: 'ch2_meet_king', desc: 'Speak to the King',
-        type: 'talk_to', target: 'king',
-        reward: { type: 'flag', flag: 'met_king' },
-    },
-
-    // --- Chapter 3: The Hermit's Warning ---
-    ch3_find_hermit: {
-        id: 'ch3_find_hermit', desc: "Find the Hermit's cave",
-        type: 'explore_area', target: { tx: HERMIT_X, ty: HERMIT_Y, radius: 3 },
-        requireItem: 'hermit_key',
-        reward: { type: 'flag', flag: 'found_hermit_cave' },
-    },
-    ch3_hermit_task: {
-        id: 'ch3_hermit_task', desc: 'Collect 10 eggs from the northern wilds',
-        type: 'eggs', target: 40,
-        reward: { type: 'flag', flag: 'hermit_quest_done' },
-    },
-    ch3_buy_pass: {
-        id: 'ch3_buy_pass', desc: 'Buy a Mountain Pass (30 eggs)',
-        type: 'pay_eggs', target: 30,
-        reward: { type: 'multi', effects: [
-            { type: 'flag', flag: 'mountain_pass_bought' },
-            { type: 'giveItem', item: 'mountain_pass' },
-        ]},
-    },
-
-    // --- Chapter 4: The Shadowcoat Alliance ---
-    ch4_find_shadowcoats: {
-        id: 'ch4_find_shadowcoats', desc: 'Find the Shadowcoat camp in the Wildlands forest',
-        type: 'explore_area', target: { tx: SHADOW_CAMP_X, ty: SHADOW_CAMP_Y, radius: 5, mapId: 'map2' },
-        reward: { type: 'flag', flag: 'met_shadowcoats' },
-    },
-    ch4_shadow_task: {
-        id: 'ch4_shadow_task', desc: 'Defeat 8 bunnies near the forest camp',
-        type: 'defeat_n', target: { type: 'any', count: 8 },
-        reward: { type: 'flag', flag: 'shadowcoat_task_done' },
-    },
-    ch4_shadow_alliance: {
-        id: 'ch4_shadow_alliance', desc: 'Return to Shadow Vex with proof',
-        type: 'talk_to', target: 'shadow_vex',
-        reward: { type: 'multi', effects: [
-            { type: 'flag', flag: 'shadowcoat_alliance' },
-            { type: 'giveItem', item: 'shadowcoat_badge' },
-        ]},
-    },
-
-    // --- Chapter 5: Pom-pom Trust ---
-    ch5_find_pompoms: {
-        id: 'ch5_find_pompoms', desc: 'Find the Pom-pom village in the Wildlands hills',
-        type: 'explore_area', target: { tx: POMPOM_X, ty: POMPOM_Y, radius: 5, mapId: 'map2' },
-        reward: { type: 'flag', flag: 'met_pompoms' },
-    },
-    ch5_gift_1: {
-        id: 'ch5_gift_1', desc: 'Bring 20 eggs to Elder Fluff',
-        type: 'pay_eggs', target: 20,
-        reward: { type: 'flag', flag: 'pompom_gift_1' },
-    },
-    ch5_gift_2: {
-        id: 'ch5_gift_2', desc: 'Bring a Moonberry to Elder Fluff',
-        type: 'deliver_item', target: { npc: 'pompom_elder', item: 'cake_ingredient' },
-        reward: { type: 'flag', flag: 'pompom_gift_2' },
-    },
-    ch5_gift_3: {
-        id: 'ch5_gift_3', desc: 'Defeat 5 bunnies threatening the Pom-poms',
-        type: 'defeat_n', target: { type: 'any', count: 5 },
-        reward: { type: 'multi', effects: [
-            { type: 'flag', flag: 'pompom_gift_3' },
-            { type: 'flag', flag: 'pompom_trust' },
-            { type: 'giveItem', item: 'pompom_charm' },
-        ]},
-    },
-
-    // --- Chapter 6: The Labyrinth ---
-    ch6_enter_pyramid: {
-        id: 'ch6_enter_pyramid', desc: 'Find the desert pyramid and enter the labyrinth below',
-        type: 'explore_area', target: { tx: 150, ty: 80, radius: 8, mapId: 'map2' },
-        reward: { type: 'flag', flag: 'entered_pyramid' },
-        nextQuest: 'ch6_find_chocolate',
-    },
-    ch6_find_chocolate: {
-        id: 'ch6_find_chocolate', desc: 'Find the cursed chocolate deep in the labyrinth',
-        type: 'fetch_item', target: 'cursed_chocolate',
-        reward: { type: 'flag', flag: 'found_cursed_chocolate' },
-        nextQuest: 'ch6_clear_labyrinth',
-    },
-    ch6_clear_labyrinth: {
-        id: 'ch6_clear_labyrinth', desc: 'Defeat the Cursed Rabbit King on Labyrinth Floor 3',
-        type: 'flag_check', target: 'labyrinth_cleared',
-    },
-
-    // --- Chapter 7: The Fairy Blessing ---
-    ch7_find_fairy: {
-        id: 'ch7_find_fairy', desc: 'Find the fairy scout in the forest',
-        type: 'talk_to', target: 'fairy_scout',
-        reward: { type: 'flag', flag: 'met_fairy_scout' },
-    },
-    ch7_fairy_offering: {
-        id: 'ch7_fairy_offering', desc: 'Bring 3 Fairy Dust to the Fairy Queen',
-        type: 'deliver_item', target: { npc: 'fairy_queen', item: 'fairy_dust' },
-        reward: { type: 'flag', flag: 'fairy_trial_done' },
-    },
-    ch7_fairy_blessing: {
-        id: 'ch7_fairy_blessing', desc: 'Receive the Fairy Blessing',
-        type: 'talk_to', target: 'fairy_queen',
-        reward: { type: 'multi', effects: [
-            { type: 'flag', flag: 'fairy_blessing' },
-            { type: 'giveItem', item: 'witch_eye' },
-        ]},
-    },
-
-    // --- Chapter 8: King Blueberry Unmasked ---
-    ch8_confront_king: {
-        id: 'ch8_confront_king', desc: 'Confront the false King',
-        type: 'talk_to', target: 'king',
-        reward: { type: 'flag', flag: 'confronted_blueberry' },
-    },
-    ch8_find_witch: {
-        id: 'ch8_find_witch', desc: "Find Witch Hexana's lair",
-        type: 'talk_to', target: 'witch_hexana',
-        reward: { type: 'flag', flag: 'found_witch_lair' },
-    },
-    ch8_brew_potion: {
-        id: 'ch8_brew_potion', desc: 'Deliver 3 Ice Crystals to Witch Hexana',
-        type: 'deliver_item', target: { npc: 'witch_hexana', item: 'ice_crystal' },
-        reward: { type: 'multi', effects: [
-            { type: 'flag', flag: 'got_dispel_potion' },
-            { type: 'giveItem', item: 'dispel_potion' },
-        ]},
-    },
-    ch8_free_king: {
-        id: 'ch8_free_king', desc: 'Free the real King from the dungeon',
-        type: 'use_item', target: { item: 'jail_key', location: { tx: CASTLE_X + 2, ty: CASTLE_Y + 5, radius: 3 } },
-        reward: { type: 'multi', effects: [
-            { type: 'flag', flag: 'freed_real_king' },
-            { type: 'removeItem', item: 'jail_key' },
-        ]},
-    },
-
-    // --- Side Quests ---
-    side_shadow_fortune: {
-        id: 'side_shadow_fortune', desc: 'Recover stolen eggs from the shadow vault',
-        type: 'explore_area', target: { tx: 25, ty: 25, radius: 3, mapId: 'map2' },
-        requireItem: 'shadow_map',
-        reward: { type: 'multi', effects: [
-            { type: 'flag', flag: 'shadow_fortune_done' },
-            { type: 'eggs', amount: 100 },
-        ]},
-    },
-    side_lost_chick: {
-        id: 'side_lost_chick', desc: 'Find the lost chick in the swamp',
-        type: 'explore_area', target: { tx: 80, ty: 130, radius: 5 },
-        reward: { type: 'flag', flag: 'lost_chick_done' },
-    },
-    side_trader_route: {
-        id: 'side_trader_route', desc: 'Clear 10 bunnies from the trade road',
-        type: 'defeat_n', target: { type: 'any', count: 10 },
-        reward: { type: 'multi', effects: [
-            { type: 'flag', flag: 'trader_route_done' },
-            { type: 'eggs', amount: 50 },
-        ]},
-    },
-    side_snow_crystals: {
-        id: 'side_snow_crystals', desc: 'Collect 5 Ice Crystals in the mountains',
-        type: 'collect_items', target: { item: 'ice_crystal', count: 5 },
-        reward: { type: 'flag', flag: 'snow_crystals_done' },
-    },
-    side_baker_cake: {
-        id: 'side_baker_cake', desc: 'Bring 3 Moonberries to Baker Breadwing',
-        type: 'deliver_item', target: { npc: 'baker', item: 'cake_ingredient' },
-        reward: { type: 'multi', effects: [
-            { type: 'flag', flag: 'baker_cake_done' },
-            { type: 'life' },
-        ]},
-    },
-
-    // Legacy quests (preserving existing gameplay)
-    elder_eggs: {
-        id: 'elder_eggs', desc: 'Collect 30 eggs', type: 'eggs', target: 30,
-        reward: { type: 'life' },
-    },
-    desert_boss: {
-        id: 'desert_boss', desc: 'Defeat the Desert Boss', type: 'boss', target: 'desert',
-        reward: { type: 'score', amount: 500 },
-    },
-    golden_hunt: {
-        id: 'golden_hunt', desc: 'Collect 10 golden eggs', type: 'golden', target: 10,
-        reward: { type: 'speed' },
-    },
-};
-
 
 // ===================================================================
 //  NOISE / UTILITY
@@ -989,12 +751,12 @@ const NPC_DEFS = [
         dialogues: [
             { cond: { flag: 'ceremony_complete' },
               lines: ["The kingdom is at peace once more, thanks to you!",
-                       "You'll always be welcome in Cluckville, hero."] },
+                       "You'll always be welcome in Cluckville, hero."],
+              giveQuest: 'elder_eggs' },
             { cond: { flag: 'elder_quest_done', notFlag: 'met_guard_captain' },
               lines: ["Well done collecting those eggs! But I've heard troubling rumors.",
                        "The bunny attacks are getting worse. Go speak to Guard Roost at the north gate.",
-                       "He knows things about what's happening at the castle."],
-              giveQuest: 'ch1_meet_guard' },
+                       "He knows things about what's happening at the castle."] },
             { cond: { questActive: 'ch1_collect_eggs' },
               lines: ["Keep collecting eggs, Mr. Kluck! The village needs them.",
                        "The bunnies scattered them in every corner of the land."] },
@@ -1103,8 +865,7 @@ const NPC_DEFS = [
             { cond: { flag: 'entered_castle' },
               lines: ["Who dares enter my throne room? Ah... a rooster.",
                        "The rabbit attacks? A minor nuisance. I have it handled.",
-                       "Now leave me be. Kings have important king things to do. Begone!"],
-              action: { type: 'setFlag', flag: 'met_king' } },
+                       "Now leave me be. Kings have important king things to do. Begone!"] },
             { cond: null,
               lines: ["What are you doing in my castle? Only those invited may approach the King. Guards!"] },
         ],
@@ -1207,8 +968,7 @@ const NPC_DEFS = [
                        "I found traces of cursed chocolate near the bunny dens.",
                        "Whoever made this chocolate is poisoning the rabbits' minds!",
                        "Collect more eggs to prove you can survive what's coming."],
-              action: { type: 'setFlag', flag: 'met_hermit' },
-              giveQuest: 'ch3_hermit_task' },
+              action: { type: 'setFlag', flag: 'met_hermit' } },
             { cond: null,
               lines: ["Welcome to my cave. Make yourself at home."] },
         ],
@@ -1231,16 +991,12 @@ const NPC_DEFS = [
                        "We'll help you investigate. Take this badge — our people will recognize it.",
                        "My scouts say a pyramid in the far east desert hides something big.",
                        "Look for stairs inside the pyramid — a labyrinth lies beneath.",
-                       "You'll need a lantern. Take this one."],
-              action: { type: 'setFlag', flag: 'shadowcoat_alliance' },
-              giveItem: 'lantern',
-              giveQuest: 'ch6_enter_pyramid' },
+                       "You'll need a lantern. Take this one."] },
             { cond: { flag: 'met_shadowcoats' },
               lines: ["A rooster in our camp? Bold. Or stupid. Perhaps both.",
                        "I am Shadow Vex. We Shadowcoats have our own code.",
                        "We want the bunnies gone too. But trust must be earned.",
-                       "Clear 8 bunnies from around our camp. Then we'll talk."],
-              giveQuest: 'ch4_shadow_task' },
+                       "Clear 8 bunnies from around our camp. Then we'll talk."] },
             { cond: null,
               lines: ["You shouldn't be here. The forest has eyes.",
                        "...Unless someone sent you? Hmm."] },
@@ -1297,19 +1053,16 @@ const NPC_DEFS = [
             { cond: { flag: 'pompom_gift_2' },
               lines: ["Two gifts! Your generosity warms our fuzzy hearts.",
                        "One final test of friendship... the bunnies threaten our village.",
-                       "Defeat 5 of them nearby and we shall be allies forever!"],
-              giveQuest: 'ch5_gift_3' },
+                       "Defeat 5 of them nearby and we shall be allies forever!"] },
             { cond: { flag: 'pompom_gift_1' },
               lines: ["Thank you for the eggs! You ARE kind.",
                        "But... could you bring us a Moonberry? We love those!",
-                       "They grow near the forest edges. Small, glowing pink berries."],
-              giveQuest: 'ch5_gift_2' },
+                       "They grow near the forest edges. Small, glowing pink berries."] },
             { cond: { flag: 'met_pompoms' },
               lines: ["*squeak* A big creature! Don't hurt us!",
                        "We are the Pom-poms. Humans think we're fairy tales.",
                        "We are small but... when threatened... we grow. A lot.",
-                       "Bring us 20 eggs as a gift and maybe we'll trust you."],
-              giveQuest: 'ch5_gift_1' },
+                       "Bring us 20 eggs as a gift and maybe we'll trust you."] },
             { cond: null,
               lines: ["*squeak* *squeak*",
                        "The bushes seem to be... squeaking at you? How odd."] },
@@ -1375,7 +1128,7 @@ const NPC_DEFS = [
                        "I am Glimmer. The fairies have watched your journey.",
                        "We know of the curse. But our Queen must trust you first.",
                        "Unite the other factions. Then seek us in the Hollow Tree."],
-              action: { type: 'setFlag', flag: 'met_fairy_scout' } },
+              giveQuest: 'ch7_find_fairy' },
             { cond: null,
               lines: ["A faint sparkle drifts past. Probably just a firefly.",
                        "...Fireflies don't usually giggle, though."] },
@@ -1608,9 +1361,7 @@ const NPC_DEFS = [
                        "It was MY spell he stole, the ungrateful wretch!",
                        "I can brew a Dispel Potion... for a price.",
                        "I'll need 3 Ice Crystals from the frozen peaks.",
-                       "The cold magic in them is the key ingredient."],
-              action: { type: 'setFlag', flag: 'found_witch_lair' },
-              giveQuest: 'ch8_brew_potion' },
+                       "The cold magic in them is the key ingredient."] },
             { cond: null,
               lines: ["Hee hee... lost, are we? This swamp doesn't welcome visitors.",
                        "Come back when you have a REASON to disturb me."] },
@@ -1656,11 +1407,7 @@ const NPC_DEFS = [
                        "I grant you the Blessing of True Sight.",
                        "With it, you will see through any illusion or disguise.",
                        "The Witch's Eye stone will guide you to hidden truths.",
-                       "Go now. The false king's deception cannot withstand your gaze."],
-              action: { type: 'multi', effects: [
-                  { type: 'setFlag', flag: 'fairy_blessing' },
-              ]},
-              giveItem: 'witch_eye' },
+                       "Go now. The false king's deception cannot withstand your gaze."] },
             { cond: { flag: 'met_fairy_scout' },
               lines: ["Welcome to the Fairy Glen, Mr. Kluck.",
                        "I am Queen Luminara. Glimmer told me of your quest.",
@@ -2812,6 +2559,7 @@ class GameScene extends Phaser.Scene {
                 if (q.type === 'defeat_n' && q.target) prog = ` (${Math.min(this.defeatedEnemies, q.target.count)}/${q.target.count})`;
                 if (q.type === 'pay_eggs') prog = ` (${this.totalEggsCollected}/${q.target} eggs)`;
                 if (q.type === 'collect_items' && q.target) prog = ` (${this.getItemCount(q.target.item)}/${q.target.count})`;
+                if (q.type === 'deliver_item' && q.target) prog = ` (${Math.min(this.getItemCount(q.target.item), q.target.count || 1)}/${q.target.count || 1})`;
                 return `> ${q.desc}${prog}`;
             });
             if (this.activeQuests.length > 4) lines.push(`  ...and ${this.activeQuests.length - 4} more`);
@@ -2959,8 +2707,10 @@ class GameScene extends Phaser.Scene {
                     this.completeQuest(q);
                     return false;
                 }
-                if (q.type === 'deliver_item' && q.target && q.target.npc === def.id && this.hasItem(q.target.item)) {
-                    this.removeItem(q.target.item);
+                if (q.type === 'deliver_item' && q.target && q.target.npc === def.id) {
+                    const need = q.target.count || 1;
+                    if (this.getItemCount(q.target.item) < need) return true;
+                    this.removeItem(q.target.item, need);
                     this.completeQuest(q);
                     return false;
                 }
@@ -3150,6 +2900,8 @@ class GameScene extends Phaser.Scene {
                 let progress = '';
                 if (q.type === 'eggs' && q.target) progress = ` (${Math.min(this.totalEggsCollected, q.target)}/${q.target})`;
                 if (q.type === 'defeat_n' && q.target) progress = ` (${Math.min(this.defeatedEnemies, q.target.count)}/${q.target.count})`;
+                if (q.type === 'deliver_item' && q.target) progress = ` (${Math.min(this.getItemCount(q.target.item), q.target.count || 1)}/${q.target.count || 1})`;
+                if (q.type === 'collect_items' && q.target) progress = ` (${Math.min(this.getItemCount(q.target.item), q.target.count)}/${q.target.count})`;
                 t.setText(`- ${q.desc}${progress}`).setStyle({ fill: '#FFFFCC' }).setVisible(true);
             } else if (i === this.activeQuests.length && this.activeQuests.length === 0) {
                 t.setText('No active quests.').setStyle({ fill: '#888888' }).setVisible(true);
@@ -4745,4 +4497,30 @@ const config = {
     },
 };
 
-const game = new Phaser.Game(config);
+function showBootError(error) {
+    console.error('Game bootstrap failed:', error);
+    const box = document.createElement('div');
+    box.style.position = 'fixed';
+    box.style.inset = '0';
+    box.style.display = 'flex';
+    box.style.alignItems = 'center';
+    box.style.justifyContent = 'center';
+    box.style.background = '#111';
+    box.style.color = '#f2f2f2';
+    box.style.fontFamily = 'Arial, sans-serif';
+    box.style.textAlign = 'center';
+    box.style.padding = '16px';
+    box.innerHTML = '<div><h2>Failed to load game data</h2><p>Check console for details.</p></div>';
+    document.body.appendChild(box);
+}
+
+async function bootstrapGame() {
+    try {
+        await loadExternalGameData();
+        new Phaser.Game(config);
+    } catch (error) {
+        showBootError(error);
+    }
+}
+
+bootstrapGame();
