@@ -968,13 +968,14 @@ const NPC_DEFS = [
             { cond: { flag: 'met_guard_captain', notFlag: 'entered_castle' },
               lines: ["The castle is north of here. The King wants to see you.",
                        "But between you and me... something feels wrong up there.",
-                       "The King used to love eggs. Now he seems to despise them."],
-              giveQuest: 'ch2_enter_castle' },
+                       "The King used to love eggs. Now he seems to despise them."] },
             { cond: { flag: 'elder_quest_done' },
               lines: ["Halt! Ah, Mr. Kluck. I've been expecting you.",
                        "The King has summoned anyone who can fight these bunnies.",
-                       "Head to the castle and seek an audience. But be careful..."],
-              action: { type: 'setFlag', flag: 'met_guard_captain' } },
+                       "Head to the castle and seek an audience. But be careful...",
+                       "Between you and me... something feels wrong up there."],
+              action: { type: 'setFlag', flag: 'met_guard_captain' },
+              giveQuest: 'ch2_enter_castle' },
             { cond: null,
               lines: ["Halt! The road north leads to the forest. Fast bunnies lurk there.",
                        "Use SPACE for Crow Power to stun bunnies. SHIFT gives a quick dash!",
@@ -2882,6 +2883,14 @@ class GameScene extends Phaser.Scene {
         const panelW = 220, panelH = 280;
         const px = W / 2 - panelW / 2, py = H / 2 - panelH / 2;
 
+        // Shared modal backdrop — catches clicks outside any open panel
+        this.modalBackdrop = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.01)
+            .setScrollFactor(0).setDepth(140).setVisible(false).setInteractive();
+        this.modalBackdrop.on('pointerdown', () => {
+            if (this.inventoryOpen) this.toggleInventory();
+            if (this.questLogOpen) this.toggleQuestLog();
+        });
+
         this.invPanel = this.add.graphics().setScrollFactor(0).setDepth(210).setVisible(false);
         this.invPanel.fillStyle(0x111122, 0.95);
         this.invPanel.fillRoundedRect(px, py, panelW, panelH, 12);
@@ -2918,8 +2927,10 @@ class GameScene extends Phaser.Scene {
         this.invHint.setVisible(this.inventoryOpen);
         if (this.inventoryOpen) {
             this.refreshInventoryDisplay();
+            this.modalBackdrop.setVisible(true);
         } else {
             this.invSlots.forEach(s => s.setVisible(false));
+            if (!this.questLogOpen) this.modalBackdrop.setVisible(false);
         }
     }
 
@@ -2929,9 +2940,11 @@ class GameScene extends Phaser.Scene {
             if (this.questLogPanel) this.questLogPanel.setVisible(false);
             if (this.questLogTitle) this.questLogTitle.setVisible(false);
             this.questLogTexts.forEach(t => t.setVisible(false));
+            if (!this.inventoryOpen) this.modalBackdrop.setVisible(false);
             return;
         }
         this.questLogOpen = true;
+        this.modalBackdrop.setVisible(true);
         const W = this.scale.width, H = this.scale.height;
         const panelW = 300, panelH = 250;
         const px = W / 2 - panelW / 2, py = H / 2 - panelH / 2;
