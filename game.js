@@ -245,8 +245,8 @@ const QUEST_DEFS = {
 
     // --- Chapter 4: The Shadowcoat Alliance ---
     ch4_find_shadowcoats: {
-        id: 'ch4_find_shadowcoats', desc: 'Find the Shadowcoat camp in the forest',
-        type: 'explore_area', target: { tx: SHADOW_CAMP_X, ty: SHADOW_CAMP_Y, radius: 5 },
+        id: 'ch4_find_shadowcoats', desc: 'Find the Shadowcoat camp in the Wildlands forest',
+        type: 'explore_area', target: { tx: SHADOW_CAMP_X, ty: SHADOW_CAMP_Y, radius: 5, mapId: 'map2' },
         reward: { type: 'flag', flag: 'met_shadowcoats' },
     },
     ch4_shadow_task: {
@@ -265,8 +265,8 @@ const QUEST_DEFS = {
 
     // --- Chapter 5: Pom-pom Trust ---
     ch5_find_pompoms: {
-        id: 'ch5_find_pompoms', desc: 'Find the Pom-pom village in the hills',
-        type: 'explore_area', target: { tx: POMPOM_X, ty: POMPOM_Y, radius: 5 },
+        id: 'ch5_find_pompoms', desc: 'Find the Pom-pom village in the Wildlands hills',
+        type: 'explore_area', target: { tx: POMPOM_X, ty: POMPOM_Y, radius: 5, mapId: 'map2' },
         reward: { type: 'flag', flag: 'met_pompoms' },
     },
     ch5_gift_1: {
@@ -292,7 +292,7 @@ const QUEST_DEFS = {
     // --- Chapter 6: The Labyrinth ---
     ch6_enter_pyramid: {
         id: 'ch6_enter_pyramid', desc: 'Find the desert pyramid and enter the labyrinth below',
-        type: 'explore_area', target: { tx: 150, ty: 80, radius: 8 },
+        type: 'explore_area', target: { tx: 150, ty: 80, radius: 8, mapId: 'map2' },
         reward: { type: 'flag', flag: 'entered_pyramid' },
         nextQuest: 'ch6_find_chocolate',
     },
@@ -358,7 +358,7 @@ const QUEST_DEFS = {
     // --- Side Quests ---
     side_shadow_fortune: {
         id: 'side_shadow_fortune', desc: 'Recover stolen eggs from the shadow vault',
-        type: 'explore_area', target: { tx: 25, ty: 25, radius: 3 },
+        type: 'explore_area', target: { tx: 25, ty: 25, radius: 3, mapId: 'map2' },
         requireItem: 'shadow_map',
         reward: { type: 'multi', effects: [
             { type: 'flag', flag: 'shadow_fortune_done' },
@@ -1070,14 +1070,15 @@ const NPC_DEFS = [
               giveQuest: 'ch8_confront_king' },
             { cond: { flag: 'hermit_quest_done' },
               lines: ["You've proven yourself capable. Listen carefully.",
-                       "Four factions hold the key to unraveling this mystery.",
-                       "The Shadowcoats in the forest. The Pom-poms in the hills.",
-                       "And somewhere... fairies who can reveal hidden truths.",
-                       "Start with the Shadowcoats. They've been tracking the bunnies."],
+                       "The answers lie beyond these mountains — in the Wildlands.",
+                       "Buy a Mountain Pass from the merchant in the village.",
+                       "Then head north through the mountain gate.",
+                       "Seek the Shadowcoats in the Wildlands forest. They track the bunnies.",
+                       "And somewhere... fairies who can reveal hidden truths."],
               giveQuest: 'ch4_find_shadowcoats' },
             { cond: { flag: 'met_hermit' },
-              lines: ["You know where to find me if you need me.",
-                       "Be careful out there, rooster."] },
+              lines: ["The Wildlands await you, rooster. Buy a Mountain Pass first.",
+                       "The merchant in the village sells them. Head north after that."] },
             { cond: { flag: 'princess_gave_key' },
               lines: ["The Princess sent you! I have been waiting.",
                        "We cannot talk here. Meet me inside the cave."] },
@@ -1098,10 +1099,11 @@ const NPC_DEFS = [
               giveQuest: 'ch8_confront_king' },
             { cond: { flag: 'hermit_quest_done' },
               lines: ["You've proven yourself capable. Listen carefully.",
-                       "Four factions hold the key to unraveling this mystery.",
-                       "The Shadowcoats in the forest. The Pom-poms in the hills.",
-                       "And somewhere... fairies who can reveal hidden truths.",
-                       "Start with the Shadowcoats. They've been tracking the bunnies."],
+                       "The answers lie beyond these mountains — in the Wildlands.",
+                       "Buy a Mountain Pass from the merchant in the village.",
+                       "Then head north through the mountain gate.",
+                       "Seek the Shadowcoats in the Wildlands forest. They track the bunnies.",
+                       "And somewhere... fairies who can reveal hidden truths."],
               giveQuest: 'ch4_find_shadowcoats' },
             { cond: { flag: 'found_hermit_cave' },
               lines: ["Ah, you made it inside! Good.",
@@ -1119,6 +1121,7 @@ const NPC_DEFS = [
     {
         id: 'shadow_vex', name: 'Shadow Vex',
         body: 0x222233, hat: 0x333344, hatType: 'bandana',
+        mapId: 'map2',
         tx: SHADOW_CAMP_X, ty: SHADOW_CAMP_Y,
         dialogues: [
             { cond: { flag: 'shadowcoat_alliance' },
@@ -1150,6 +1153,7 @@ const NPC_DEFS = [
     {
         id: 'shadow_dagger', name: 'Shadow Dagger',
         body: 0x2A2A3A, hat: 0x3A3A4A, hatType: 'bandana',
+        mapId: 'map2',
         tx: SHADOW_CAMP_X + 3, ty: SHADOW_CAMP_Y + 2,
         dialogues: [
             { cond: { flag: 'shadow_fortune_done' },
@@ -1169,6 +1173,7 @@ const NPC_DEFS = [
     {
         id: 'shadow_whisper', name: 'Shadow Whisper',
         body: 0x1A1A2A, hat: 0x2A2A3A, hatType: 'bandana',
+        mapId: 'map2',
         tx: SHADOW_CAMP_X - 2, ty: SHADOW_CAMP_Y - 1,
         dialogues: [
             { cond: { flag: 'shadow_fortune_done' },
@@ -1185,6 +1190,7 @@ const NPC_DEFS = [
     {
         id: 'pompom_elder', name: 'Elder Fluff',
         body: 0xFFBBDD, hat: 0xFFDDEE, hatType: 'pompom_hat',
+        mapId: 'map2',
         tx: POMPOM_X, ty: POMPOM_Y,
         dialogues: [
             { cond: { flag: 'pompom_trust' },
@@ -1216,6 +1222,7 @@ const NPC_DEFS = [
     {
         id: 'pompom_scout', name: 'Scout Bounce',
         body: 0xAADDFF, hat: 0xCCEEFF, hatType: 'pompom_hat',
+        mapId: 'map2',
         tx: POMPOM_X + 4, ty: POMPOM_Y - 3,
         dialogues: [
             { cond: { flag: 'pompom_trust' },
@@ -1233,6 +1240,7 @@ const NPC_DEFS = [
     {
         id: 'pompom_warrior', name: 'Warrior Thud',
         body: 0xFFAACC, hat: 0xFFCCDD, hatType: 'pompom_hat',
+        mapId: 'map2',
         tx: POMPOM_X - 2, ty: POMPOM_Y + 2,
         dialogues: [
             { cond: { flag: 'pompom_trust' },
@@ -1294,7 +1302,8 @@ const NPC_DEFS = [
     {
         id: 'nomad', name: 'Desert Nomad',
         body: 0xBB8844, hat: 0xDDCC88, hatType: 'hood',
-        tx: V1_X + 38, ty: V1_Y + 3,
+        mapId: 'map2',
+        tx: 120, ty: 95,
         dialogues: [
             { cond: { flag: 'labyrinth_cleared' },
               lines: ["You cleared the labyrinth?! Legends will speak of this!",
@@ -1360,7 +1369,8 @@ const NPC_DEFS = [
               lines: ["I hear you've allied with those Shadowcoats!",
                        "Bold move. They're thieves, but we need all the help we can get.",
                        "The hills folk — the Pom-poms — they might help too.",
-                       "If they even exist, that is. Most think they're fairy tales."],
+                       "If they even exist, that is. Most think they're fairy tales.",
+                       "Look for them in the western hills of the Wildlands."],
               giveQuest: 'ch5_find_pompoms' },
             { cond: null,
               lines: ["Welcome to Westwick! We've suffered from bunny raids too.",
@@ -1475,6 +1485,7 @@ const NPC_DEFS = [
     {
         id: 'witch_hexana', name: 'Witch Hexana',
         body: 0x442266, hat: 0x663399, hatType: 'pointed',
+        mapId: 'map3',
         tx: 40, ty: 150,
         dialogues: [
             { cond: { flag: 'got_dispel_potion' },
@@ -1525,6 +1536,7 @@ const NPC_DEFS = [
     {
         id: 'fairy_queen', name: 'Fairy Queen Luminara',
         body: 0xDDFFDD, hat: 0xAAFFAA, hatType: 'fairy_wings',
+        mapId: 'map3',
         tx: 60, ty: 80,
         dialogues: [
             { cond: { flag: 'fairy_blessing' },
@@ -3104,10 +3116,12 @@ class GameScene extends Phaser.Scene {
             if (q.type === 'boss' && this.bossesDefeated[q.target]) done = true;
             if (q.type === 'defeat_n' && q.target && this.defeatedEnemies >= q.target.count) done = true;
             if (q.type === 'explore_area' && q.target) {
-                const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
-                const dx = ptx - q.target.tx, dy = pty - q.target.ty;
-                if (Math.sqrt(dx * dx + dy * dy) <= (q.target.radius || 3)) {
-                    if (!q.requireItem || this.hasItem(q.requireItem)) done = true;
+                if (!q.target.mapId || q.target.mapId === this.currentMapId) {
+                    const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
+                    const dx = ptx - q.target.tx, dy = pty - q.target.ty;
+                    if (Math.sqrt(dx * dx + dy * dy) <= (q.target.radius || 3)) {
+                        if (!q.requireItem || this.hasItem(q.requireItem)) done = true;
+                    }
                 }
             }
             if (q.type === 'fetch_item' && q.target) {
