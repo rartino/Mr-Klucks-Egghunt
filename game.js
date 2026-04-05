@@ -579,16 +579,30 @@ function generateWorld(mapId) {
                 if (V1_X + 1 < mW && walls[s][V1_X + 1] < 0) ground[s][V1_X + 1] = T_STONE;
             }
             if (e < mW) {
-                if (walls[V1_Y][e] < 0) ground[V1_Y][e] = T_STONE;
-                if (V1_Y + 1 < mH && walls[V1_Y + 1][e] < 0) ground[V1_Y + 1][e] = T_STONE;
+                if (walls[V1_Y][e] < 0) ground[V1_Y][e] = T_DIRT;
+                if (V1_Y + 1 < mH && walls[V1_Y + 1][e] < 0) ground[V1_Y + 1][e] = T_DIRT;
             }
         }
-        // East road toward nomad dunes route (to map4 transition)
-        const eastRoadY = 75;
-        for (let x = 130; x < mW; x++) {
-            if (walls[eastRoadY][x] < 0) ground[eastRoadY][x] = T_DIRT;
-            if (eastRoadY + 1 < mH && walls[eastRoadY + 1][x] < 0) ground[eastRoadY + 1][x] = T_DIRT;
+        // East border landmark: twin rock cairns marking the hidden dunes passage.
+        const markerY = 75;
+        for (let x = 142; x < mW; x++) {
+            if (walls[markerY][x] < 0) ground[markerY][x] = T_SAND;
+            if (markerY + 1 < mH && walls[markerY + 1][x] < 0) ground[markerY + 1][x] = T_SAND;
         }
+        // Keep a clear passage to the transition.
+        for (let x = 146; x <= 149; x++) {
+            if (x >= 0 && x < mW) {
+                walls[markerY][x] = -1;
+                if (markerY + 1 < mH) walls[markerY + 1][x] = -1;
+            }
+        }
+        const cairnTiles = [
+            [145, 73], [146, 73], [145, 74], [145, 77], [146, 77],
+            [147, 73], [148, 73], [148, 74], [147, 77], [148, 77], [148, 76],
+        ];
+        cairnTiles.forEach(([tx, ty]) => {
+            if (tx >= 0 && ty >= 0 && tx < mW && ty < mH) walls[ty][tx] = W_ROCK;
+        });
         // Road to castle
         for (let y = CASTLE_Y + 6; y <= V1_Y - 10; y++) {
             const rx = V1_X + Math.round((CASTLE_X - V1_X) * (V1_Y - 10 - y) / (V1_Y - 10 - CASTLE_Y - 6));
@@ -597,20 +611,8 @@ function generateWorld(mapId) {
                 if (rx + 1 < mW && walls[y][rx + 1] < 0) ground[y][rx + 1] = T_STONE;
             }
         }
-        // Road from castle north to mountain gate (transition at tx:75..78, ty:0)
+        // Mountain gate marker at north edge (keep marker blocks, no connecting road)
         const gateX = 76; // center of the 4-tile-wide gate
-        for (let y = 0; y < CASTLE_Y - 5; y++) {
-            // Curve road from gate (x=76) toward castle (x=85)
-            const t = y / (CASTLE_Y - 5);
-            const roadCx = Math.round(gateX + (CASTLE_X - gateX) * t * t);
-            for (let dx = -1; dx <= 2; dx++) {
-                const rx = roadCx + dx;
-                if (rx >= 0 && rx < mW && y >= 0 && y < mH) {
-                    walls[y][rx] = -1;  // clear any trees/rocks
-                    ground[y][rx] = T_STONE;
-                }
-            }
-        }
         // Gate structure: stone walls flanking the entrance
         for (let dy = 0; dy < 3; dy++) {
             // Left wall pillar
@@ -684,14 +686,7 @@ function generateWorld(mapId) {
                 }
             }
         }
-        // Road from south gate north toward oasis
-        for (let y = oasisY + 3; y < mH - 8; y++) {
-            const rx = oasisX + Math.round((m2GateX - oasisX) * (y - oasisY - 3) / (mH - 8 - oasisY - 3));
-            if (rx >= 0 && rx < mW) {
-                if (walls[y][rx] < 0) ground[y][rx] = T_STONE;
-                if (rx + 1 < mW && walls[y][rx + 1] < 0) ground[y][rx + 1] = T_STONE;
-            }
-        }
+        // No forced road to oasis: players navigate the swamp/wildlands naturally.
         // Western pass entrance (transition at tx:0, ty:100..103)
         for (let dy = -1; dy <= 2; dy++) {
             for (let dx = 0; dx < 6; dx++) {
@@ -770,6 +765,42 @@ function generateWorld(mapId) {
     // Scale egg/bunny counts for larger maps
     const mapScale = (mW * mH) / (150 * 150);
 
+    // Spawn collectible Ice Crystals in snowy regions
+    const crystals = [];
+    const crystalTarget = Math.max(8, Math.floor(12 * mapScale));
+    let crystalAttempts = 0;
+    while (crystals.length < crystalTarget && crystalAttempts < 4000) {
+        const tx = Phaser.Math.Between(5, mW - 5);
+        const ty = Phaser.Math.Between(5, mH - 5);
+        if (biomeMap[ty][tx] === 'snow' && walls[ty][tx] < 0 && ground[ty][tx] !== T_WATER) {
+            crystals.push({ tx, ty });
+        }
+        crystalAttempts++;
+    }
+
+    // Spawn rare Moonberries at forest edges only
+    const moonberries = [];
+    const moonberryTarget = Math.max(2, Math.floor(3 * mapScale));
+    let moonberryAttempts = 0;
+    const isForestEdge = (tx, ty) => {
+        if (biomeMap[ty][tx] !== 'forest') return false;
+        const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+        for (const [dx, dy] of dirs) {
+            const nx = tx + dx, ny = ty + dy;
+            if (nx < 0 || ny < 0 || nx >= mW || ny >= mH) continue;
+            if (biomeMap[ny][nx] !== 'forest') return true;
+        }
+        return false;
+    };
+    while (moonberries.length < moonberryTarget && moonberryAttempts < 5000) {
+        const tx = Phaser.Math.Between(5, mW - 5);
+        const ty = Phaser.Math.Between(5, mH - 5);
+        if (isForestEdge(tx, ty) && walls[ty][tx] < 0 && ground[ty][tx] !== T_WATER) {
+            moonberries.push({ tx, ty });
+        }
+        moonberryAttempts++;
+    }
+
     // Generate bunny positions
     const bunnies = [];
     const isAdvancedMap = mapId === 'map2' || mapId === 'map3';
@@ -802,7 +833,7 @@ function generateWorld(mapId) {
         }
     });
 
-    return { ground, walls, biomeMap, eggs, bunnies, basements, interiors, mapWidth: mW, mapHeight: mH };
+    return { ground, walls, biomeMap, eggs, bunnies, crystals, moonberries, basements, interiors, mapWidth: mW, mapHeight: mH };
 }
 
 
@@ -1497,6 +1528,8 @@ class GameScene extends Phaser.Scene {
         // Groups
         this.eggGroup = this.physics.add.staticGroup();
         this.bunnyGroup = this.physics.add.group();
+        this.crystalGroup = this.physics.add.staticGroup();
+        this.moonberryGroup = this.physics.add.staticGroup();
         this.powerupGroup = this.physics.add.staticGroup();
 
         this.physics.add.collider(this.bunnyGroup, this.wallLayer);
@@ -1558,9 +1591,32 @@ class GameScene extends Phaser.Scene {
             }
         });
 
+        // Spawn Ice Crystals
+        (this.worldData.crystals || []).forEach(c => {
+            const px = c.tx * TILE + TILE / 2, py = c.ty * TILE + TILE / 2;
+            const crystal = this.crystalGroup.create(px, py, 'powerup_freeze');
+            crystal.setDepth(6);
+            crystal.setScale(0.85);
+            crystal.setTint(0xAADDFF);
+            this.tweens.add({ targets: crystal, y: py - 4, yoyo: true, repeat: -1, duration: 700, ease: 'Sine.easeInOut' });
+            this.tweens.add({ targets: crystal, alpha: 0.75, yoyo: true, repeat: -1, duration: 500 });
+        });
+
+        // Spawn Moonberries (rare forest-edge forage)
+        (this.worldData.moonberries || []).forEach(m => {
+            const px = m.tx * TILE + TILE / 2, py = m.ty * TILE + TILE / 2;
+            const berry = this.moonberryGroup.create(px, py, 'chocolateegg');
+            berry.setDepth(6);
+            berry.setScale(0.75);
+            berry.setTint(0xFF66CC);
+            this.tweens.add({ targets: berry, y: py - 3, yoyo: true, repeat: -1, duration: 650, ease: 'Sine.easeInOut' });
+        });
+
         // Overlaps
         this.physics.add.overlap(this.player, this.eggGroup, this.onCollectEgg, null, this);
         this.physics.add.overlap(this.player, this.bunnyGroup, this.onCaughtByBunny, null, this);
+        this.physics.add.overlap(this.player, this.crystalGroup, this.onCollectCrystal, null, this);
+        this.physics.add.overlap(this.player, this.moonberryGroup, this.onCollectMoonberry, null, this);
         this.physics.add.overlap(this.player, this.powerupGroup, this.onCollectPowerup, null, this);
 
         // Spawn NPCs
@@ -1659,6 +1715,8 @@ class GameScene extends Phaser.Scene {
         }
         this.menuOpen = true;
         this.paused = true;
+        this.physics.world.pause();
+        this.time.timeScale = 0;
         this.player.setVelocity(0, 0);
 
         const W = this.scale.width, H = this.scale.height;
@@ -1705,6 +1763,8 @@ class GameScene extends Phaser.Scene {
     closeMenu() {
         this.menuOpen = false;
         this.paused = false;
+        this.physics.world.resume();
+        this.time.timeScale = 1;
         if (this.menuOverlay) { this.menuOverlay.destroy(); this.menuOverlay = null; }
         this.menuItems.forEach(t => t.destroy());
         this.menuItems = [];
@@ -2725,6 +2785,20 @@ class GameScene extends Phaser.Scene {
     //  COLLISION HANDLERS
     // ------------------------------------------------------------------
 
+    onCollectCrystal(player, crystal) {
+        crystal.destroy();
+        this.addItem('ice_crystal', 1);
+        this.showFloatingText(player.x, player.y - 20, 'Found Ice Crystal!', '#AADDFF');
+        this.checkQuests();
+    }
+
+    onCollectMoonberry(player, berry) {
+        berry.destroy();
+        this.addItem('cake_ingredient', 1);
+        this.showFloatingText(player.x, player.y - 20, 'Found Moonberry!', '#FF88DD');
+        this.checkQuests();
+    }
+
     onCaughtByBunny(player, bunny) {
         if (this.isInvincible || bunny.getData('stunned') || this.dialogueActive) return;
 
@@ -2855,6 +2929,7 @@ class GameScene extends Phaser.Scene {
     }
 
     gameOver() {
+        if (this.playerDead) return;
         this.playerDead = true;
         this.player.setVelocity(0, 0);
         this.bunnyGroup.getChildren().forEach(b => b.setVelocity(0, 0));
@@ -3365,10 +3440,20 @@ class BasementScene extends Phaser.Scene {
             up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
             left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D,
         });
+        this.dashKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.crowReady = true;
+        this.dashReady = true;
+        this.isDashing = false;
 
-        // Touch controls (movement + action button)
+        // Touch controls (movement + unified gestures/buttons)
         this.touchDir = { x: 0, y: 0 };
         this.touchAnchor = null;
+        this.touchMovePtrId = null;
+        this.touchLastMovePos = null;
+        this.touchLastMoveTs = 0;
+        this.touchLastDashTs = 0;
+        this.touchLastTapPos = null;
+        this.touchLastTapTs = 0;
         this.actionBtnZones = [];
         const W = this.scale.width, H = this.scale.height;
         const alpha = 0.45;
@@ -3391,15 +3476,61 @@ class BasementScene extends Phaser.Scene {
             for (const z of this.actionBtnZones) {
                 if (Phaser.Math.Distance.Between(p.x, p.y, z.x, z.y) <= z.r) return;
             }
+            const now = this.time.now;
+            const DOUBLE_TAP_MS = 260;
+            const DOUBLE_TAP_DIST = 42;
+            if (this.touchLastTapPos && (now - this.touchLastTapTs) <= DOUBLE_TAP_MS) {
+                const tx = p.x - this.touchLastTapPos.x, ty = p.y - this.touchLastTapPos.y;
+                if ((tx * tx + ty * ty) <= (DOUBLE_TAP_DIST * DOUBLE_TAP_DIST)) {
+                    // No enemies here, but keep gesture parity with main gameplay.
+                    this.touchLastTapPos = null;
+                    this.touchLastTapTs = 0;
+                    return;
+                }
+            }
+            this.touchLastTapPos = { x: p.x, y: p.y };
+            this.touchLastTapTs = now;
+            if (this.touchMovePtrId !== null && this.touchMovePtrId !== p.id) return;
             this.touchAnchor = { x: p.x, y: p.y };
+            this.touchMovePtrId = p.id;
+            this.touchLastMovePos = { x: p.x, y: p.y };
+            this.touchLastMoveTs = now;
         });
         this.input.on('pointermove', p => {
-            if (!this.touchAnchor || !p.isDown) return;
+            if (this.touchMovePtrId !== p.id || !this.touchAnchor || !p.isDown) return;
             const dx = p.x - this.touchAnchor.x, dy = p.y - this.touchAnchor.y;
             const len = Math.sqrt(dx * dx + dy * dy);
+            const now = this.time.now;
             if (len > 10) { this.touchDir = { x: dx / len, y: dy / len }; } else { this.touchDir = { x: 0, y: 0 }; }
+
+            if (this.touchLastMovePos && !this.isDashing) {
+                const sdx = p.x - this.touchLastMovePos.x;
+                const sdy = p.y - this.touchLastMovePos.y;
+                const sLen = Math.sqrt(sdx * sdx + sdy * sdy);
+                const dt = Math.max(1, now - this.touchLastMoveTs);
+                const speed = sLen / dt;
+                if (sLen > 0 && len > 16) {
+                    const sDirX = sdx / sLen;
+                    const sDirY = sdy / sLen;
+                    const dot = this.touchDir.x * sDirX + this.touchDir.y * sDirY;
+                    const rapidForwardFlick = speed > 0.9 && dot > 0.88;
+                    if (rapidForwardFlick && now - this.touchLastDashTs > 250) {
+                        this.touchLastDashTs = now;
+                        this.useBasementDash();
+                    }
+                }
+            }
+            this.touchLastMovePos = { x: p.x, y: p.y };
+            this.touchLastMoveTs = now;
         });
-        this.input.on('pointerup', () => { this.touchAnchor = null; this.touchDir = { x: 0, y: 0 }; });
+        this.input.on('pointerup', (p) => {
+            if (this.touchMovePtrId === p.id) {
+                this.touchAnchor = null;
+                this.touchMovePtrId = null;
+                this.touchLastMovePos = null;
+                this.touchDir = { x: 0, y: 0 };
+            }
+        });
 
         // Label
         this.add.text(mapW * TILE / 2, 6, '-- Basement --', {
@@ -3413,6 +3544,10 @@ class BasementScene extends Phaser.Scene {
     }
 
     update() {
+        if (this.isDashing) {
+            if (Phaser.Input.Keyboard.JustDown(this.dashKey)) this.useBasementDash();
+            return;
+        }
         const left  = this.cursors.left.isDown  || this.wasd.left.isDown  || this.touchDir.x < -0.3;
         const right = this.cursors.right.isDown || this.wasd.right.isDown || this.touchDir.x > 0.3;
         const up    = this.cursors.up.isDown    || this.wasd.up.isDown    || this.touchDir.y < -0.3;
@@ -3427,12 +3562,25 @@ class BasementScene extends Phaser.Scene {
         this.player.setVelocity(vx, vy);
         if (vx < 0) this.player.setFlipX(true);
         if (vx > 0) this.player.setFlipX(false);
+        if (Phaser.Input.Keyboard.JustDown(this.dashKey)) this.useBasementDash();
 
         // Check exit stairs
         const ptx = Math.floor(this.player.x / TILE), pty = Math.floor(this.player.y / TILE);
         if (ptx === this.stairsX && pty === this.stairsY) {
             this.exitBasement();
         }
+    }
+
+    useBasementDash() {
+        if (!this.dashReady || this.isDashing) return;
+        const vx = this.player.body.velocity.x, vy = this.player.body.velocity.y;
+        if (vx === 0 && vy === 0) return;
+        const mag = Math.sqrt(vx * vx + vy * vy);
+        this.isDashing = true;
+        this.dashReady = false;
+        this.player.setVelocity((vx / mag) * DASH_SPEED, (vy / mag) * DASH_SPEED);
+        this.time.delayedCall(DASH_DURATION, () => { this.isDashing = false; });
+        this.time.delayedCall(DASH_COOLDOWN, () => { this.dashReady = true; });
     }
 
     collectEgg(player, egg) {
@@ -3782,10 +3930,19 @@ class InteriorScene extends Phaser.Scene {
             left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D,
         });
         this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        this.dashKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+        this.dashReady = true;
+        this.isDashing = false;
 
-        // Touch controls (movement + action buttons)
+        // Touch controls (movement + unified gestures/buttons)
         this.touchDir = { x: 0, y: 0 };
         this.touchAnchor = null;
+        this.touchMovePtrId = null;
+        this.touchLastMovePos = null;
+        this.touchLastMoveTs = 0;
+        this.touchLastDashTs = 0;
+        this.touchLastTapPos = null;
+        this.touchLastTapTs = 0;
         this.actionBtnZones = [];
         const W = this.scale.width, H = this.scale.height;
         const alpha = 0.45;
@@ -3813,15 +3970,61 @@ class InteriorScene extends Phaser.Scene {
             for (const z of this.actionBtnZones) {
                 if (Phaser.Math.Distance.Between(p.x, p.y, z.x, z.y) <= z.r) return;
             }
+            const now = this.time.now;
+            const DOUBLE_TAP_MS = 260;
+            const DOUBLE_TAP_DIST = 42;
+            if (this.touchLastTapPos && (now - this.touchLastTapTs) <= DOUBLE_TAP_MS) {
+                const tx = p.x - this.touchLastTapPos.x, ty = p.y - this.touchLastTapPos.y;
+                if ((tx * tx + ty * ty) <= (DOUBLE_TAP_DIST * DOUBLE_TAP_DIST)) {
+                    if (!modalBlocked() && this.crowReady) this.interiorCrowStun();
+                    this.touchLastTapPos = null;
+                    this.touchLastTapTs = 0;
+                    return;
+                }
+            }
+            this.touchLastTapPos = { x: p.x, y: p.y };
+            this.touchLastTapTs = now;
+            if (this.touchMovePtrId !== null && this.touchMovePtrId !== p.id) return;
             this.touchAnchor = { x: p.x, y: p.y };
+            this.touchMovePtrId = p.id;
+            this.touchLastMovePos = { x: p.x, y: p.y };
+            this.touchLastMoveTs = now;
         });
         this.input.on('pointermove', p => {
-            if (!this.touchAnchor || !p.isDown) return;
+            if (this.touchMovePtrId !== p.id || !this.touchAnchor || !p.isDown) return;
             const dx = p.x - this.touchAnchor.x, dy = p.y - this.touchAnchor.y;
             const len = Math.sqrt(dx * dx + dy * dy);
+            const now = this.time.now;
             if (len > 10) { this.touchDir = { x: dx / len, y: dy / len }; } else { this.touchDir = { x: 0, y: 0 }; }
+
+            if (!modalBlocked() && this.touchLastMovePos && !this.isDashing) {
+                const sdx = p.x - this.touchLastMovePos.x;
+                const sdy = p.y - this.touchLastMovePos.y;
+                const sLen = Math.sqrt(sdx * sdx + sdy * sdy);
+                const dt = Math.max(1, now - this.touchLastMoveTs);
+                const speed = sLen / dt;
+                if (sLen > 0 && len > 16) {
+                    const sDirX = sdx / sLen;
+                    const sDirY = sdy / sLen;
+                    const dot = this.touchDir.x * sDirX + this.touchDir.y * sDirY;
+                    const rapidForwardFlick = speed > 0.9 && dot > 0.88;
+                    if (rapidForwardFlick && now - this.touchLastDashTs > 250) {
+                        this.touchLastDashTs = now;
+                        this.useInteriorDash();
+                    }
+                }
+            }
+            this.touchLastMovePos = { x: p.x, y: p.y };
+            this.touchLastMoveTs = now;
         });
-        this.input.on('pointerup', () => { this.touchAnchor = null; this.touchDir = { x: 0, y: 0 }; });
+        this.input.on('pointerup', (p) => {
+            if (this.touchMovePtrId === p.id) {
+                this.touchAnchor = null;
+                this.touchMovePtrId = null;
+                this.touchLastMovePos = null;
+                this.touchDir = { x: 0, y: 0 };
+            }
+        });
 
         // Title label
         this.add.text(mapW * TILE / 2, 6, `-- ${cfg.title || 'Interior'} --`, {
@@ -3930,6 +4133,8 @@ class InteriorScene extends Phaser.Scene {
             return;
         }
 
+        if (this.isDashing) return;
+
         const left  = this.cursors.left.isDown  || this.wasd.left.isDown  || this.touchDir.x < -0.3;
         const right = this.cursors.right.isDown || this.wasd.right.isDown || this.touchDir.x > 0.3;
         const up    = this.cursors.up.isDown    || this.wasd.up.isDown    || this.touchDir.y < -0.3;
@@ -3944,6 +4149,7 @@ class InteriorScene extends Phaser.Scene {
         this.player.setVelocity(vx, vy);
         if (vx < 0) this.player.setFlipX(true);
         if (vx > 0) this.player.setFlipX(false);
+        if (Phaser.Input.Keyboard.JustDown(this.dashKey)) this.useInteriorDash();
 
         // NPC proximity
         this.nearestNPC = null;
@@ -4102,6 +4308,18 @@ class InteriorScene extends Phaser.Scene {
             }
         });
         this.time.delayedCall(CROW_COOLDOWN, () => { this.crowReady = true; });
+    }
+
+    useInteriorDash() {
+        if (!this.dashReady || this.isDashing) return;
+        const vx = this.player.body.velocity.x, vy = this.player.body.velocity.y;
+        if (vx === 0 && vy === 0) return;
+        const mag = Math.sqrt(vx * vx + vy * vy);
+        this.isDashing = true;
+        this.dashReady = false;
+        this.player.setVelocity((vx / mag) * DASH_SPEED, (vy / mag) * DASH_SPEED);
+        this.time.delayedCall(DASH_DURATION, () => { this.isDashing = false; });
+        this.time.delayedCall(DASH_COOLDOWN, () => { this.dashReady = true; });
     }
 
     stunInteriorEnemy(enemy) {

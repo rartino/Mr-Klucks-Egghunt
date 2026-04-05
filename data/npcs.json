@@ -851,7 +851,7 @@
     "hat": 14535816,
     "hatType": "hood",
     "mapId": "map1",
-    "tx": 140,
+    "tx": 119,
     "ty": 75,
     "dialogues": [
       {
@@ -881,7 +881,7 @@
         "lines": [
           "Excellent work. The trade road is safe again.",
           "Take this map. It marks the only safe route through the eastern dunes.",
-          "Head straight east from here to reach the pyramid."
+          "Follow this dirt road east until it ends, then find the twin rock cairns at the border and pass between them."
         ],
         "giveItem": "nomad_map"
       },
