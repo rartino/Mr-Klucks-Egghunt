@@ -4,7 +4,17 @@
     "desc": "Collect 15 eggs for Elder Cluck",
     "type": "eggs",
     "target": 15,
-    "reward": { "type": "flag", "flag": "elder_quest_done" },
+    "nextQuest": "ch1_report_elder"
+  },
+  "ch1_report_elder": {
+    "id": "ch1_report_elder",
+    "desc": "Talk to Elder Cluck",
+    "type": "talk_to",
+    "target": "elder",
+    "reward": {
+      "type": "flag",
+      "flag": "elder_quest_done"
+    },
     "nextQuest": "ch1_meet_guard"
   },
   "ch1_meet_guard": {
@@ -12,14 +22,24 @@
     "desc": "Speak to Guard Captain Roost",
     "type": "talk_to",
     "target": "guard",
-    "reward": { "type": "flag", "flag": "met_guard_captain" }
+    "reward": {
+      "type": "flag",
+      "flag": "met_guard_captain"
+    }
   },
   "ch2_enter_castle": {
     "id": "ch2_enter_castle",
     "desc": "Enter the castle",
     "type": "explore_area",
-    "target": { "tx": 85, "ty": 30, "radius": 5 },
-    "reward": { "type": "flag", "flag": "entered_castle" },
+    "target": {
+      "tx": 85,
+      "ty": 30,
+      "radius": 5
+    },
+    "reward": {
+      "type": "flag",
+      "flag": "entered_castle"
+    },
     "nextQuest": "ch2_meet_king"
   },
   "ch2_meet_king": {
@@ -27,7 +47,10 @@
     "desc": "Speak to the King",
     "type": "talk_to",
     "target": "king",
-    "reward": { "type": "flag", "flag": "met_king" }
+    "reward": {
+      "type": "flag",
+      "flag": "met_king"
+    }
   },
   "ch3_find_hermit": {
     "id": "ch3_find_hermit",
@@ -35,13 +58,23 @@
     "type": "use_item",
     "target": {
       "item": "hermit_key",
-      "location": { "tx": 91, "ty": 8, "radius": 2 }
+      "location": {
+        "tx": 91,
+        "ty": 8,
+        "radius": 2
+      }
     },
     "reward": {
       "type": "multi",
       "effects": [
-        { "type": "flag", "flag": "found_hermit_cave" },
-        { "type": "removeItem", "item": "hermit_key" }
+        {
+          "type": "flag",
+          "flag": "found_hermit_cave"
+        },
+        {
+          "type": "removeItem",
+          "item": "hermit_key"
+        }
       ]
     }
   },
@@ -50,7 +83,20 @@
     "desc": "Collect 10 eggs from the northern wilds",
     "type": "eggs",
     "target": 10,
-    "reward": { "type": "flag", "flag": "hermit_quest_done" },
+    "nextQuest": "ch3_report_hermit"
+  },
+  "ch3_report_hermit": {
+    "id": "ch3_report_hermit",
+    "desc": "Report back to Hermit Grizzle",
+    "type": "talk_to",
+    "target": [
+      "hermit",
+      "hermit_outside"
+    ],
+    "reward": {
+      "type": "flag",
+      "flag": "hermit_quest_done"
+    },
     "nextQuest": "ch3_buy_pass"
   },
   "ch3_buy_pass": {
@@ -61,25 +107,46 @@
     "reward": {
       "type": "multi",
       "effects": [
-        { "type": "flag", "flag": "mountain_pass_bought" },
-        { "type": "giveItem", "item": "mountain_pass" }
+        {
+          "type": "flag",
+          "flag": "mountain_pass_bought"
+        },
+        {
+          "type": "giveItem",
+          "item": "mountain_pass"
+        }
       ]
-    }
+    },
+    "nextQuest": "ch4_find_shadowcoats"
   },
   "ch4_find_shadowcoats": {
     "id": "ch4_find_shadowcoats",
     "desc": "Find the Shadowcoat camp in the Wildlands forest",
     "type": "explore_area",
-    "target": { "tx": 30, "ty": 40, "radius": 5, "mapId": "map2" },
-    "reward": { "type": "flag", "flag": "met_shadowcoats" },
+    "target": {
+      "tx": 30,
+      "ty": 40,
+      "radius": 5,
+      "mapId": "map2"
+    },
+    "reward": {
+      "type": "flag",
+      "flag": "met_shadowcoats"
+    },
     "nextQuest": "ch4_shadow_task"
   },
   "ch4_shadow_task": {
     "id": "ch4_shadow_task",
     "desc": "Defeat 8 bunnies near the forest camp",
     "type": "defeat_n",
-    "target": { "type": "any", "count": 8 },
-    "reward": { "type": "flag", "flag": "shadowcoat_task_done" },
+    "target": {
+      "type": "any",
+      "count": 8
+    },
+    "reward": {
+      "type": "flag",
+      "flag": "shadowcoat_task_done"
+    },
     "nextQuest": "ch4_shadow_alliance"
   },
   "ch4_shadow_alliance": {
@@ -90,9 +157,18 @@
     "reward": {
       "type": "multi",
       "effects": [
-        { "type": "flag", "flag": "shadowcoat_alliance" },
-        { "type": "giveItem", "item": "shadowcoat_badge" },
-        { "type": "giveItem", "item": "lantern" }
+        {
+          "type": "flag",
+          "flag": "shadowcoat_alliance"
+        },
+        {
+          "type": "giveItem",
+          "item": "shadowcoat_badge"
+        },
+        {
+          "type": "giveItem",
+          "item": "lantern"
+        }
       ]
     },
     "nextQuest": "ch6_enter_pyramid"
@@ -101,8 +177,16 @@
     "id": "ch5_find_pompoms",
     "desc": "Find the Pom-pom village in the Wildlands hills",
     "type": "explore_area",
-    "target": { "tx": 15, "ty": 55, "radius": 5, "mapId": "map2" },
-    "reward": { "type": "flag", "flag": "met_pompoms" },
+    "target": {
+      "tx": 15,
+      "ty": 55,
+      "radius": 5,
+      "mapId": "map2"
+    },
+    "reward": {
+      "type": "flag",
+      "flag": "met_pompoms"
+    },
     "nextQuest": "ch5_gift_1"
   },
   "ch5_gift_1": {
@@ -110,28 +194,50 @@
     "desc": "Bring 20 eggs to Elder Fluff",
     "type": "pay_eggs",
     "target": 20,
-    "reward": { "type": "flag", "flag": "pompom_gift_1" },
+    "reward": {
+      "type": "flag",
+      "flag": "pompom_gift_1"
+    },
     "nextQuest": "ch5_gift_2"
   },
   "ch5_gift_2": {
     "id": "ch5_gift_2",
     "desc": "Bring a Moonberry to Elder Fluff",
     "type": "deliver_item",
-    "target": { "npc": "pompom_elder", "item": "cake_ingredient", "count": 1 },
-    "reward": { "type": "flag", "flag": "pompom_gift_2" },
+    "target": {
+      "npc": "pompom_elder",
+      "item": "cake_ingredient",
+      "count": 1
+    },
+    "reward": {
+      "type": "flag",
+      "flag": "pompom_gift_2"
+    },
     "nextQuest": "ch5_gift_3"
   },
   "ch5_gift_3": {
     "id": "ch5_gift_3",
     "desc": "Defeat 5 bunnies threatening the Pom-poms",
     "type": "defeat_n",
-    "target": { "type": "any", "count": 5 },
+    "target": {
+      "type": "any",
+      "count": 5
+    },
     "reward": {
       "type": "multi",
       "effects": [
-        { "type": "flag", "flag": "pompom_gift_3" },
-        { "type": "flag", "flag": "pompom_trust" },
-        { "type": "giveItem", "item": "pompom_charm" }
+        {
+          "type": "flag",
+          "flag": "pompom_gift_3"
+        },
+        {
+          "type": "flag",
+          "flag": "pompom_trust"
+        },
+        {
+          "type": "giveItem",
+          "item": "pompom_charm"
+        }
       ]
     }
   },
@@ -139,8 +245,16 @@
     "id": "ch6_enter_pyramid",
     "desc": "Find the desert pyramid and enter the labyrinth below",
     "type": "explore_area",
-    "target": { "tx": 150, "ty": 80, "radius": 8, "mapId": "map2" },
-    "reward": { "type": "flag", "flag": "entered_pyramid" },
+    "target": {
+      "tx": 150,
+      "ty": 80,
+      "radius": 8,
+      "mapId": "map2"
+    },
+    "reward": {
+      "type": "flag",
+      "flag": "entered_pyramid"
+    },
     "nextQuest": "ch6_find_chocolate"
   },
   "ch6_find_chocolate": {
@@ -148,7 +262,10 @@
     "desc": "Find the cursed chocolate deep in the labyrinth",
     "type": "fetch_item",
     "target": "cursed_chocolate",
-    "reward": { "type": "flag", "flag": "found_cursed_chocolate" },
+    "reward": {
+      "type": "flag",
+      "flag": "found_cursed_chocolate"
+    },
     "nextQuest": "ch6_clear_labyrinth"
   },
   "ch6_clear_labyrinth": {
@@ -162,14 +279,24 @@
     "desc": "Find the fairy scout in the forest",
     "type": "talk_to",
     "target": "fairy_scout",
-    "reward": { "type": "flag", "flag": "met_fairy_scout" }
+    "reward": {
+      "type": "flag",
+      "flag": "met_fairy_scout"
+    }
   },
   "ch7_fairy_offering": {
     "id": "ch7_fairy_offering",
     "desc": "Bring 3 Fairy Dust to the Fairy Queen",
     "type": "deliver_item",
-    "target": { "npc": "fairy_queen", "item": "fairy_dust", "count": 3 },
-    "reward": { "type": "flag", "flag": "fairy_trial_done" },
+    "target": {
+      "npc": "fairy_queen",
+      "item": "fairy_dust",
+      "count": 3
+    },
+    "reward": {
+      "type": "flag",
+      "flag": "fairy_trial_done"
+    },
     "nextQuest": "ch7_fairy_blessing"
   },
   "ch7_fairy_blessing": {
@@ -180,8 +307,14 @@
     "reward": {
       "type": "multi",
       "effects": [
-        { "type": "flag", "flag": "fairy_blessing" },
-        { "type": "giveItem", "item": "witch_eye" }
+        {
+          "type": "flag",
+          "flag": "fairy_blessing"
+        },
+        {
+          "type": "giveItem",
+          "item": "witch_eye"
+        }
       ]
     }
   },
@@ -190,26 +323,42 @@
     "desc": "Confront the false King",
     "type": "talk_to",
     "target": "king",
-    "reward": { "type": "flag", "flag": "confronted_blueberry" }
+    "reward": {
+      "type": "flag",
+      "flag": "confronted_blueberry"
+    }
   },
   "ch8_find_witch": {
     "id": "ch8_find_witch",
     "desc": "Find Witch Hexana's lair",
     "type": "talk_to",
     "target": "witch_hexana",
-    "reward": { "type": "flag", "flag": "found_witch_lair" },
+    "reward": {
+      "type": "flag",
+      "flag": "found_witch_lair"
+    },
     "nextQuest": "ch8_brew_potion"
   },
   "ch8_brew_potion": {
     "id": "ch8_brew_potion",
     "desc": "Deliver 3 Ice Crystals to Witch Hexana",
     "type": "deliver_item",
-    "target": { "npc": "witch_hexana", "item": "ice_crystal", "count": 3 },
+    "target": {
+      "npc": "witch_hexana",
+      "item": "ice_crystal",
+      "count": 3
+    },
     "reward": {
       "type": "multi",
       "effects": [
-        { "type": "flag", "flag": "got_dispel_potion" },
-        { "type": "giveItem", "item": "dispel_potion" }
+        {
+          "type": "flag",
+          "flag": "got_dispel_potion"
+        },
+        {
+          "type": "giveItem",
+          "item": "dispel_potion"
+        }
       ]
     }
   },
@@ -219,13 +368,23 @@
     "type": "use_item",
     "target": {
       "item": "jail_key",
-      "location": { "tx": 87, "ty": 35, "radius": 3 }
+      "location": {
+        "tx": 87,
+        "ty": 35,
+        "radius": 3
+      }
     },
     "reward": {
       "type": "multi",
       "effects": [
-        { "type": "flag", "flag": "freed_real_king" },
-        { "type": "removeItem", "item": "jail_key" }
+        {
+          "type": "flag",
+          "flag": "freed_real_king"
+        },
+        {
+          "type": "removeItem",
+          "item": "jail_key"
+        }
       ]
     }
   },
@@ -233,13 +392,24 @@
     "id": "side_shadow_fortune",
     "desc": "Recover stolen eggs from the shadow vault",
     "type": "explore_area",
-    "target": { "tx": 25, "ty": 25, "radius": 3, "mapId": "map2" },
+    "target": {
+      "tx": 25,
+      "ty": 25,
+      "radius": 3,
+      "mapId": "map2"
+    },
     "requireItem": "shadow_map",
     "reward": {
       "type": "multi",
       "effects": [
-        { "type": "flag", "flag": "shadow_fortune_done" },
-        { "type": "eggs", "amount": 100 }
+        {
+          "type": "flag",
+          "flag": "shadow_fortune_done"
+        },
+        {
+          "type": "eggs",
+          "amount": 100
+        }
       ]
     }
   },
@@ -247,19 +417,35 @@
     "id": "side_lost_chick",
     "desc": "Find the lost chick in the swamp",
     "type": "explore_area",
-    "target": { "tx": 80, "ty": 130, "radius": 5 },
-    "reward": { "type": "flag", "flag": "lost_chick_done" }
+    "target": {
+      "tx": 80,
+      "ty": 130,
+      "radius": 5
+    },
+    "reward": {
+      "type": "flag",
+      "flag": "lost_chick_done"
+    }
   },
   "side_trader_route": {
     "id": "side_trader_route",
     "desc": "Clear 10 bunnies from the trade road",
     "type": "defeat_n",
-    "target": { "type": "any", "count": 10 },
+    "target": {
+      "type": "any",
+      "count": 10
+    },
     "reward": {
       "type": "multi",
       "effects": [
-        { "type": "flag", "flag": "trader_route_done" },
-        { "type": "eggs", "amount": 50 }
+        {
+          "type": "flag",
+          "flag": "trader_route_done"
+        },
+        {
+          "type": "eggs",
+          "amount": 50
+        }
       ]
     }
   },
@@ -267,19 +453,34 @@
     "id": "side_snow_crystals",
     "desc": "Collect 5 Ice Crystals in the mountains",
     "type": "collect_items",
-    "target": { "item": "ice_crystal", "count": 5 },
-    "reward": { "type": "flag", "flag": "snow_crystals_done" }
+    "target": {
+      "item": "ice_crystal",
+      "count": 5
+    },
+    "reward": {
+      "type": "flag",
+      "flag": "snow_crystals_done"
+    }
   },
   "side_baker_cake": {
     "id": "side_baker_cake",
     "desc": "Bring 3 Moonberries to Baker Breadwing",
     "type": "deliver_item",
-    "target": { "npc": "baker", "item": "cake_ingredient", "count": 3 },
+    "target": {
+      "npc": "baker",
+      "item": "cake_ingredient",
+      "count": 3
+    },
     "reward": {
       "type": "multi",
       "effects": [
-        { "type": "flag", "flag": "baker_cake_done" },
-        { "type": "life" }
+        {
+          "type": "flag",
+          "flag": "baker_cake_done"
+        },
+        {
+          "type": "life"
+        }
       ]
     }
   },
@@ -288,20 +489,27 @@
     "desc": "Collect 30 eggs",
     "type": "eggs",
     "target": 30,
-    "reward": { "type": "life" }
+    "reward": {
+      "type": "life"
+    }
   },
   "desert_boss": {
     "id": "desert_boss",
     "desc": "Defeat the Desert Boss",
     "type": "boss",
     "target": "desert",
-    "reward": { "type": "score", "amount": 500 }
+    "reward": {
+      "type": "score",
+      "amount": 500
+    }
   },
   "golden_hunt": {
     "id": "golden_hunt",
     "desc": "Collect 10 golden eggs",
     "type": "golden",
     "target": 10,
-    "reward": { "type": "speed" }
+    "reward": {
+      "type": "speed"
+    }
   }
 }

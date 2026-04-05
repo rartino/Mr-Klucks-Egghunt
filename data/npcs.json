@@ -21,6 +21,15 @@
       },
       {
         "cond": {
+          "questActive": "ch1_report_elder"
+        },
+        "lines": [
+          "Excellent work, Mr. Kluck! You recovered the village eggs.",
+          "Now go speak to Guard Roost at the north gate. He has urgent news from the castle."
+        ]
+      },
+      {
+        "cond": {
           "flag": "elder_quest_done",
           "notFlag": "met_guard_captain"
         },
@@ -390,8 +399,17 @@
           "Then head north through the mountain gate.",
           "Seek the Shadowcoats in the Wildlands forest. They track the bunnies.",
           "And somewhere... fairies who can reveal hidden truths."
-        ],
-        "giveQuest": "ch4_find_shadowcoats"
+        ]
+      },
+      {
+        "cond": {
+          "questActive": "ch3_report_hermit"
+        },
+        "lines": [
+          "You've gathered enough eggs. Good.",
+          "Buy a Mountain Pass from the village merchant, then head north to the Wildlands.",
+          "Your next lead is the Shadowcoat camp in the forest."
+        ]
       },
       {
         "cond": {
@@ -452,8 +470,17 @@
           "Then head north through the mountain gate.",
           "Seek the Shadowcoats in the Wildlands forest. They track the bunnies.",
           "And somewhere... fairies who can reveal hidden truths."
-        ],
-        "giveQuest": "ch4_find_shadowcoats"
+        ]
+      },
+      {
+        "cond": {
+          "questActive": "ch3_report_hermit"
+        },
+        "lines": [
+          "You've gathered enough eggs. Good.",
+          "Buy a Mountain Pass from the village merchant, then head north to the Wildlands.",
+          "Your next lead is the Shadowcoat camp in the forest."
+        ]
       },
       {
         "cond": {

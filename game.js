@@ -226,6 +226,11 @@ function fbm(x, y) {
     return v;
 }
 
+function talkTargetMatches(target, npcId) {
+    if (Array.isArray(target)) return target.includes(npcId);
+    return target === npcId;
+}
+
 
 // ===================================================================
 //  WORLD GENERATION
@@ -2042,7 +2047,7 @@ class GameScene extends Phaser.Scene {
         const def = this.dialogueNPC ? this.dialogueNPC.getData('npcDef') : null;
         if (def) {
             this.activeQuests = this.activeQuests.filter(q => {
-                if (q.type === 'talk_to' && q.target === def.id) {
+                if (q.type === 'talk_to' && talkTargetMatches(q.target, def.id)) {
                     this.completeQuest(q);
                     return false;
                 }
@@ -3547,6 +3552,7 @@ class InteriorScene extends Phaser.Scene {
 
         // Dialogue UI (simplified)
         this.dialogueActive = false;
+        this.dialogueNPCDef = null;
         this.createSimpleDialogueUI();
     }
 
@@ -3672,6 +3678,7 @@ class InteriorScene extends Phaser.Scene {
         const def = npc.getData('npcDef');
         this.dialogueActive = true;
         this.player.setVelocity(0, 0);
+        this.dialogueNPCDef = def;
 
         // Use same conditional dialogue system — check parent scene's flags
         let entry = null;
@@ -3694,6 +3701,9 @@ class InteriorScene extends Phaser.Scene {
         if (cond.flag && !this.storyFlags[cond.flag]) return false;
         if (cond.flag2 && !this.storyFlags[cond.flag2]) return false;
         if (cond.notFlag && this.storyFlags[cond.notFlag]) return false;
+        if (cond.hasItem && !this.inventory.some(i => i.itemId === cond.hasItem)) return false;
+        if (cond.questComplete && !(this.parentScene && this.parentScene.completedQuests && this.parentScene.completedQuests[cond.questComplete])) return false;
+        if (cond.questActive && !(this.parentScene && this.parentScene.activeQuests && this.parentScene.activeQuests.find(q => q.id === cond.questActive))) return false;
         return true;
     }
 
@@ -3728,6 +3738,33 @@ class InteriorScene extends Phaser.Scene {
                     }
                 }
             }
+            if (entry && entry.giveQuest && this.parentScene && this.parentScene.activateQuest) {
+                this.parentScene.activateQuest(entry.giveQuest);
+            }
+            if (entry && entry.payQuest && this.parentScene && this.parentScene.payEggs) {
+                this.parentScene.payEggs(entry.payQuest);
+            }
+
+            const p = this.parentScene;
+            const npcDef = this.dialogueNPCDef;
+            if (p && npcDef && Array.isArray(p.activeQuests)) {
+                p.activeQuests = p.activeQuests.filter(q => {
+                    if (q.type === 'talk_to' && talkTargetMatches(q.target, npcDef.id)) {
+                        p.completeQuest(q);
+                        return false;
+                    }
+                    if (q.type === 'deliver_item' && q.target && q.target.npc === npcDef.id) {
+                        const need = q.target.count || 1;
+                        if ((p.getItemCount && p.getItemCount(q.target.item) >= need)) {
+                            if (p.removeItem) p.removeItem(q.target.item, need);
+                            p.completeQuest(q);
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+            }
+            this.dialogueNPCDef = null;
         }
     }
 
