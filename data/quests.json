@@ -133,6 +133,13 @@
       "type": "flag",
       "flag": "met_shadowcoats"
     },
+    "nextQuest": "ch4_talk_shadow_vex"
+  },
+  "ch4_talk_shadow_vex": {
+    "id": "ch4_talk_shadow_vex",
+    "desc": "Talk to Shadow Vex",
+    "type": "talk_to",
+    "target": "shadow_vex",
     "nextQuest": "ch4_shadow_task"
   },
   "ch4_shadow_task": {

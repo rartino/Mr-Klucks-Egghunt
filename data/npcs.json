@@ -433,6 +433,7 @@
           "questActive": "ch3_report_hermit"
         },
         "lines": [
+          "You've proven yourself capable. Listen carefully.",
           "We need to gather allies.",
           "Lets seek out the Shadowcoat camp in the western forest.",
           "Maybe even these thiefs and outlaws can be of some help."
@@ -445,8 +446,7 @@
         },
         "lines": [
           "You have the key! That means you are sent here by the princess!",
-          "Ah, you made it inside! Good.",
-          "The rabbit attacks are NOT natural. Someone is controlling them.",
+          "These rabbit attacks are NOT natural. Someone is controlling them.",
           "I found traces of cursed chocolate near the bunny dens.",
           "Whoever made this chocolate is poisoning the rabbits' minds!",
           "Collect more eggs to prove you can survive what's coming."
@@ -516,7 +516,7 @@
           "A rooster in our camp? Bold. Or stupid. Perhaps both.",
           "I am Shadow Vex. We Shadowcoats have our own code.",
           "We want the bunnies gone too. But trust must be earned.",
-          "Clear 8 bunnies from around our camp. Then we'll talk."
+          "Stun 8 bunnies around our camp. Then we'll talk."
         ]
       },
       {

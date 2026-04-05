@@ -2902,7 +2902,7 @@ class GameScene extends Phaser.Scene {
                     return out;
                 });
                 this.scene.start('GameScene', {
-                    score: 0,
+                    score: this.score,
                     lives: 3,
                     totalEggsCollected: 0,
                     goldenEggsCollected: 0,
@@ -3184,7 +3184,6 @@ class GameScene extends Phaser.Scene {
         };
         const modalBlocked = () => this.dialogueActive || this.inventoryOpen || this.questLogOpen || this.menuOpen || this.paused || this.playerDead;
         makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => { if (!modalBlocked()) this.useCrowPower(); });
-        makeBtnCircle('DASH', W - 55, H - 55, 0x884400, () => { if (!modalBlocked()) this.useDash(); });
         makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => { if (!modalBlocked() && this.nearestNPC) this.showDialogue(this.nearestNPC); });
         makeBtnCircle('BAG', W - 110, H - 105, 0x446622, () => { if (!modalBlocked()) this.toggleInventory(); });
         makeBtnCircle('USE', W - 165, H - 55, 0x664422, () => { if (!modalBlocked()) this.useSelectedItem(); });
@@ -3202,6 +3201,12 @@ class GameScene extends Phaser.Scene {
             for (const z of this.actionBtnZones) {
                 const dx = p.x - z.x, dy = p.y - z.y;
                 if (Math.sqrt(dx * dx + dy * dy) < z.r) return;
+            }
+            // Second-finger tap while already moving triggers dash on touch devices.
+            if (this.touchMovePtrId !== null && this.touchMovePtrId !== p.id) {
+                const moving = Math.abs(this.touchDir.x) > 0.25 || Math.abs(this.touchDir.y) > 0.25;
+                if (!modalBlocked() && moving) this.useDash();
+                return;
             }
             this.touchAnchor = { x: p.x, y: p.y };
             this.touchMovePtrId = p.id;
@@ -3330,7 +3335,6 @@ class BasementScene extends Phaser.Scene {
             this.actionBtnZones.push({ x: bx, y: by, r: 30 });
         };
         makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => {});
-        makeBtnCircle('DASH', W - 55, H - 55, 0x884400, () => {});
         makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => {});
         makeBtnCircle('BAG', W - 110, H - 105, 0x446622, () => {});
         makeBtnCircle('USE', W - 165, H - 55, 0x664422, () => {});
@@ -3748,7 +3752,6 @@ class InteriorScene extends Phaser.Scene {
         makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => {
             if (!modalBlocked() && this.crowReady) this.interiorCrowStun();
         });
-        makeBtnCircle('DASH', W - 55, H - 55, 0x884400, () => {});
         makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => {
             if (!modalBlocked() && this.nearestNPC) this.showInteriorDialogue(this.nearestNPC);
         });
@@ -3797,6 +3800,7 @@ class InteriorScene extends Phaser.Scene {
 
         // Dialogue UI (simplified)
         this.dialogueActive = false;
+        this.dialogueTapArmed = false;
         this.dialogueNPCDef = null;
         this.createSimpleDialogueUI();
     }
@@ -3816,8 +3820,8 @@ class InteriorScene extends Phaser.Scene {
             fontSize: '13px', fontFamily: 'Arial', fill: '#EEEEEE', wordWrap: { width: boxW - 28 }, lineSpacing: 4,
         }).setScrollFactor(0).setDepth(201).setVisible(false);
 
-        this.input.on('pointerdown', () => {
-            if (this.dialogueActive) this.advanceInteriorDialogue();
+        this.input.on('pointerup', () => {
+            if (this.dialogueActive && this.dialogueTapArmed) this.advanceInteriorDialogue();
         });
     }
 
@@ -3953,6 +3957,10 @@ class InteriorScene extends Phaser.Scene {
         this.dialogueQueue = [...entry.lines];
         this.dialogueEntry = entry;
         this.dialogueLineIdx = 0;
+        this.dialogueTapArmed = false;
+        this.time.delayedCall(120, () => {
+            if (this.dialogueActive) this.dialogueTapArmed = true;
+        });
 
         this.dlgBox.setVisible(true);
         this.dlgName.setText(def.name).setVisible(true);
@@ -3975,6 +3983,7 @@ class InteriorScene extends Phaser.Scene {
             this.dlgText.setText(this.dialogueQueue[this.dialogueLineIdx]);
         } else {
             this.dialogueActive = false;
+            this.dialogueTapArmed = false;
             this.dlgBox.setVisible(false);
             this.dlgName.setVisible(false);
             this.dlgText.setVisible(false);
