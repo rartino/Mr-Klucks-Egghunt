@@ -2116,6 +2116,7 @@ class GameScene extends Phaser.Scene {
         this.playerOnIce = false;
 
         this.basementCooldown = false;
+        this.basementVisitTimes = (data && data.basementVisitTimes) || {};
     }
 
     preload() { generateAllTextures(this); }
@@ -3437,6 +3438,7 @@ class GameScene extends Phaser.Scene {
             completedQuests: this.completedQuests,
             currentMapId: this.currentMapId,
             defeatedEnemies: this.defeatedEnemies,
+            basementVisitTimes: this.basementVisitTimes,
             spawnTx: Math.floor(this.player.x / TILE),
             spawnTy: Math.floor(this.player.y / TILE),
         };
@@ -3502,6 +3504,7 @@ class GameScene extends Phaser.Scene {
                     completedQuests: this.completedQuests,
                     currentMapId: 'map1',
                     defeatedEnemies: this.defeatedEnemies,
+                    basementVisitTimes: this.basementVisitTimes,
                     spawnTx: V1_X + 9,
                     spawnTy: V1_Y + 5,
                 });
@@ -3623,12 +3626,29 @@ class GameScene extends Phaser.Scene {
                 return;
             }
             const bsmt = this.worldData.basements.find(b => b.stairsTx === ptx && b.stairsTy === pty);
-            if (bsmt) this.enterBasement(bsmt);
+            if (bsmt) {
+                const bKey = `${this.currentMapId}_${bsmt.stairsTx}_${bsmt.stairsTy}`;
+                const lastVisit = this.basementVisitTimes[bKey] || 0;
+                const now = Date.now();
+                const BASEMENT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+                if (now - lastVisit < BASEMENT_COOLDOWN_MS) {
+                    const secsLeft = Math.ceil((BASEMENT_COOLDOWN_MS - (now - lastVisit)) / 1000);
+                    const minsLeft = Math.floor(secsLeft / 60);
+                    const msg = minsLeft > 0 ? `Empty... come back in ${minsLeft}m ${secsLeft % 60}s` : `Empty... come back in ${secsLeft}s`;
+                    this.showFloatingText(this.player.x, this.player.y - 20, msg, '#AAAAAA');
+                    this.player.y += TILE;
+                    this.basementCooldown = true;
+                    this.time.delayedCall(1000, () => { this.basementCooldown = false; });
+                    return;
+                }
+                this.enterBasement(bsmt);
+            }
         }
     }
 
     enterBasement(bsmt) {
         this.autoSave();
+        const bKey = `${this.currentMapId}_${bsmt.stairsTx}_${bsmt.stairsTy}`;
         this.scene.pause();
         this.scene.launch('BasementScene', {
             parentScene: this,
@@ -3637,6 +3657,9 @@ class GameScene extends Phaser.Scene {
             returnX: this.player.x,
             returnY: this.player.y,
             score: this.score,
+            totalEggsCollected: this.totalEggsCollected,
+            goldenEggsCollected: this.goldenEggsCollected,
+            basementKey: bKey,
         });
     }
 
@@ -3649,6 +3672,8 @@ class GameScene extends Phaser.Scene {
             returnX: this.player.x,
             returnY: this.player.y,
             score: this.score,
+            totalEggsCollected: this.totalEggsCollected,
+            goldenEggsCollected: this.goldenEggsCollected,
             storyFlags: this.storyFlags,
             inventory: this.inventory,
         });
@@ -3656,12 +3681,16 @@ class GameScene extends Phaser.Scene {
 
     returnFromBasement(data) {
         if (data && data.score !== undefined) this.score = data.score;
+        if (data && data.totalEggsCollected !== undefined) this.totalEggsCollected = data.totalEggsCollected;
+        if (data && data.goldenEggsCollected !== undefined) this.goldenEggsCollected = data.goldenEggsCollected;
         if (data && data.storyFlags) this.storyFlags = data.storyFlags;
         if (data && data.inventory) this.inventory = data.inventory;
+        if (data && data.basementKey) this.basementVisitTimes[data.basementKey] = Date.now();
         this.scene.resume();
         this.player.y += TILE;
         this.basementCooldown = true;
         this.time.delayedCall(800, () => { this.basementCooldown = false; });
+        this.checkQuests();
     }
 
     checkMapTransitions() {
@@ -3703,6 +3732,7 @@ class GameScene extends Phaser.Scene {
                     completedQuests: this.completedQuests,
                     currentMapId: t.toMap,
                     defeatedEnemies: this.defeatedEnemies,
+                    basementVisitTimes: this.basementVisitTimes,
                     spawnTx: t.toTx,
                     spawnTy: t.toTy,
                 });
@@ -3796,6 +3826,9 @@ class BasementScene extends Phaser.Scene {
         this.returnX = data.returnX;
         this.returnY = data.returnY;
         this.score = data.score || 0;
+        this.totalEggsCollected = data.totalEggsCollected || 0;
+        this.goldenEggsCollected = data.goldenEggsCollected || 0;
+        this.basementKey = data.basementKey;
     }
 
     preload() { generateAllTextures(this); }
@@ -3913,6 +3946,8 @@ class BasementScene extends Phaser.Scene {
     collectEgg(player, egg) {
         const pts = egg.getData('points');
         this.score += pts;
+        this.totalEggsCollected++;
+        if (egg.getData('eggType') === 'golden') this.goldenEggsCollected++;
         const ft = this.add.text(egg.x, egg.y, `+${pts}`, {
             fontSize: '18px', fill: egg.getData('eggType') === 'golden' ? '#FFD700' : '#FFF', stroke: '#000', strokeThickness: 3,
         }).setOrigin(0.5).setDepth(30);
@@ -3921,7 +3956,12 @@ class BasementScene extends Phaser.Scene {
     }
 
     exitBasement() {
-        this.parentScene.returnFromBasement({ score: this.score });
+        this.parentScene.returnFromBasement({
+            score: this.score,
+            totalEggsCollected: this.totalEggsCollected,
+            goldenEggsCollected: this.goldenEggsCollected,
+            basementKey: this.basementKey,
+        });
         this.scene.stop();
     }
 }
@@ -4019,6 +4059,8 @@ class InteriorScene extends Phaser.Scene {
         this.returnX = data.returnX;
         this.returnY = data.returnY;
         this.score = data.score || 0;
+        this.totalEggsCollected = data.totalEggsCollected || 0;
+        this.goldenEggsCollected = data.goldenEggsCollected || 0;
         this.storyFlags = data.storyFlags || {};
         this.inventory = data.inventory || [];
     }
@@ -4492,6 +4534,8 @@ class InteriorScene extends Phaser.Scene {
     collectEgg(player, egg) {
         const pts = egg.getData('points');
         this.score += pts;
+        this.totalEggsCollected++;
+        if (egg.getData('eggType') === 'golden') this.goldenEggsCollected++;
         const ft = this.add.text(egg.x, egg.y, `+${pts}`, {
             fontSize: '18px', fill: egg.getData('eggType') === 'golden' ? '#FFD700' : '#FFF', stroke: '#000', strokeThickness: 3,
         }).setOrigin(0.5).setDepth(30);
@@ -4508,6 +4552,8 @@ class InteriorScene extends Phaser.Scene {
             returnX: this.returnX,
             returnY: this.returnY,
             score: this.score,
+            totalEggsCollected: this.totalEggsCollected,
+            goldenEggsCollected: this.goldenEggsCollected,
             storyFlags: this.storyFlags,
             inventory: this.inventory,
         });
@@ -4516,6 +4562,8 @@ class InteriorScene extends Phaser.Scene {
     exitInterior() {
         this.parentScene.returnFromBasement({
             score: this.score,
+            totalEggsCollected: this.totalEggsCollected,
+            goldenEggsCollected: this.goldenEggsCollected,
             storyFlags: this.storyFlags,
             inventory: this.inventory,
         });
