@@ -551,9 +551,6 @@ function getBiome(tx, ty) {
     if (dist < 10) return 'village';
     if (Math.sqrt((tx - V2_X) ** 2 + (ty - V2_Y) ** 2) < 7) return 'village';
     if (Math.sqrt((tx - CASTLE_X) ** 2 + (ty - CASTLE_Y) ** 2) < 12) return 'village';
-    if (Math.sqrt((tx - SHADOW_CAMP_X) ** 2 + (ty - SHADOW_CAMP_Y) ** 2) < 5) return 'forest';
-    if (Math.sqrt((tx - POMPOM_X) ** 2 + (ty - POMPOM_Y) ** 2) < 5) return 'hills';
-
     if (dist < 20) return 'farmland';
 
     // Water pockets
@@ -714,8 +711,6 @@ function generateWorld(mapId) {
         placeBuildings(V1_X, V1_Y, V1_BUILDINGS);
         placeBuildings(V2_X, V2_Y, V2_BUILDINGS);
         placeBuildings(CASTLE_X, CASTLE_Y, CASTLE_BUILDINGS);
-        placeBuildings(SHADOW_CAMP_X, SHADOW_CAMP_Y, SHADOW_BUILDINGS);
-        placeBuildings(POMPOM_X, POMPOM_Y, POMPOM_BUILDINGS);
         // Hermit cave
         placeBuildings(HERMIT_X, HERMIT_Y, [
             { x: -2, y: -1, w: 4, h: 3, interior: 'hermit_cave',
@@ -778,8 +773,49 @@ function generateWorld(mapId) {
                 if (rx + 1 < mW && walls[y][rx + 1] < 0) ground[y][rx + 1] = T_STONE;
             }
         }
+        // Road from castle north to mountain gate (transition at tx:75..78, ty:0)
+        const gateX = 76; // center of the 4-tile-wide gate
+        for (let y = 0; y < CASTLE_Y - 5; y++) {
+            // Curve road from gate (x=76) toward castle (x=85)
+            const t = y / (CASTLE_Y - 5);
+            const roadCx = Math.round(gateX + (CASTLE_X - gateX) * t * t);
+            for (let dx = -1; dx <= 2; dx++) {
+                const rx = roadCx + dx;
+                if (rx >= 0 && rx < mW && y >= 0 && y < mH) {
+                    walls[y][rx] = -1;  // clear any trees/rocks
+                    ground[y][rx] = T_STONE;
+                }
+            }
+        }
+        // Gate structure: stone walls flanking the entrance
+        for (let dy = 0; dy < 3; dy++) {
+            // Left wall pillar
+            if (gateX - 2 >= 0 && dy < mH) { walls[dy][gateX - 2] = W_STONE_WALL; }
+            // Right wall pillar
+            if (gateX + 3 < mW && dy < mH) { walls[dy][gateX + 3] = W_STONE_WALL; }
+        }
+        // Stone wall extending outward from gate to make it visible
+        for (let dx = -6; dx <= 7; dx++) {
+            const gx = gateX + dx;
+            if (gx >= 0 && gx < mW && (dx < -1 || dx > 2)) {
+                walls[0][gx] = W_STONE_WALL;
+                if (1 < mH) walls[1][gx] = W_STONE_WALL;
+            }
+        }
+        // Cobblestone pad in front of the gate
+        for (let dy = 3; dy <= 5; dy++) {
+            for (let dx = -3; dx <= 4; dx++) {
+                const gx = gateX + dx, gy = dy;
+                if (gx >= 0 && gx < mW && gy < mH && walls[gy][gx] < 0) {
+                    ground[gy][gx] = T_COBBLE;
+                }
+            }
+        }
     } else if (mapId === 'map2') {
-        // Wildlands: oasis village at center
+        // Wildlands: faction camps and oasis village
+        placeBuildings(SHADOW_CAMP_X, SHADOW_CAMP_Y, SHADOW_BUILDINGS);
+        placeBuildings(POMPOM_X, POMPOM_Y, POMPOM_BUILDINGS);
+        // Oasis village at center
         const oasisX = 100, oasisY = 100;
         placeBuildings(oasisX, oasisY, [
             { x: -4, y: -3, w: 4, h: 3 },
@@ -790,6 +826,57 @@ function generateWorld(mapId) {
             for (let dx = -2; dx <= 2; dx++) {
                 const tx = oasisX + dx, ty = oasisY + dy;
                 if (tx >= 0 && ty >= 0 && tx < mW && ty < mH && walls[ty][tx] < 0) ground[ty][tx] = T_COBBLE;
+            }
+        }
+        // Mountain gate entrance on south edge (transition at tx:100..103, ty:199)
+        const m2GateX = 101; // center of the 4-tile-wide gate
+        for (let y = mH - 8; y < mH; y++) {
+            for (let dx = -1; dx <= 2; dx++) {
+                const rx = m2GateX + dx;
+                if (rx >= 0 && rx < mW) {
+                    walls[y][rx] = -1;
+                    ground[y][rx] = T_STONE;
+                }
+            }
+        }
+        // Gate walls flanking the south entrance
+        for (let dy = 0; dy < 3; dy++) {
+            const gy = mH - 1 - dy;
+            if (m2GateX - 2 >= 0) walls[gy][m2GateX - 2] = W_STONE_WALL;
+            if (m2GateX + 3 < mW) walls[gy][m2GateX + 3] = W_STONE_WALL;
+        }
+        for (let dx = -6; dx <= 7; dx++) {
+            const gx = m2GateX + dx;
+            if (gx >= 0 && gx < mW && (dx < -1 || dx > 2)) {
+                walls[mH - 1][gx] = W_STONE_WALL;
+                walls[mH - 2][gx] = W_STONE_WALL;
+            }
+        }
+        // Cobblestone pad inside the gate
+        for (let dy = 3; dy <= 5; dy++) {
+            for (let dx = -3; dx <= 4; dx++) {
+                const gx = m2GateX + dx, gy = mH - 1 - dy;
+                if (gx >= 0 && gx < mW && gy >= 0 && walls[gy][gx] < 0) {
+                    ground[gy][gx] = T_COBBLE;
+                }
+            }
+        }
+        // Road from south gate north toward oasis
+        for (let y = oasisY + 3; y < mH - 8; y++) {
+            const rx = oasisX + Math.round((m2GateX - oasisX) * (y - oasisY - 3) / (mH - 8 - oasisY - 3));
+            if (rx >= 0 && rx < mW) {
+                if (walls[y][rx] < 0) ground[y][rx] = T_STONE;
+                if (rx + 1 < mW && walls[y][rx + 1] < 0) ground[y][rx + 1] = T_STONE;
+            }
+        }
+        // Western pass entrance (transition at tx:0, ty:100..103)
+        for (let dy = -1; dy <= 2; dy++) {
+            for (let dx = 0; dx < 6; dx++) {
+                const gy = 101 + dy;
+                if (gy >= 0 && gy < mH && dx < mW) {
+                    walls[gy][dx] = -1;
+                    ground[gy][dx] = T_STONE;
+                }
             }
         }
         // Pyramid structure
@@ -897,6 +984,7 @@ const NPC_DEFS = [
     {
         id: 'elder', name: 'Elder Cluck',
         body: 0x3344AA, hat: 0x6688DD, hatType: 'hood',
+        mapId: 'map1',
         tx: V1_X, ty: V1_Y - 1,
         dialogues: [
             { cond: { flag: 'ceremony_complete' },
@@ -920,6 +1008,7 @@ const NPC_DEFS = [
     {
         id: 'farmer', name: 'Farmer Hen',
         body: 0x886633, hat: 0xCCAA44, hatType: 'straw',
+        mapId: 'map1',
         tx: V1_X + 5, ty: V1_Y + 6,
         dialogues: [
             { cond: { flag: 'lost_chick_done' },
@@ -939,6 +1028,7 @@ const NPC_DEFS = [
     {
         id: 'merchant', name: 'Merchant Peck',
         body: 0x774488, hat: 0xDDAA22, hatType: 'cap',
+        mapId: 'map1',
         tx: V1_X + 3, ty: V1_Y - 5,
         dialogues: [
             { cond: { flag: 'mountain_pass_bought' },
@@ -961,6 +1051,7 @@ const NPC_DEFS = [
     },
     {
         id: 'guard', name: 'Guard Captain Roost',
+        mapId: 'map1',
         body: 0x777788, hat: 0x555566, hatType: 'helmet',
         tx: V1_X, ty: V1_Y - 9,
         dialogues: [
@@ -988,6 +1079,7 @@ const NPC_DEFS = [
     {
         id: 'king', name: 'King Reginald',
         body: 0xAA2233, hat: 0xFFD700, hatType: 'crown',
+        mapId: 'map1',
         tx: CASTLE_X, ty: CASTLE_Y,
         dialogues: [
             { cond: { flag: 'freed_real_king' },
@@ -1020,6 +1112,7 @@ const NPC_DEFS = [
     {
         id: 'princess', name: 'Princess Featheria',
         body: 0xDD7799, hat: 0xFFAAAA, hatType: 'tiara',
+        mapId: 'map1',
         tx: CASTLE_X + 3, ty: CASTLE_Y + 1,
         dialogues: [
             { cond: { flag: 'freed_real_king' },
@@ -1047,6 +1140,7 @@ const NPC_DEFS = [
     {
         id: 'royal_guard', name: 'Royal Guard',
         body: 0x666677, hat: 0x555566, hatType: 'helmet',
+        mapId: 'map1',
         tx: CASTLE_X - 3, ty: CASTLE_Y + 2,
         dialogues: [
             { cond: { flag: 'confronted_blueberry' },
@@ -1060,6 +1154,7 @@ const NPC_DEFS = [
     // ==================== HERMIT (OUTSIDE) ====================
     {
         id: 'hermit_outside', name: 'Hermit Grizzle',
+        mapId: 'map1',
         body: 0x887766, hat: 0x665544, hatType: 'hood',
         tx: HERMIT_X, ty: HERMIT_Y - 3,
         dialogues: [
@@ -1090,6 +1185,7 @@ const NPC_DEFS = [
     {
         id: 'hermit', name: 'Hermit Grizzle',
         body: 0x887766, hat: 0x665544, hatType: 'hood',
+        mapId: 'map1',
         tx: HERMIT_X, ty: HERMIT_Y,
         dialogues: [
             { cond: { flag: 'fairy_blessing' },
@@ -1259,6 +1355,7 @@ const NPC_DEFS = [
     {
         id: 'fairy_scout', name: 'Fairy Glimmer',
         body: 0xAAFFAA, hat: 0xDDFFDD, hatType: 'fairy_wings',
+        mapId: 'map1',
         tx: FAIRY_SCOUT_X, ty: FAIRY_SCOUT_Y,
         dialogues: [
             { cond: { flag: 'fairy_blessing' },
@@ -1288,6 +1385,7 @@ const NPC_DEFS = [
     {
         id: 'herbalist', name: 'Sage Feathers',
         body: 0x338844, hat: 0x55AA66, hatType: 'hood',
+        mapId: 'map1',
         tx: V1_X - 45, ty: V1_Y - 30,
         dialogues: [
             { cond: { flag: 'found_cursed_chocolate' },
@@ -1324,6 +1422,7 @@ const NPC_DEFS = [
     {
         id: 'witch', name: 'Swamp Witch Mossclaw',
         body: 0x553366, hat: 0x7744AA, hatType: 'pointed',
+        mapId: 'map1',
         tx: V1_X + 5, ty: V1_Y + 42,
         dialogues: [
             { cond: { flag: 'found_cursed_chocolate' },
@@ -1340,6 +1439,7 @@ const NPC_DEFS = [
     {
         id: 'snowsage', name: 'Snow Sage',
         body: 0xCCCCDD, hat: 0xAABBFF, hatType: 'hood',
+        mapId: 'map1',
         tx: V1_X - 5, ty: V1_Y - 58,
         dialogues: [
             { cond: { flag: 'snow_crystals_done' },
@@ -1363,6 +1463,7 @@ const NPC_DEFS = [
     {
         id: 'v2elder', name: 'Village Elder Bawk',
         body: 0x886644, hat: 0xCCBB88, hatType: 'straw',
+        mapId: 'map1',
         tx: V2_X, ty: V2_Y - 1,
         dialogues: [
             { cond: { flag: 'shadowcoat_alliance' },
@@ -1381,6 +1482,7 @@ const NPC_DEFS = [
     {
         id: 'blacksmith', name: 'Blacksmith Anvil',
         body: 0x993322, hat: 0x444444, hatType: 'helmet',
+        mapId: 'map1',
         tx: V2_X + 3, ty: V2_Y + 3,
         dialogues: [
             { cond: { flag: 'met_hermit' },
@@ -1397,6 +1499,7 @@ const NPC_DEFS = [
     {
         id: 'fisher', name: 'Old Fisher',
         body: 0x4466AA, hat: 0xBBBB88, hatType: 'straw',
+        mapId: 'map1',
         tx: V1_X - 18, ty: V1_Y + 12,
         dialogues: [
             { cond: { flag: 'met_hermit' },
@@ -1412,6 +1515,7 @@ const NPC_DEFS = [
     {
         id: 'scout', name: 'Scout Swift',
         body: 0x558855, hat: 0x446644, hatType: 'cap',
+        mapId: 'map1',
         tx: V1_X + 20, ty: V1_Y - 20,
         dialogues: [
             { cond: { flag: 'shadowcoat_alliance' },
@@ -1429,6 +1533,7 @@ const NPC_DEFS = [
     {
         id: 'baker', name: 'Baker Breadwing',
         body: 0xCC9966, hat: 0xFFFFCC, hatType: 'cap',
+        mapId: 'map1',
         tx: V1_X - 3, ty: V1_Y + 3,
         dialogues: [
             { cond: { flag: 'baker_cake_done' },
@@ -1448,6 +1553,7 @@ const NPC_DEFS = [
     {
         id: 'tax_collector', name: 'Tax Collector Pennywing',
         body: 0x556655, hat: 0x445544, hatType: 'cap',
+        mapId: 'map1',
         tx: V1_X + 6, ty: V1_Y - 3,
         dialogues: [
             { cond: { flag: 'ceremony_complete' },
@@ -1462,6 +1568,7 @@ const NPC_DEFS = [
     {
         id: 'town_crier', name: 'Town Crier Bawk',
         body: 0x8888AA, hat: 0xDD8844, hatType: 'cap',
+        mapId: 'map1',
         tx: V1_X - 5, ty: V1_Y - 2,
         dialogues: [
             { cond: { flag: 'ceremony_complete' },
@@ -1512,6 +1619,7 @@ const NPC_DEFS = [
     {
         id: 'real_king', name: 'Mysterious Prisoner',
         body: 0x9A7B4F, hat: 0xBB9955, hatType: 'hood',
+        mapId: 'map1',
         tx: CASTLE_X - 6, ty: CASTLE_Y - 2,
         dialogues: [
             { cond: { flag: 'freed_real_king' },
@@ -1569,6 +1677,7 @@ const NPC_DEFS = [
     {
         id: 'nurse', name: 'Nurse Henwing',
         body: 0xEEEEEE, hat: 0xFF6666, hatType: 'cap',
+        mapId: 'map1',
         tx: V1_X + 9, ty: V1_Y + 3,
         dialogues: [
             { cond: null,
