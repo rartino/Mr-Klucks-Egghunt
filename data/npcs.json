@@ -1,0 +1,1373 @@
+[
+  {
+    "id": "elder",
+    "name": "Elder Cluck",
+    "body": 3359914,
+    "hat": 6719709,
+    "hatType": "hood",
+    "mapId": "map1",
+    "tx": 75,
+    "ty": 74,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "ceremony_complete"
+        },
+        "lines": [
+          "The kingdom is at peace once more, thanks to you!",
+          "You'll always be welcome in Cluckville, hero."
+        ],
+        "giveQuest": "elder_eggs"
+      },
+      {
+        "cond": {
+          "flag": "elder_quest_done",
+          "notFlag": "met_guard_captain"
+        },
+        "lines": [
+          "Well done collecting those eggs! But I've heard troubling rumors.",
+          "The bunny attacks are getting worse. Go speak to Guard Roost at the north gate.",
+          "He knows things about what's happening at the castle."
+        ]
+      },
+      {
+        "cond": {
+          "questActive": "ch1_collect_eggs"
+        },
+        "lines": [
+          "Keep collecting eggs, Mr. Kluck! The village needs them.",
+          "The bunnies scattered them in every corner of the land."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Welcome, brave Mr. Kluck! The bunnies have stolen all our eggs!",
+          "Explore the forests, the desert, the swamp, and the snowy mountains.",
+          "Collect 15 eggs and return to me. I shall reward your bravery!"
+        ],
+        "giveQuest": "ch1_collect_eggs"
+      }
+    ]
+  },
+  {
+    "id": "farmer",
+    "name": "Farmer Hen",
+    "body": 8939059,
+    "hat": 13412932,
+    "hatType": "straw",
+    "mapId": "map1",
+    "tx": 80,
+    "ty": 81,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "lost_chick_done"
+        },
+        "lines": [
+          "My little Pip is home safe! Thank you so much!",
+          "Here, take these eggs as a token of my gratitude."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "met_hermit"
+        },
+        "lines": [
+          "Cursed chocolate?! So THAT'S why the bunnies went mad!",
+          "My cousin's chick went missing in the swamp last week...",
+          "Could you find little Pip? I'll tell you what I know about the castle."
+        ],
+        "giveQuest": "side_lost_chick"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Those rascal bunnies trampled my crops!",
+          "Watch out for GREEN eggs — they're rotten! Cost you points.",
+          "The brown chocolate eggs give a little speed boost. Yum!"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "merchant",
+    "name": "Merchant Peck",
+    "body": 7816328,
+    "hat": 14527010,
+    "hatType": "cap",
+    "mapId": "map1",
+    "tx": 78,
+    "ty": 70,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "mountain_pass_bought"
+        },
+        "lines": [
+          "Your mountain pass is still valid. Safe travels north!",
+          "I hear the Wildlands beyond are vast and dangerous."
+        ]
+      },
+      {
+        "cond": {
+          "questActive": "ch3_buy_pass"
+        },
+        "lines": [
+          "Ready to pay? 30 eggs for a Mountain Pass!",
+          "Step right up, best deal in the kingdom!"
+        ],
+        "payQuest": "ch3_buy_pass"
+      },
+      {
+        "cond": {
+          "flag": "hermit_quest_done"
+        },
+        "lines": [
+          "Need a Mountain Pass to go north? 30 eggs is the toll.",
+          "The mountain gate won't open without one!",
+          "Talk to me again when you're ready to pay."
+        ],
+        "giveQuest": "ch3_buy_pass"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Welcome to my shop! The bunnies raided the place, sadly.",
+          "Power-ups appear near landmarks. Speed, shields, magnets!",
+          "Golden eggs are worth 50 points. Keep your eyes peeled!"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "guard",
+    "name": "Guard Captain Roost",
+    "mapId": "map1",
+    "body": 7829384,
+    "hat": 5592422,
+    "hatType": "helmet",
+    "tx": 75,
+    "ty": 66,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "confronted_blueberry"
+        },
+        "lines": [
+          "The false king has been exposed! We stand with you, Mr. Kluck!",
+          "The royal guards are... confused. Some still follow orders."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "met_guard_captain",
+          "notFlag": "entered_castle"
+        },
+        "lines": [
+          "The castle is north of here. The King wants to see you.",
+          "But between you and me... something feels wrong up there.",
+          "The King used to love eggs. Now he seems to despise them."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "elder_quest_done"
+        },
+        "lines": [
+          "Halt! Ah, Mr. Kluck. I've been expecting you.",
+          "The King has summoned anyone who can fight these bunnies.",
+          "Head to the castle and seek an audience. But be careful...",
+          "Between you and me... something feels wrong up there."
+        ],
+        "action": {
+          "type": "setFlag",
+          "flag": "met_guard_captain"
+        },
+        "giveQuest": "ch2_enter_castle"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Halt! The road north leads to the forest. Fast bunnies lurk there.",
+          "Use SPACE for Crow Power to stun bunnies. SHIFT gives a quick dash!",
+          "Boss Bunnies need THREE stuns to defeat. Watch for crowns!"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "king",
+    "name": "King Reginald",
+    "body": 11149875,
+    "hat": 16766720,
+    "hatType": "crown",
+    "mapId": "map1",
+    "tx": 85,
+    "ty": 30,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "freed_real_king"
+        },
+        "lines": [
+          "Blueberry has been defeated! The kingdom is saved!",
+          "Mr. Kluck... I owe you everything.",
+          "We shall hold a grand ceremony in your honor!"
+        ],
+        "action": {
+          "type": "setFlag",
+          "flag": "ceremony_complete"
+        }
+      },
+      {
+        "cond": {
+          "flag": "fairy_blessing"
+        },
+        "lines": [
+          "Welcome back, roost— wait. Your eyes...",
+          "You... you can SEE me? The real me?!",
+          "GUARDS! Seize this meddlesome rooster!",
+          "...Fine. Yes. I am King Blueberry. And I'm KEEPING this throne."
+        ],
+        "action": {
+          "type": "multi",
+          "effects": [
+            {
+              "type": "setFlag",
+              "flag": "discovered_blueberry"
+            },
+            {
+              "type": "setFlag",
+              "flag": "confronted_blueberry"
+            }
+          ]
+        },
+        "giveQuest": "ch8_find_witch"
+      },
+      {
+        "cond": {
+          "flag": "met_king"
+        },
+        "lines": [
+          "You again? I told you the rabbit situation is under control.",
+          "Stop asking questions and go collect eggs like a good rooster."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "entered_castle"
+        },
+        "lines": [
+          "Who dares enter my throne room? Ah... a rooster.",
+          "The rabbit attacks? A minor nuisance. I have it handled.",
+          "Now leave me be. Kings have important king things to do. Begone!"
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "What are you doing in my castle? Only those invited may approach the King. Guards!"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "princess",
+    "name": "Princess Featheria",
+    "body": 14514073,
+    "hat": 16755370,
+    "hatType": "tiara",
+    "mapId": "map1",
+    "tx": 88,
+    "ty": 31,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "freed_real_king"
+        },
+        "lines": [
+          "Father is free! Oh, Mr. Kluck, you've saved us all!",
+          "I knew that impostor wasn't my real father. He never once asked for eggs."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "confronted_blueberry"
+        },
+        "lines": [
+          "He admitted it?! Blueberry is mad with power!",
+          "Father must be in the dungeon below the castle.",
+          "Here — I stole this from the guard room. The jail key!"
+        ],
+        "giveItem": "jail_key",
+        "giveQuest": "ch8_free_king"
+      },
+      {
+        "cond": {
+          "flag": "met_king",
+          "notFlag": "princess_gave_key"
+        },
+        "lines": [
+          "Psst! Mr. Kluck! Over here, quickly!",
+          "Father is acting strange. He's not himself.",
+          "Take this key. Find the hermit in the mountain cave behind the castle.",
+          "He knows things. Trust no one else in the castle!"
+        ],
+        "giveItem": "hermit_key",
+        "action": {
+          "type": "setFlag",
+          "flag": "princess_gave_key"
+        },
+        "giveQuest": "ch3_find_hermit"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Oh! A visitor! Father doesn't usually allow guests.",
+          "Please, speak to the King first. I'll wait here."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "royal_guard",
+    "name": "Royal Guard",
+    "body": 6710903,
+    "hat": 5592422,
+    "hatType": "helmet",
+    "mapId": "map1",
+    "tx": 82,
+    "ty": 32,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "confronted_blueberry"
+        },
+        "lines": [
+          "The King is... not the King? I'm so confused.",
+          "I just stand here and guard things. That's what I do."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "No funny business in the castle, rooster.",
+          "The King's word is law. Even when it makes no sense."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "hermit_outside",
+    "name": "Hermit Grizzle",
+    "mapId": "map1",
+    "body": 8943462,
+    "hat": 6706500,
+    "hatType": "hood",
+    "tx": 92,
+    "ty": 5,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "fairy_blessing"
+        },
+        "lines": [
+          "The fairy blessing! Now you can see through illusions!",
+          "Go to the castle. Confront the false King.",
+          "The truth will be plain as day to your enchanted eyes."
+        ],
+        "giveQuest": "ch8_confront_king"
+      },
+      {
+        "cond": {
+          "flag": "hermit_quest_done"
+        },
+        "lines": [
+          "You've proven yourself capable. Listen carefully.",
+          "The answers lie beyond these mountains — in the Wildlands.",
+          "Buy a Mountain Pass from the merchant in the village.",
+          "Then head north through the mountain gate.",
+          "Seek the Shadowcoats in the Wildlands forest. They track the bunnies.",
+          "And somewhere... fairies who can reveal hidden truths."
+        ],
+        "giveQuest": "ch4_find_shadowcoats"
+      },
+      {
+        "cond": {
+          "flag": "met_hermit"
+        },
+        "lines": [
+          "The Wildlands await you, rooster. Buy a Mountain Pass first.",
+          "The merchant in the village sells them. Head north after that."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "princess_gave_key"
+        },
+        "lines": [
+          "The Princess sent you! I have been waiting.",
+          "We cannot talk here. Meet me inside the cave."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "I'm a hermit. I prefer to live alone."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "hermit",
+    "name": "Hermit Grizzle",
+    "body": 8943462,
+    "hat": 6706500,
+    "hatType": "hood",
+    "mapId": "map1",
+    "tx": 92,
+    "ty": 8,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "fairy_blessing"
+        },
+        "lines": [
+          "The fairy blessing! Now you can see through illusions!",
+          "Go to the castle. Confront the false King.",
+          "The truth will be plain as day to your enchanted eyes."
+        ],
+        "giveQuest": "ch8_confront_king"
+      },
+      {
+        "cond": {
+          "flag": "hermit_quest_done"
+        },
+        "lines": [
+          "You've proven yourself capable. Listen carefully.",
+          "The answers lie beyond these mountains — in the Wildlands.",
+          "Buy a Mountain Pass from the merchant in the village.",
+          "Then head north through the mountain gate.",
+          "Seek the Shadowcoats in the Wildlands forest. They track the bunnies.",
+          "And somewhere... fairies who can reveal hidden truths."
+        ],
+        "giveQuest": "ch4_find_shadowcoats"
+      },
+      {
+        "cond": {
+          "flag": "found_hermit_cave"
+        },
+        "lines": [
+          "Ah, you made it inside! Good.",
+          "The rabbit attacks are NOT natural. Someone is controlling them.",
+          "I found traces of cursed chocolate near the bunny dens.",
+          "Whoever made this chocolate is poisoning the rabbits' minds!",
+          "Collect more eggs to prove you can survive what's coming."
+        ],
+        "action": {
+          "type": "setFlag",
+          "flag": "met_hermit"
+        }
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Welcome to my cave. Make yourself at home."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "shadow_vex",
+    "name": "Shadow Vex",
+    "body": 2236979,
+    "hat": 3355460,
+    "hatType": "bandana",
+    "mapId": "map2",
+    "tx": 30,
+    "ty": 40,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "shadowcoat_alliance"
+        },
+        "lines": [
+          "Our alliance holds. For now.",
+          "My scouts say the pyramid in the east hides something big.",
+          "A labyrinth beneath the sands. That's where the curse originates."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "shadowcoat_task_done"
+        },
+        "lines": [
+          "You cleared those bunnies? Impressive for a chicken.",
+          "Fine. The Shadowcoats will share what we know.",
+          "The bunnies are being fed cursed chocolate from somewhere east.",
+          "We'll help you investigate. Take this badge — our people will recognize it.",
+          "My scouts say a pyramid in the far east desert hides something big.",
+          "Look for stairs inside the pyramid — a labyrinth lies beneath.",
+          "You'll need a lantern. Take this one."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "met_shadowcoats"
+        },
+        "lines": [
+          "A rooster in our camp? Bold. Or stupid. Perhaps both.",
+          "I am Shadow Vex. We Shadowcoats have our own code.",
+          "We want the bunnies gone too. But trust must be earned.",
+          "Clear 8 bunnies from around our camp. Then we'll talk."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "You shouldn't be here. The forest has eyes.",
+          "...Unless someone sent you? Hmm."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "shadow_dagger",
+    "name": "Shadow Dagger",
+    "body": 2763322,
+    "hat": 3816010,
+    "hatType": "bandana",
+    "mapId": "map2",
+    "tx": 33,
+    "ty": 42,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "shadow_fortune_done"
+        },
+        "lines": [
+          "You found Whisper's stash?! Ha! She'll be furious!",
+          "Good riddance. She was giving us all a bad name."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "shadowcoat_alliance"
+        },
+        "lines": [
+          "Vex trusts you. That's rare. Don't waste it.",
+          "Watch out for Shadow Whisper though. She's... ambitious.",
+          "Rumor is she's been hoarding stolen eggs in a vault up north.",
+          "The townsfolk are furious. Might want to look into that."
+        ],
+        "giveQuest": "side_shadow_fortune"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Another outsider. Vex will decide what to do with you.",
+          "I'd keep my beak shut if I were you."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "shadow_whisper",
+    "name": "Shadow Whisper",
+    "body": 1710634,
+    "hat": 2763322,
+    "hatType": "bandana",
+    "mapId": "map2",
+    "tx": 28,
+    "ty": 39,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "shadow_fortune_done"
+        },
+        "lines": [
+          "You found my vault?! That was MY retirement fund!",
+          "...Fine. I suppose the alliance is more important. Barely."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "shadowcoat_alliance"
+        },
+        "lines": [
+          "So we're allies now? How... quaint.",
+          "I have my own plans, rooster. Don't get in my way."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Go away. I don't talk to poultry."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "pompom_elder",
+    "name": "Elder Fluff",
+    "body": 16759773,
+    "hat": 16768494,
+    "hatType": "pompom_hat",
+    "mapId": "map2",
+    "tx": 15,
+    "ty": 55,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "pompom_trust"
+        },
+        "lines": [
+          "The Pom-poms are forever your friends, Mr. Kluck!",
+          "When the time comes, we will fight by your side.",
+          "Our warriors can grow to TEN TIMES their size when angry!",
+          "The bunnies won't know what hit them. Literally."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "pompom_gift_2"
+        },
+        "lines": [
+          "Two gifts! Your generosity warms our fuzzy hearts.",
+          "One final test of friendship... the bunnies threaten our village.",
+          "Defeat 5 of them nearby and we shall be allies forever!"
+        ]
+      },
+      {
+        "cond": {
+          "flag": "pompom_gift_1"
+        },
+        "lines": [
+          "Thank you for the eggs! You ARE kind.",
+          "But... could you bring us a Moonberry? We love those!",
+          "They grow near the forest edges. Small, glowing pink berries."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "met_pompoms"
+        },
+        "lines": [
+          "*squeak* A big creature! Don't hurt us!",
+          "We are the Pom-poms. Humans think we're fairy tales.",
+          "We are small but... when threatened... we grow. A lot.",
+          "Bring us 20 eggs as a gift and maybe we'll trust you."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "*squeak* *squeak*",
+          "The bushes seem to be... squeaking at you? How odd."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "pompom_scout",
+    "name": "Scout Bounce",
+    "body": 11197951,
+    "hat": 13430527,
+    "hatType": "pompom_hat",
+    "mapId": "map2",
+    "tx": 19,
+    "ty": 52,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "pompom_trust"
+        },
+        "lines": [
+          "Bounce bounce! We're friends now! BEST friends!",
+          "I'll bounce extra high to scout for bunnies for you!"
+        ]
+      },
+      {
+        "cond": {
+          "flag": "met_pompoms"
+        },
+        "lines": [
+          "*bounces nervously*",
+          "Elder Fluff says you might be okay. Maybe.",
+          "I'm watching you though! With my BIG cute eyes!"
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "A bush bounces away from you.",
+          "...That was definitely not normal bush behavior."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "pompom_warrior",
+    "name": "Warrior Thud",
+    "body": 16755404,
+    "hat": 16764125,
+    "hatType": "pompom_hat",
+    "mapId": "map2",
+    "tx": 13,
+    "ty": 57,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "pompom_trust"
+        },
+        "lines": [
+          "THUD SMASH BUNNIES FOR FRIEND KLUCK!",
+          "...ahem. I mean, we shall aid you in battle.",
+          "When I transform, I'm twelve feet tall. It's quite impressive."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "met_pompoms"
+        },
+        "lines": [
+          "*flexes tiny arms* I am the MIGHTIEST Pom-pom!",
+          "Don't let my cuteness fool you. I bench-press acorns."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "A surprisingly buff shrub stares at you menacingly.",
+          "...Never mind. Just a shrub. Probably."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fairy_scout",
+    "name": "Fairy Glimmer",
+    "body": 11206570,
+    "hat": 14548957,
+    "hatType": "fairy_wings",
+    "mapId": "map1",
+    "tx": 45,
+    "ty": 35,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "fairy_blessing"
+        },
+        "lines": [
+          "The blessing shines upon you! You can see all truths now.",
+          "Go, Mr. Kluck. Unmask the deceiver!"
+        ]
+      },
+      {
+        "cond": {
+          "flag": "pompom_trust",
+          "flag2": "shadowcoat_alliance"
+        },
+        "lines": [
+          "You've united the factions! The fairy realm awaits.",
+          "Seek the great Hollow Tree to the far west.",
+          "Bring 3 Fairy Dust — they shimmer in enchanted glades.",
+          "The Queen will grant you the Blessing of True Sight."
+        ],
+        "giveQuest": "ch7_fairy_offering"
+      },
+      {
+        "cond": {
+          "flag": "met_fairy_scout"
+        },
+        "lines": [
+          "Still gathering allies? Good. You'll need them all.",
+          "The Shadowcoats and Pom-poms must stand with you first."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "met_hermit"
+        },
+        "lines": [
+          "*a tiny light flickers before you*",
+          "I am Glimmer. The fairies have watched your journey.",
+          "We know of the curse. But our Queen must trust you first.",
+          "Unite the other factions. Then seek us in the Hollow Tree."
+        ],
+        "giveQuest": "ch7_find_fairy"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "A faint sparkle drifts past. Probably just a firefly.",
+          "...Fireflies don't usually giggle, though."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "herbalist",
+    "name": "Sage Feathers",
+    "body": 3377220,
+    "hat": 5614182,
+    "hatType": "hood",
+    "mapId": "map1",
+    "tx": 30,
+    "ty": 45,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "found_cursed_chocolate"
+        },
+        "lines": [
+          "Cursed chocolate! I knew it! The forest herbs warned me.",
+          "Someone powerful created this. Someone with a grudge."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Ah... few wander this deep into the forest.",
+          "Collect eggs quickly for a combo multiplier!",
+          "And I've seen strange dark-cloaked figures nearby..."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "nomad",
+    "name": "Desert Nomad",
+    "body": 12290116,
+    "hat": 14535816,
+    "hatType": "hood",
+    "mapId": "map2",
+    "tx": 120,
+    "ty": 95,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "labyrinth_cleared"
+        },
+        "lines": [
+          "You cleared the labyrinth?! Legends will speak of this!",
+          "The desert is safer already. The traders can move again."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "shadowcoat_alliance"
+        },
+        "lines": [
+          "The pyramid! An ancient structure east of here.",
+          "The Shadowcoats say a labyrinth lies beneath.",
+          "But the trade road is overrun with bunnies first...",
+          "Clear the road and I'll show you the pyramid entrance."
+        ],
+        "giveQuest": "side_trader_route"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "The desert sands stretch far. Eggs hide near the cacti.",
+          "A fearsome Boss Bunny rules the eastern reaches!",
+          "Defeat it for a massive score bonus."
+        ],
+        "giveQuest": "desert_boss"
+      }
+    ]
+  },
+  {
+    "id": "witch",
+    "name": "Swamp Witch Mossclaw",
+    "body": 5583718,
+    "hat": 7816362,
+    "hatType": "pointed",
+    "mapId": "map1",
+    "tx": 80,
+    "ty": 117,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "found_cursed_chocolate"
+        },
+        "lines": [
+          "Cursed chocolate, eh? That's Hexana's handiwork.",
+          "She lives far to the west, in the Dark Reaches.",
+          "We trained together. She was always the jealous type.",
+          "You'll need fairy magic to find her hidden lair."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Heh heh... a brave rooster ventures into my swamp...",
+          "Rotten eggs are EVERYWHERE here. The bunnies love traps.",
+          "But golden eggs hide where others fear to tread..."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "snowsage",
+    "name": "Snow Sage",
+    "body": 13421789,
+    "hat": 11189247,
+    "hatType": "hood",
+    "mapId": "map1",
+    "tx": 70,
+    "ty": 17,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "snow_crystals_done"
+        },
+        "lines": [
+          "Five crystals! The ancient magic resonates!",
+          "These crystals hold memories of the old kingdom.",
+          "Long ago, a boy named Blueberry was the King's best friend...",
+          "But jealousy consumed him. He vanished for years.",
+          "Now the King acts strange. Coincidence? I think not."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "met_hermit"
+        },
+        "lines": [
+          "Ice Crystals grow in the deepest snowdrifts here.",
+          "Ancient magic is frozen within them.",
+          "Collect 5 and I shall reveal what they remember."
+        ],
+        "giveQuest": "side_snow_crystals"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Welcome to the frozen peaks. The ice is treacherous.",
+          "Chocolate eggs are plentiful — they warm your feathers!",
+          "Collect 10 golden eggs to prove your worth!"
+        ],
+        "giveQuest": "golden_hunt"
+      }
+    ]
+  },
+  {
+    "id": "v2elder",
+    "name": "Village Elder Bawk",
+    "body": 8939076,
+    "hat": 13417352,
+    "hatType": "straw",
+    "mapId": "map1",
+    "tx": 35,
+    "ty": 74,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "shadowcoat_alliance"
+        },
+        "lines": [
+          "I hear you've allied with those Shadowcoats!",
+          "Bold move. They're thieves, but we need all the help we can get.",
+          "The hills folk — the Pom-poms — they might help too.",
+          "If they even exist, that is. Most think they're fairy tales.",
+          "Look for them in the western hills of the Wildlands."
+        ],
+        "giveQuest": "ch5_find_pompoms"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Welcome to Westwick! We've suffered from bunny raids too.",
+          "The hills aren't as dangerous as the deep wilderness.",
+          "The road east leads to Cluckville. Safe travels!"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "blacksmith",
+    "name": "Blacksmith Anvil",
+    "body": 10040098,
+    "hat": 4473924,
+    "hatType": "helmet",
+    "mapId": "map1",
+    "tx": 38,
+    "ty": 78,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "met_hermit"
+        },
+        "lines": [
+          "A hermit in the mountains? I've heard legends.",
+          "If what he says is true, this is bigger than bunny raids.",
+          "Here, take this rope. You might need it in dark places."
+        ],
+        "giveItem": "rope"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "I used to forge plows. Now I sharpen tools against bunnies!",
+          "SHIFT while moving gives a quick dash. You're invincible during it!",
+          "Use it to escape bunny ambushes!"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fisher",
+    "name": "Old Fisher",
+    "body": 4482730,
+    "hat": 12303240,
+    "hatType": "straw",
+    "mapId": "map1",
+    "tx": 57,
+    "ty": 87,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "met_hermit"
+        },
+        "lines": [
+          "Cursed chocolate controlling bunnies? What's next, flying pigs?",
+          "...Actually in this kingdom that wouldn't surprise me.",
+          "Watch the minimap. It shows the whole world!"
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "I sit here fishing, but there's no fish — just floating eggs!",
+          "Can't walk on water. But eggs wash up on the shoreline!",
+          "Watch the minimap in the corner — handy for navigation!"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scout",
+    "name": "Scout Swift",
+    "body": 5605461,
+    "hat": 4482628,
+    "hatType": "cap",
+    "mapId": "map1",
+    "tx": 95,
+    "ty": 55,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "shadowcoat_alliance"
+        },
+        "lines": [
+          "You've been to the Shadowcoat camp? And survived?!",
+          "They're usually not friendly to outsiders.",
+          "I've seen Fairy Dust shimmer in the deep forest glades.",
+          "Tiny sparkling motes. Very rare. Very magical."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "I've been scouting the farmland-forest border.",
+          "Patrol bunnies walk in circles until you get close — then CHARGE!",
+          "Press E near anyone to talk. You never know what you'll learn!"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "baker",
+    "name": "Baker Breadwing",
+    "body": 13408614,
+    "hat": 16777164,
+    "hatType": "cap",
+    "mapId": "map1",
+    "tx": 72,
+    "ty": 78,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "baker_cake_done"
+        },
+        "lines": [
+          "The Moonberry cake is MAGNIFICENT! Best I've ever baked!",
+          "Here, have an extra life. You've earned it!"
+        ]
+      },
+      {
+        "cond": {
+          "flag": "met_hermit"
+        },
+        "lines": [
+          "I need Moonberries for my famous Moonberry Cake!",
+          "They grow at the edges of the forest, glowing pink.",
+          "Bring me 3 and I'll bake you something special!"
+        ],
+        "giveQuest": "side_baker_cake"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Welcome! My bakery survived the bunny raids, barely.",
+          "I'd offer you bread but I'm all out of Moonberries.",
+          "Those glowing pink berries make the BEST cakes!"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "tax_collector",
+    "name": "Tax Collector Pennywing",
+    "body": 5596757,
+    "hat": 4478276,
+    "hatType": "cap",
+    "mapId": "map1",
+    "tx": 81,
+    "ty": 72,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "ceremony_complete"
+        },
+        "lines": [
+          "Tax exemption for the hero of the kingdom!",
+          "...For one day only. Offer expires at midnight."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Eggs are the currency of this realm, rooster.",
+          "Need to cross a bridge? Eggs. Mountain pass? Eggs.",
+          "Even I take bribes in eggs. Hypothetically. Ahem."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "town_crier",
+    "name": "Town Crier Bawk",
+    "body": 8947882,
+    "hat": 14518340,
+    "hatType": "cap",
+    "mapId": "map1",
+    "tx": 70,
+    "ty": 73,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "ceremony_complete"
+        },
+        "lines": [
+          "HEAR YE! Mr. Kluck, SAVIOR of the realm!",
+          "King Blueberry has been vanquished! The real King restored!",
+          "Free eggs for everyone! ...Well, metaphorical free eggs."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "confronted_blueberry"
+        },
+        "lines": [
+          "HEAR YE! The King is a FRAUD?! What do you mean?!",
+          "This is the biggest news since the Great Egg Famine of '09!"
+        ]
+      },
+      {
+        "cond": {
+          "flag": "met_hermit"
+        },
+        "lines": [
+          "HEAR YE! Strange goings-on in the kingdom!",
+          "Bunnies attacking more than ever! Castle guards doubled!",
+          "Rumors of dark-cloaked figures in the forest! Be alert!"
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "HEAR YE! Bunny attacks on the rise!",
+          "Citizens are advised to stay indoors! Eggs are disappearing!",
+          "Will no hero save us?! ...Oh, hello there, rooster."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "witch_hexana",
+    "name": "Witch Hexana",
+    "body": 4465254,
+    "hat": 6697881,
+    "hatType": "pointed",
+    "mapId": "map3",
+    "tx": 40,
+    "ty": 150,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "got_dispel_potion"
+        },
+        "lines": [
+          "The potion is brewed. Use it wisely, rooster.",
+          "Pour it on the impostor and his disguise will shatter.",
+          "Then find the real king in the dungeon below the castle."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "found_witch_lair"
+        },
+        "lines": [
+          "Still need that Dispel Potion? Bring me 3 Ice Crystals.",
+          "They grow in the frozen peaks to the north."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "confronted_blueberry"
+        },
+        "lines": [
+          "Ah, I've been expecting you. Word travels fast.",
+          "Yes, I know of King Blueberry's disguise magic.",
+          "It was MY spell he stole, the ungrateful wretch!",
+          "I can brew a Dispel Potion... for a price.",
+          "I'll need 3 Ice Crystals from the frozen peaks.",
+          "The cold magic in them is the key ingredient."
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "Hee hee... lost, are we? This swamp doesn't welcome visitors.",
+          "Come back when you have a REASON to disturb me."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "real_king",
+    "name": "Mysterious Prisoner",
+    "body": 10124111,
+    "hat": 12294485,
+    "hatType": "hood",
+    "mapId": "map1",
+    "tx": 79,
+    "ty": 28,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "freed_real_king"
+        },
+        "lines": [
+          "Free at last! I am King Reginald — the REAL one!",
+          "That scoundrel Blueberry locked me away!",
+          "He was my childhood friend, but jealousy consumed him.",
+          "He stole a witch's spell and took my form.",
+          "Mr. Kluck... you have saved the kingdom. Let us return to the throne.",
+          "There shall be a ceremony in your honor!"
+        ],
+        "action": {
+          "type": "setFlag",
+          "flag": "ceremony_complete"
+        }
+      },
+      {
+        "cond": {
+          "flag": "got_dispel_potion"
+        },
+        "lines": [
+          "*a weak voice from behind the bars*",
+          "Please... is someone there?",
+          "I've been trapped down here for so long...",
+          "That impostor locked me away months ago!",
+          "If you have a key... please, free me!"
+        ]
+      },
+      {
+        "cond": null,
+        "lines": [
+          "*the cell appears empty*",
+          "...A faint scratching echoes from somewhere in the dark."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fairy_queen",
+    "name": "Fairy Queen Luminara",
+    "body": 14548957,
+    "hat": 11206570,
+    "hatType": "fairy_wings",
+    "mapId": "map3",
+    "tx": 60,
+    "ty": 80,
+    "dialogues": [
+      {
+        "cond": {
+          "flag": "fairy_blessing"
+        },
+        "lines": [
+          "The Blessing of True Sight shines upon you!",
+          "Go forth, Mr. Kluck. Unmask the deceiver.",
+          "All of fairy-kind watches over you."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "fairy_trial_done"
+        },
+        "lines": [
+          "The Fairy Dust resonates with your courage!",
+          "I grant you the Blessing of True Sight.",
+          "With it, you will see through any illusion or disguise.",
+          "The Witch's Eye stone will guide you to hidden truths.",
+          "Go now. The false king's deception cannot withstand your gaze."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "met_fairy_scout"
+        },
+        "lines": [
+          "Welcome to the Fairy Glen, Mr. Kluck.",
+          "I am Queen Luminara. Glimmer told me of your quest.",
+          "To receive the Blessing, bring me 3 Fairy Dust.",
+          "They grow in enchanted groves — seek the Hollow Tree nearby."
+        ],
+        "giveQuest": "ch7_fairy_offering"
+      },
+      {
+        "cond": null,
+        "lines": [
+          "*a radiant light fills the glen*",
+          "You are not yet ready to receive our blessing.",
+          "Unite the factions first. Then return."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "nurse",
+    "name": "Nurse Henwing",
+    "body": 15658734,
+    "hat": 16737894,
+    "hatType": "cap",
+    "mapId": "map1",
+    "tx": 84,
+    "ty": 78,
+    "dialogues": [
+      {
+        "cond": null,
+        "lines": [
+          "Welcome to Cluckshire Hospital!",
+          "If those bunnies knock you out, don't worry.",
+          "We'll patch you up and send you on your way!",
+          "Though... you will lose any eggs you were carrying."
+        ]
+      }
+    ]
+  }
+]

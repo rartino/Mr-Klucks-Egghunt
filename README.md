@@ -13,6 +13,7 @@ Quest/story data lives in:
 
 - `data/quests.json`
 - `data/story_flags.json`
+- `data/npcs.json`
 
 Validate quest wiring:
 

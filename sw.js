@@ -12,6 +12,7 @@ const urlsToCache = [
     './game.js',
     './data/story_flags.json',
     './data/quests.json',
+    './data/npcs.json',
     './resources/phaser/phaser.min.js',
     './offline.html',
 ];
