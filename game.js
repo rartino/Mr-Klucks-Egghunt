@@ -3042,25 +3042,13 @@ class GameScene extends Phaser.Scene {
             const bsmt = this.worldData.basements.find(b => b.stairsTx === ptx && b.stairsTy === pty);
             if (bsmt) {
                 const bKey = `${this.currentMapId}_${bsmt.stairsTx}_${bsmt.stairsTy}`;
-                const lastVisit = this.basementVisitTimes[bKey] || 0;
-                const now = Date.now();
-                const BASEMENT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
-                if (now - lastVisit < BASEMENT_COOLDOWN_MS) {
-                    const secsLeft = Math.ceil((BASEMENT_COOLDOWN_MS - (now - lastVisit)) / 1000);
-                    const minsLeft = Math.floor(secsLeft / 60);
-                    const msg = minsLeft > 0 ? `Empty... come back in ${minsLeft}m ${secsLeft % 60}s` : `Empty... come back in ${secsLeft}s`;
-                    this.showFloatingText(this.player.x, this.player.y - 20, msg, '#AAAAAA');
-                    this.player.y += TILE;
-                    this.basementCooldown = true;
-                    this.time.delayedCall(1000, () => { this.basementCooldown = false; });
-                    return;
-                }
-                this.enterBasement(bsmt);
+                const suppressEggs = !!this.basementVisitTimes[bKey];
+                this.enterBasement(bsmt, suppressEggs);
             }
         }
     }
 
-    enterBasement(bsmt) {
+    enterBasement(bsmt, suppressEggs) {
         this.autoSave();
         const bKey = `${this.currentMapId}_${bsmt.stairsTx}_${bsmt.stairsTy}`;
         this.scene.pause();
@@ -3074,12 +3062,26 @@ class GameScene extends Phaser.Scene {
             totalEggsCollected: this.totalEggsCollected,
             goldenEggsCollected: this.goldenEggsCollected,
             basementKey: bKey,
+            suppressEggs: !!suppressEggs,
         });
     }
 
     enterInterior(inter) {
+        let suppressEggs = false;
         if (inter && inter.interiorId === 'hermit_cave') {
             this.storyFlags.entered_hermit_cave = true;
+            suppressEggs = !!this.storyFlags.hermit_cave_eggs_collected;
+            this.storyFlags.hermit_cave_eggs_collected = true;
+            if (Array.isArray(this.npcs)) {
+                this.npcs = this.npcs.filter(npc => {
+                    const def = npc.getData ? npc.getData('npcDef') : null;
+                    if (def && def.id === 'hermit_outside') {
+                        npc.destroy();
+                        return false;
+                    }
+                    return true;
+                });
+            }
         }
         this.autoSave();
         this.scene.pause();
@@ -3093,6 +3095,7 @@ class GameScene extends Phaser.Scene {
             goldenEggsCollected: this.goldenEggsCollected,
             storyFlags: this.storyFlags,
             inventory: this.inventory,
+            suppressEggs,
         });
     }
 
@@ -3170,6 +3173,8 @@ class GameScene extends Phaser.Scene {
         this.touchLastMovePos = null;
         this.touchLastMoveTs = 0;
         this.touchLastDashTs = 0;
+        this.touchLastTapPos = null;
+        this.touchLastTapTs = 0;
 
         const W = this.scale.width, H = this.scale.height;
         const alpha = 0.45;
@@ -3207,6 +3212,21 @@ class GameScene extends Phaser.Scene {
                 const dx = p.x - z.x, dy = p.y - z.y;
                 if (Math.sqrt(dx * dx + dy * dy) < z.r) return;
             }
+            // Rapid double-tap anywhere triggers Crow power on touch.
+            const now = this.time.now;
+            const DOUBLE_TAP_MS = 260;
+            const DOUBLE_TAP_DIST = 42;
+            if (this.touchLastTapPos && (now - this.touchLastTapTs) <= DOUBLE_TAP_MS) {
+                const tx = p.x - this.touchLastTapPos.x, ty = p.y - this.touchLastTapPos.y;
+                if ((tx * tx + ty * ty) <= (DOUBLE_TAP_DIST * DOUBLE_TAP_DIST)) {
+                    if (!modalBlocked()) this.useCrowPower();
+                    this.touchLastTapPos = null;
+                    this.touchLastTapTs = 0;
+                    return;
+                }
+            }
+            this.touchLastTapPos = { x: p.x, y: p.y };
+            this.touchLastTapTs = now;
             if (this.touchMovePtrId !== null && this.touchMovePtrId !== p.id) return;
             this.touchAnchor = { x: p.x, y: p.y };
             this.touchMovePtrId = p.id;
@@ -3277,6 +3297,7 @@ class BasementScene extends Phaser.Scene {
         this.totalEggsCollected = data.totalEggsCollected || 0;
         this.goldenEggsCollected = data.goldenEggsCollected || 0;
         this.basementKey = data.basementKey;
+        this.suppressEggs = !!data.suppressEggs;
     }
 
     preload() { generateAllTextures(this); }
@@ -3324,7 +3345,7 @@ class BasementScene extends Phaser.Scene {
 
         // Scatter a couple of eggs in the basement
         this.eggGroup = this.physics.add.staticGroup();
-        const eggCount = Math.max(1, Math.floor((mapW * mapH) / 10));
+        const eggCount = this.suppressEggs ? 0 : Math.max(1, Math.floor((mapW * mapH) / 10));
         for (let i = 0; i < eggCount; i++) {
             const ex = Phaser.Math.Between(1, mapW - 2) * TILE + TILE / 2;
             const ey = Phaser.Math.Between(1, mapH - 2) * TILE + TILE / 2;
@@ -3534,6 +3555,7 @@ class InteriorScene extends Phaser.Scene {
         this.goldenEggsCollected = data.goldenEggsCollected || 0;
         this.storyFlags = data.storyFlags || {};
         this.inventory = data.inventory || [];
+        this.suppressEggs = !!data.suppressEggs;
     }
 
     preload() { generateAllTextures(this); }
@@ -3645,7 +3667,7 @@ class InteriorScene extends Phaser.Scene {
         occupiedTiles.add(tileKey(sx, spawnTy));
         if (cfg.nextFloor) occupiedTiles.add(tileKey(nx, ny));
 
-        const eggCount = cfg.eggs || 0;
+        const eggCount = this.suppressEggs ? 0 : (cfg.eggs || 0);
         for (let i = 0; i < eggCount; i++) {
             const tile = findOpenTile();
             if (!tile) continue;
