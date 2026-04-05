@@ -1356,6 +1356,7 @@ class GameScene extends Phaser.Scene {
         // Inventory UI state
         this.inventoryOpen = false;
         this.selectedItem = null;
+        this.wieldedItemId = (data && data.wieldedItemId) || null;
         // Quest log UI state
         this.questLogOpen = false;
         this.questLogPanel = null;
@@ -1564,7 +1565,7 @@ class GameScene extends Phaser.Scene {
     // ------------------------------------------------------------------
 
     createHUD() {
-        const W = this.scale.width;
+        const W = this.scale.width, H = this.scale.height;
         this.hudBg = this.add.graphics().setScrollFactor(0).setDepth(100);
         this.hudBg.fillStyle(0x000000, 0.6);
         this.hudBg.fillRect(0, 0, W, 40);
@@ -1581,6 +1582,11 @@ class GameScene extends Phaser.Scene {
 
         // Quest panel
         this.questText = this.add.text(8, 44, '', { fontSize: '11px', fill: '#000000', lineSpacing: 2 }).setScrollFactor(0).setDepth(101);
+
+        // Mobile-friendly wielded item indicator near action buttons
+        this.wieldedText = this.add.text(W - 165, H - 20, '', {
+            fontSize: '11px', fill: '#FFD700', stroke: '#000000', strokeThickness: 2,
+        }).setOrigin(0, 1).setScrollFactor(0).setDepth(153);
 
         // Menu button (top-right)
         this.menuOpen = false;
@@ -1940,6 +1946,17 @@ class GameScene extends Phaser.Scene {
         } else {
             this.questText.setText('');
         }
+
+        if (this.wieldedText) {
+            const item = this.wieldedItemId ? this.inventory.find(i => i.itemId === this.wieldedItemId) : null;
+            if (item) {
+                const def = ITEM_DEFS[item.itemId];
+                this.wieldedText.setText(`Wielding: ${def ? def.name : item.itemId}`);
+            } else {
+                this.wieldedItemId = null;
+                this.wieldedText.setText('Wielding: (none)');
+            }
+        }
     }
 
     updateShield() {
@@ -2176,7 +2193,10 @@ class GameScene extends Phaser.Scene {
         const idx = this.inventory.findIndex(i => i.itemId === itemId);
         if (idx < 0) return;
         this.inventory[idx].count -= count;
-        if (this.inventory[idx].count <= 0) this.inventory.splice(idx, 1);
+        if (this.inventory[idx].count <= 0) {
+            this.inventory.splice(idx, 1);
+            if (this.wieldedItemId === itemId) this.wieldedItemId = null;
+        }
     }
 
     createInventoryUI() {
@@ -2209,14 +2229,17 @@ class GameScene extends Phaser.Scene {
             }).setScrollFactor(0).setDepth(211).setVisible(false).setInteractive();
             slot.on('pointerdown', () => {
                 if (i < this.inventory.length) {
+                    const item = this.inventory[i];
                     this.selectedItem = i;
+                    this.wieldedItemId = item.itemId;
                     this.refreshInventoryDisplay();
+                    this.toggleInventory();
                 }
             });
             this.invSlots.push(slot);
         }
 
-        this.invHint = this.add.text(W / 2, py + panelH - 18, '[U] Use selected item', {
+        this.invHint = this.add.text(W / 2, py + panelH - 18, 'Select an item to weild it', {
             fontSize: '11px', fill: '#AAAAAA',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(211).setVisible(false);
     }
@@ -2291,10 +2314,10 @@ class GameScene extends Phaser.Scene {
             if (i < this.inventory.length) {
                 const item = this.inventory[i];
                 const def = ITEM_DEFS[item.itemId];
-                const sel = this.selectedItem === i ? '> ' : '  ';
+                const sel = this.wieldedItemId === item.itemId ? '> ' : '  ';
                 const cnt = item.count > 1 ? ` x${item.count}` : '';
                 slot.setText(`${sel}${def ? def.name : item.itemId}${cnt}`);
-                slot.setStyle({ fill: this.selectedItem === i ? '#FFD700' : '#EEEEEE' });
+                slot.setStyle({ fill: this.wieldedItemId === item.itemId ? '#FFD700' : '#EEEEEE' });
                 slot.setVisible(true);
             } else {
                 slot.setVisible(false);
@@ -2306,11 +2329,16 @@ class GameScene extends Phaser.Scene {
     }
 
     useSelectedItem() {
-        if (this.selectedItem === null || this.selectedItem >= this.inventory.length) {
-            this.showFloatingText(this.player.x, this.player.y, 'No item selected', '#FF6666');
+        if (!this.wieldedItemId) {
+            this.showFloatingText(this.player.x, this.player.y, 'No item wielded', '#FF6666');
             return;
         }
-        const item = this.inventory[this.selectedItem];
+        const item = this.inventory.find(i => i.itemId === this.wieldedItemId);
+        if (!item) {
+            this.wieldedItemId = null;
+            this.showFloatingText(this.player.x, this.player.y, 'Wielded item not in bag', '#FF6666');
+            return;
+        }
         const ptx = Math.floor(this.player.x / TILE);
         const pty = Math.floor(this.player.y / TILE);
 
@@ -2732,6 +2760,7 @@ class GameScene extends Phaser.Scene {
             currentMapId: this.currentMapId,
             defeatedEnemies: this.defeatedEnemies,
             basementVisitTimes: this.basementVisitTimes,
+            wieldedItemId: this.wieldedItemId,
             spawnTx: Math.floor(this.player.x / TILE),
             spawnTy: Math.floor(this.player.y / TILE),
         };
@@ -2799,6 +2828,7 @@ class GameScene extends Phaser.Scene {
                     currentMapId: 'map1',
                     defeatedEnemies: this.defeatedEnemies,
                     basementVisitTimes: this.basementVisitTimes,
+                    wieldedItemId: this.wieldedItemId,
                     spawnTx: V1_X + 9,
                     spawnTy: V1_Y + 5,
                 });
@@ -3031,6 +3061,7 @@ class GameScene extends Phaser.Scene {
                     currentMapId: t.toMap,
                     defeatedEnemies: this.defeatedEnemies,
                     basementVisitTimes: this.basementVisitTimes,
+                    wieldedItemId: this.wieldedItemId,
                     spawnTx: t.toTx,
                     spawnTy: t.toTy,
                 });
@@ -3195,10 +3226,28 @@ class BasementScene extends Phaser.Scene {
             left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D,
         });
 
-        // Touch — simple drag
+        // Touch controls (movement + action button)
         this.touchDir = { x: 0, y: 0 };
         this.touchAnchor = null;
-        this.input.on('pointerdown', p => { this.touchAnchor = { x: p.x, y: p.y }; });
+        this.actionBtnZones = [];
+        const W = this.scale.width, H = this.scale.height;
+        const alpha = 0.45;
+        const makeBtnCircle = (label, bx, by, color, cb) => {
+            const bgBtn = this.add.graphics().setScrollFactor(0).setDepth(150).setAlpha(alpha);
+            bgBtn.fillStyle(color); bgBtn.fillCircle(bx, by, 24);
+            this.add.text(bx, by, label, { fontSize: '10px', fill: '#FFF' }).setOrigin(0.5).setScrollFactor(0).setDepth(151);
+            const zone = this.add.zone(bx, by, 48, 48).setInteractive().setScrollFactor(0).setDepth(152);
+            zone.on('pointerdown', cb);
+            this.actionBtnZones.push({ x: bx, y: by, r: 30 });
+        };
+        makeBtnCircle('EXIT', W - 55, H - 55, 0x553322, () => this.exitBasement());
+
+        this.input.on('pointerdown', p => {
+            for (const z of this.actionBtnZones) {
+                if (Phaser.Math.Distance.Between(p.x, p.y, z.x, z.y) <= z.r) return;
+            }
+            this.touchAnchor = { x: p.x, y: p.y };
+        });
         this.input.on('pointermove', p => {
             if (!this.touchAnchor || !p.isDown) return;
             const dx = p.x - this.touchAnchor.x, dy = p.y - this.touchAnchor.y;
@@ -3544,10 +3593,34 @@ class InteriorScene extends Phaser.Scene {
         });
         this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
-        // Touch drag
+        // Touch controls (movement + action buttons)
         this.touchDir = { x: 0, y: 0 };
         this.touchAnchor = null;
-        this.input.on('pointerdown', p => { this.touchAnchor = { x: p.x, y: p.y }; });
+        this.actionBtnZones = [];
+        const W = this.scale.width, H = this.scale.height;
+        const alpha = 0.45;
+        const makeBtnCircle = (label, bx, by, color, cb) => {
+            const bgBtn = this.add.graphics().setScrollFactor(0).setDepth(150).setAlpha(alpha);
+            bgBtn.fillStyle(color); bgBtn.fillCircle(bx, by, 24);
+            this.add.text(bx, by, label, { fontSize: '10px', fill: '#FFF' }).setOrigin(0.5).setScrollFactor(0).setDepth(151);
+            const zone = this.add.zone(bx, by, 48, 48).setInteractive().setScrollFactor(0).setDepth(152);
+            zone.on('pointerdown', cb);
+            this.actionBtnZones.push({ x: bx, y: by, r: 30 });
+        };
+        const modalBlocked = () => this.dialogueActive;
+        makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => {
+            if (!modalBlocked() && this.crowReady) this.interiorCrowStun();
+        });
+        makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => {
+            if (!modalBlocked() && this.nearestNPC) this.showInteriorDialogue(this.nearestNPC);
+        });
+
+        this.input.on('pointerdown', p => {
+            for (const z of this.actionBtnZones) {
+                if (Phaser.Math.Distance.Between(p.x, p.y, z.x, z.y) <= z.r) return;
+            }
+            this.touchAnchor = { x: p.x, y: p.y };
+        });
         this.input.on('pointermove', p => {
             if (!this.touchAnchor || !p.isDown) return;
             const dx = p.x - this.touchAnchor.x, dy = p.y - this.touchAnchor.y;
