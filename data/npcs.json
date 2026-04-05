@@ -372,69 +372,31 @@
     "name": "Hermit Grizzle",
     "mapId": "map1",
     "spawnCond": {
-      "notFlag": "found_hermit_cave"
+      "and": [
+        {
+          "notFlag": "hermit_locked_in_cave"
+        },
+        {
+          "notFlag": "entered_hermit_cave"
+        }
+      ]
     },
     "body": 8943462,
     "hat": 6706500,
     "hatType": "hood",
     "tx": 92,
-    "ty": 5,
+    "ty": 8,
     "dialogues": [
-      {
-        "cond": {
-          "flag": "fairy_blessing"
-        },
-        "lines": [
-          "The fairy blessing! Now you can see through illusions!",
-          "Go to the castle. Confront the false King.",
-          "The truth will be plain as day to your enchanted eyes."
-        ],
-        "giveQuest": "ch8_confront_king"
-      },
-      {
-        "cond": {
-          "flag": "hermit_quest_done"
-        },
-        "lines": [
-          "You've proven yourself capable. Listen carefully.",
-          "The next lead is in the western forest. Seek the Shadowcoat camp.",
-          "Earn their trust and learn where the curse is coming from."
-        ]
-      },
-      {
-        "cond": {
-          "questActive": "ch3_report_hermit"
-        },
-        "lines": [
-          "You've gathered enough eggs. Good.",
-          "Buy a Mountain Pass from the village merchant, then head north to the Wildlands.",
-          "Your next lead is the Shadowcoat camp in the forest."
-        ]
-      },
-      {
-        "cond": {
-          "flag": "met_hermit"
-        },
-        "lines": [
-          "Good. You made it into the cave alive.",
-          "Now collect 10 eggs and return to me. You will need supplies for what comes next."
-        ]
-      },
-      {
-        "cond": {
-          "flag": "princess_gave_key"
-        },
-        "lines": [
-          "The Princess sent you! I have been waiting.",
-          "We cannot talk here. Meet me inside the cave."
-        ],
-        "giveQuest": "ch3_find_hermit"
-      },
       {
         "cond": null,
         "lines": [
-          "I'm a hermit. I prefer to live alone."
-        ]
+          "I'm a hermit. I prefer to be alone.",
+          "I will now lock myself into my cave."
+        ],
+        "action": {
+          "type": "setFlag",
+          "flag": "hermit_locked_in_cave"
+        }
       }
     ]
   },
@@ -471,9 +433,9 @@
           "questActive": "ch3_report_hermit"
         },
         "lines": [
-          "You've gathered enough eggs. Good.",
-          "Buy a Mountain Pass from the village merchant, then head north to the Wildlands.",
-          "Your next lead is the Shadowcoat camp in the forest."
+          "We need to gather allies.",
+          "Lets seek out the Shadowcoat camp in the western forest.",
+          "Maybe even these thiefs and outlaws can be of some help."
         ]
       },
       {
@@ -482,6 +444,7 @@
           "notFlag": "met_hermit"
         },
         "lines": [
+          "You have the key! That means you are sent here by the princess!",
           "Ah, you made it inside! Good.",
           "The rabbit attacks are NOT natural. Someone is controlling them.",
           "I found traces of cursed chocolate near the bunny dens.",
@@ -684,6 +647,18 @@
       },
       {
         "cond": {
+          "questActive": "ch5_gift_1"
+        },
+        "lines": [
+          "*squeak* A big creature! Don't hurt us!",
+          "We are the Pom-poms. Humans think we're fairy tales.",
+          "We are small but... when threatened... we grow. A lot.",
+          "Bring us 20 eggs as a gift and maybe we'll trust you."
+        ],
+        "payQuest": "ch5_gift_1"
+      },
+      {
+        "cond": {
           "flag": "met_pompoms"
         },
         "lines": [
@@ -876,8 +851,8 @@
     "hat": 14535816,
     "hatType": "hood",
     "mapId": "map1",
-    "tx": 120,
-    "ty": 95,
+    "tx": 140,
+    "ty": 75,
     "dialogues": [
       {
         "cond": {
@@ -905,9 +880,10 @@
         },
         "lines": [
           "Excellent work. The trade road is safe again.",
-          "The pyramid entrance is east from here, beyond the split dunes.",
-          "Follow the stone markers and watch for hidden stairs."
-        ]
+          "Take this map. It marks the only safe route through the eastern dunes.",
+          "Head straight east from here to reach the pyramid."
+        ],
+        "giveItem": "nomad_map"
       },
       {
         "cond": {

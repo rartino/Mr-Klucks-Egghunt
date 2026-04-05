@@ -195,6 +195,7 @@ const ITEM_DEFS = {
     ice_crystal:      { name: 'Ice Crystal',         desc: 'A shard of ancient frozen magic',        stackable: true, max: 5 },
     cake_ingredient:  { name: 'Moonberry',           desc: 'A rare berry the baker needs',           stackable: true, max: 3 },
     shadow_map:       { name: 'Shadow Map',          desc: 'Shows the location of the shadow vault', stackable: false },
+    nomad_map:        { name: 'Desert Map',          desc: 'Marks a safe route through the eastern dunes', stackable: false },
     witch_eye:        { name: "Witch's Eye",         desc: 'An enchanted seeing stone',              stackable: false },
     golden_feather:   { name: 'Golden Feather',      desc: 'Proof of heroism recognized by all',     stackable: false },
 };
@@ -244,6 +245,9 @@ const MAP_DEFS = {
         width: 150, height: 150,
         biomeFunc: 'getBiome_map1',
         transitions: [
+            { tx: 149, ty: 73, w: 1, h: 6, toMap: 'map4', toTx: 2, toTy: 40,
+              requires: { item: 'nomad_map', flag: 'pyramid_revealed' },
+              failMessage: 'The eastern dunes are impossible to navigate without a map.' },
             { tx: 75, ty: 0, w: 4, h: 1, toMap: 'map2', toTx: 100, toTy: 198,
               requires: { item: 'mountain_pass' },
               failMessage: 'The mountain gate is locked. You need a Mountain Pass!' },
@@ -266,6 +270,14 @@ const MAP_DEFS = {
         biomeFunc: 'getBiome_map3',
         transitions: [
             { tx: 199, ty: 100, w: 1, h: 4, toMap: 'map2', toTx: 2, toTy: 100 },
+        ],
+    },
+    map4: {
+        id: 'map4', name: 'Eastern Dunes',
+        width: 90, height: 80,
+        biomeFunc: 'getBiome_map4',
+        transitions: [
+            { tx: 0, ty: 38, w: 1, h: 6, toMap: 'map1', toTx: 147, toTy: 75 },
         ],
     },
 };
@@ -337,6 +349,14 @@ function getBiome_map3(tx, ty) {
     if (wy > 130) return bn > 0.4 ? 'swamp' : 'forest';
 
     return 'forest';
+}
+
+function getBiome_map4(tx, ty) {
+    const px = 62, py = 40;
+    if (Math.sqrt((tx - px) ** 2 + (ty - py) ** 2) < 12) return 'desert';
+    const n = fbm(tx * 0.08 + 1200, ty * 0.08 + 1200);
+    if (n < 0.08) return 'hills';
+    return 'desert';
 }
 
 function getBiome(tx, ty) {
@@ -447,7 +467,7 @@ function generateWorld(mapId) {
     const mW = mapDef ? mapDef.width : WORLD_W;
     const mH = mapDef ? mapDef.height : WORLD_H;
     const biomeFuncName = mapDef ? mapDef.biomeFunc : 'getBiome_map1';
-    const biomeFunc = { getBiome_map1, getBiome_map2, getBiome_map3 }[biomeFuncName] || getBiome;
+    const biomeFunc = { getBiome_map1, getBiome_map2, getBiome_map3, getBiome_map4 }[biomeFuncName] || getBiome;
 
     const ground = [], walls = [], biomeMap = [];
     for (let y = 0; y < mH; y++) {
@@ -514,11 +534,6 @@ function generateWorld(mapId) {
             { x: -2, y: -1, w: 4, h: 3, interior: 'hermit_cave',
               requires: { flag: 'found_hermit_cave' }, failMessage: 'The cave is sealed. You need a key.' },
         ]);
-        // Eastern desert pyramid (story-gated reveal)
-        placeBuildings(138, 80, [
-            { x: -6, y: -6, w: 12, h: 12, interior: 'labyrinth_f1',
-              requires: { flag: 'pyramid_revealed' }, failMessage: 'You cannot find a way through the dunes yet.' },
-        ]);
 
         // Castle plaza
         for (let dy = -6; dy <= 5; dy++) {
@@ -567,6 +582,12 @@ function generateWorld(mapId) {
                 if (walls[V1_Y][e] < 0) ground[V1_Y][e] = T_STONE;
                 if (V1_Y + 1 < mH && walls[V1_Y + 1][e] < 0) ground[V1_Y + 1][e] = T_STONE;
             }
+        }
+        // East road toward nomad dunes route (to map4 transition)
+        const eastRoadY = 75;
+        for (let x = 130; x < mW; x++) {
+            if (walls[eastRoadY][x] < 0) ground[eastRoadY][x] = T_DIRT;
+            if (eastRoadY + 1 < mH && walls[eastRoadY + 1][x] < 0) ground[eastRoadY + 1][x] = T_DIRT;
         }
         // Road to castle
         for (let y = CASTLE_Y + 6; y <= V1_Y - 10; y++) {
@@ -681,7 +702,7 @@ function generateWorld(mapId) {
                 }
             }
         }
-        // Pyramid moved to map1 for earlier story pacing.
+        // Pyramid now lives in map4 (Eastern Dunes).
     } else if (mapId === 'map3') {
         // Dark Reaches: fairy glen structures, witch lair
         placeBuildings(60, 80, [
@@ -695,6 +716,17 @@ function generateWorld(mapId) {
         placeBuildings(40, 150, [
             { x: -3, y: -3, w: 6, h: 6, interior: 'witch_lair' },
         ]);
+    } else if (mapId === 'map4') {
+        const pyramidX = 62, pyramidY = 40;
+        placeBuildings(pyramidX, pyramidY, [
+            { x: -6, y: -6, w: 12, h: 12, interior: 'labyrinth_f1' },
+        ]);
+        // Entry path from west edge toward pyramid
+        for (let x = 0; x <= pyramidX - 8; x++) {
+            const y = 40;
+            if (y >= 0 && y < mH && walls[y][x] < 0) ground[y][x] = T_DIRT;
+            if (y + 1 < mH && walls[y + 1][x] < 0) ground[y + 1][x] = T_DIRT;
+        }
     }
 
     // Clear walls on all road/path tiles
@@ -1245,10 +1277,33 @@ class BootScene extends Phaser.Scene {
         const btnY = H - 42;
         const btnZones = [];
 
+        const startFreshGame = () => {
+            this.game.loop.targetFps = 60;
+            // New Game should never resume autosave state.
+            localStorage.removeItem('mrkluckAutosave');
+            this.scene.start('GameScene', {
+                score: 0,
+                lives: 3,
+                totalEggsCollected: 0,
+                goldenEggsCollected: 0,
+                bossesDefeated: {},
+                storyFlags: {},
+                inventory: [],
+                activeQuests: [],
+                completedQuests: {},
+                currentMapId: 'map1',
+                defeatedEnemies: 0,
+                basementVisitTimes: {},
+                wieldedItemId: null,
+                spawnTx: null,
+                spawnTy: null,
+            });
+        };
+
         // New Game button
         const newBtn = this.add.text(W/2, btnY, '[ New Game ]', { ...btnStyle, fill: '#FFD700' })
             .setOrigin(0.5).setInteractive({ useHandCursor: true });
-        newBtn.on('pointerdown', () => { this.game.loop.targetFps = 60; this.scene.start('GameScene'); });
+        newBtn.on('pointerdown', startFreshGame);
         newBtn.on('pointerover', () => newBtn.setStyle({ fill: '#FFFFFF' }));
         newBtn.on('pointerout', () => newBtn.setStyle({ fill: '#FFD700' }));
         btnZones.push(newBtn);
@@ -1283,10 +1338,7 @@ class BootScene extends Phaser.Scene {
         this.game.loop.targetFps = 15;
 
         // SPACE starts new game
-        this.input.keyboard.once('keydown-SPACE', () => {
-            this.game.loop.targetFps = 60;
-            this.scene.start('GameScene');
-        });
+        this.input.keyboard.once('keydown-SPACE', startFreshGame);
     }
 }
 
@@ -1594,9 +1646,10 @@ class GameScene extends Phaser.Scene {
         this.menuBtn = this.add.text(W - 36, 8, '\u2630', {
             fontSize: '22px', fill: '#FFFFFF', backgroundColor: '#00000066', padding: { x: 6, y: 2 },
         }).setScrollFactor(0).setDepth(102).setInteractive({ useHandCursor: true });
-        this.menuBtn.on('pointerdown', () => this.toggleMenu());
+        this.menuBtn.on('pointerdown', () => { if (!this.menuOpen) this.toggleMenu(); });
         this.menuOverlay = null;
         this.menuItems = [];
+        this.menuCloseBtn = null;
     }
 
     toggleMenu() {
@@ -1640,6 +1693,13 @@ class GameScene extends Phaser.Scene {
             btn.on('pointerdown', item.action);
             return btn;
         });
+
+        this.menuCloseBtn = this.add.text(px + panelW - 14, py + 10, 'X', {
+            fontSize: '16px', fontFamily: 'Arial', fill: '#FFAAAA',
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(162).setInteractive({ useHandCursor: true });
+        this.menuCloseBtn.on('pointerover', () => this.menuCloseBtn.setStyle({ fill: '#FFFFFF' }));
+        this.menuCloseBtn.on('pointerout', () => this.menuCloseBtn.setStyle({ fill: '#FFAAAA' }));
+        this.menuCloseBtn.on('pointerdown', () => this.closeMenu());
     }
 
     closeMenu() {
@@ -1648,6 +1708,7 @@ class GameScene extends Phaser.Scene {
         if (this.menuOverlay) { this.menuOverlay.destroy(); this.menuOverlay = null; }
         this.menuItems.forEach(t => t.destroy());
         this.menuItems = [];
+        if (this.menuCloseBtn) { this.menuCloseBtn.destroy(); this.menuCloseBtn = null; }
     }
 
     createHeartDisplay() {
@@ -1737,11 +1798,7 @@ class GameScene extends Phaser.Scene {
         }
 
         // ESC toggles menu (works even when paused)
-        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
-            if (this.questLogOpen) { this.toggleQuestLog(); }
-            else if (this.inventoryOpen) { this.toggleInventory(); }
-            else { this.toggleMenu(); }
-        }
+        if (Phaser.Input.Keyboard.JustDown(this.escKey) && !this.questLogOpen && !this.inventoryOpen && !this.menuOpen) this.toggleMenu();
 
         if (this.paused) return;
 
@@ -1769,6 +1826,10 @@ class GameScene extends Phaser.Scene {
 
     handleInput() {
         if (this.isDashing) return;
+        if (this.inventoryOpen || this.questLogOpen) {
+            this.player.setVelocity(0, 0);
+            return;
+        }
 
         const left  = this.cursors.left.isDown  || this.wasd.left.isDown;
         const right = this.cursors.right.isDown || this.wasd.right.isDown;
@@ -1809,10 +1870,10 @@ class GameScene extends Phaser.Scene {
         if (Phaser.Input.Keyboard.JustDown(this.crowKey)) this.useCrowPower();
         if (Phaser.Input.Keyboard.JustDown(this.dashKey)) this.useDash();
         if (Phaser.Input.Keyboard.JustDown(this.interactKey) && this.nearestNPC) this.showDialogue(this.nearestNPC);
-        if (Phaser.Input.Keyboard.JustDown(this.inventoryKey)) this.toggleInventory();
+        if (Phaser.Input.Keyboard.JustDown(this.inventoryKey) && !this.inventoryOpen) this.toggleInventory();
         if (Phaser.Input.Keyboard.JustDown(this.useItemKey)) this.useSelectedItem();
         if (Phaser.Input.Keyboard.JustDown(this.saveKey)) this.saveGame();
-        if (Phaser.Input.Keyboard.JustDown(this.questLogKey)) this.toggleQuestLog();
+        if (Phaser.Input.Keyboard.JustDown(this.questLogKey) && !this.questLogOpen) this.toggleQuestLog();
     }
 
     updateBunnies(delta) {
@@ -2108,6 +2169,11 @@ class GameScene extends Phaser.Scene {
                 return true;
             });
         }
+
+        if (def && def.id === 'hermit_outside' && this.storyFlags.hermit_locked_in_cave && this.dialogueNPC) {
+            this.npcs = this.npcs.filter(n => n !== this.dialogueNPC);
+            this.dialogueNPC.destroy();
+        }
     }
 
     executeAction(action) {
@@ -2205,13 +2271,10 @@ class GameScene extends Phaser.Scene {
         const panelW = 220, panelH = 280;
         const px = W / 2 - panelW / 2, py = H / 2 - panelH / 2;
 
-        // Shared modal backdrop — catches clicks outside any open panel
+        // Shared modal backdrop — blocks world input behind open panels
         this.modalBackdrop = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.01)
             .setScrollFactor(0).setDepth(140).setVisible(false).setInteractive();
-        this.modalBackdrop.on('pointerdown', () => {
-            if (this.inventoryOpen) this.toggleInventory();
-            if (this.questLogOpen) this.toggleQuestLog();
-        });
+        this.modalBackdrop.on('pointerdown', () => {});
 
         this.invPanel = this.add.graphics().setScrollFactor(0).setDepth(210).setVisible(false);
         this.invPanel.fillStyle(0x111122, 0.95);
@@ -2222,6 +2285,13 @@ class GameScene extends Phaser.Scene {
         this.invTitle = this.add.text(W / 2, py + 14, 'Inventory [I]', {
             fontSize: '16px', fontFamily: 'Georgia, serif', fill: '#FFD700',
         }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(211).setVisible(false);
+
+        this.invCloseBtn = this.add.text(px + panelW - 14, py + 12, 'X', {
+            fontSize: '16px', fontFamily: 'Arial', fill: '#FFAAAA',
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(212).setVisible(false).setInteractive({ useHandCursor: true });
+        this.invCloseBtn.on('pointerover', () => this.invCloseBtn.setStyle({ fill: '#FFFFFF' }));
+        this.invCloseBtn.on('pointerout', () => this.invCloseBtn.setStyle({ fill: '#FFAAAA' }));
+        this.invCloseBtn.on('pointerdown', () => { if (this.inventoryOpen) this.toggleInventory(); });
 
         this.invSlots = [];
         for (let i = 0; i < 10; i++) {
@@ -2234,7 +2304,6 @@ class GameScene extends Phaser.Scene {
                     this.selectedItem = i;
                     this.wieldedItemId = item.itemId;
                     this.refreshInventoryDisplay();
-                    this.toggleInventory();
                 }
             });
             this.invSlots.push(slot);
@@ -2249,6 +2318,7 @@ class GameScene extends Phaser.Scene {
         this.inventoryOpen = !this.inventoryOpen;
         this.invPanel.setVisible(this.inventoryOpen);
         this.invTitle.setVisible(this.inventoryOpen);
+        this.invCloseBtn.setVisible(this.inventoryOpen);
         this.invHint.setVisible(this.inventoryOpen);
         if (this.inventoryOpen) {
             this.refreshInventoryDisplay();
@@ -2264,6 +2334,7 @@ class GameScene extends Phaser.Scene {
             this.questLogOpen = false;
             if (this.questLogPanel) this.questLogPanel.setVisible(false);
             if (this.questLogTitle) this.questLogTitle.setVisible(false);
+            if (this.questLogCloseBtn) this.questLogCloseBtn.setVisible(false);
             this.questLogTexts.forEach(t => t.setVisible(false));
             if (!this.inventoryOpen) this.modalBackdrop.setVisible(false);
             return;
@@ -2278,6 +2349,12 @@ class GameScene extends Phaser.Scene {
             this.questLogTitle = this.add.text(W / 2, py + 12, 'Quest Log (Q)', {
                 fontSize: '16px', fill: '#FFD700', fontFamily: 'Georgia, serif',
             }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(151);
+            this.questLogCloseBtn = this.add.text(px + panelW - 14, py + 12, 'X', {
+                fontSize: '16px', fontFamily: 'Arial', fill: '#FFAAAA',
+            }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(152).setVisible(false).setInteractive({ useHandCursor: true });
+            this.questLogCloseBtn.on('pointerover', () => this.questLogCloseBtn.setStyle({ fill: '#FFFFFF' }));
+            this.questLogCloseBtn.on('pointerout', () => this.questLogCloseBtn.setStyle({ fill: '#FFAAAA' }));
+            this.questLogCloseBtn.on('pointerdown', () => { if (this.questLogOpen) this.toggleQuestLog(); });
             this.questLogTexts = [];
             for (let i = 0; i < 10; i++) {
                 const t = this.add.text(px + 14, py + 40 + i * 20, '', {
@@ -2293,6 +2370,7 @@ class GameScene extends Phaser.Scene {
         this.questLogPanel.strokeRoundedRect(px, py, panelW, panelH, 12);
         this.questLogPanel.setVisible(true);
         this.questLogTitle.setVisible(true);
+        this.questLogCloseBtn.setVisible(true);
         this.questLogTexts.forEach((t, i) => {
             if (i < this.activeQuests.length) {
                 const q = this.activeQuests[i];
@@ -2804,11 +2882,18 @@ class GameScene extends Phaser.Scene {
             this.add.text(W/2, H/2+30, `All ${lostEggs} of your eggs were scattered and lost!`, { fontSize: '14px', fill: '#FF8888' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
         }
 
-        const tap = this.add.text(W/2, H/2+80, 'Tap to wake up', { fontSize: '16px', fill: '#AAA' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+        const tap = this.add.text(W/2, H/2+80, 'Recovering... (3)', { fontSize: '16px', fill: '#AAA' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
         this.tweens.add({ targets: tap, alpha: 0, yoyo: true, repeat: -1, duration: 700 });
 
-        this.time.delayedCall(1500, () => {
+        this.time.delayedCall(1000, () => tap.setText('Recovering... (2)'));
+        this.time.delayedCall(2000, () => tap.setText('Recovering... (1)'));
+
+        this.time.delayedCall(3000, () => {
+            tap.setText('Tap to wake up');
+            let respawnTriggered = false;
             const respawn = () => {
+                if (respawnTriggered) return;
+                respawnTriggered = true;
                 // Reset egg progress on quests
                 const resetQuests = this.activeQuests.map(q => {
                     const out = { ...q };
@@ -2835,7 +2920,7 @@ class GameScene extends Phaser.Scene {
                 });
             };
             this.input.keyboard.once('keydown', respawn);
-            this.input.once('pointerdown', respawn);
+            this.input.once('pointerup', respawn);
         });
     }
 
@@ -2993,6 +3078,9 @@ class GameScene extends Phaser.Scene {
     }
 
     enterInterior(inter) {
+        if (inter && inter.interiorId === 'hermit_cave') {
+            this.storyFlags.entered_hermit_cave = true;
+        }
         this.autoSave();
         this.scene.pause();
         this.scene.launch('InteriorScene', {
@@ -3429,8 +3517,21 @@ class InteriorScene extends Phaser.Scene {
         const ground = map.createBlankLayer('iground', tileset);
         const walls = map.createBlankLayer('iwalls', tileset);
 
+        const toOdd = (n) => (n % 2 === 0 ? Math.max(1, n - 1) : n);
+        let sx = Math.floor(mapW / 2);
+        let sy = mapH - 2;
         if (cfg.generated) {
-            this.generateMaze(ground, walls, mapW, mapH, cfg);
+            sx = toOdd(sx);
+            sy = toOdd(sy);
+        }
+        let nx = null, ny = null;
+        if (cfg.nextFloor) {
+            nx = toOdd(Math.floor(mapW / 2));
+            ny = 1;
+        }
+
+        if (cfg.generated) {
+            this.generateMaze(ground, walls, mapW, mapH, cfg, sx, sy, nx, ny);
         } else {
             for (let y = 0; y < mapH; y++) {
                 for (let x = 0; x < mapW; x++) {
@@ -3442,16 +3543,17 @@ class InteriorScene extends Phaser.Scene {
             }
         }
 
-        // Exit stairs at bottom center
-        const sx = Math.floor(mapW / 2), sy = mapH - 2;
+        // Exit stairs
         ground.putTileAt(T_STAIRS, sx, sy);
         walls.putTileAt(-1, sx, sy); // ensure no wall on stairs
+        if (sy - 1 > 0) walls.putTileAt(-1, sx, sy - 1);
+        if (sy - 2 > 0) walls.putTileAt(-1, sx, sy - 2);
 
         // Next floor stairs (for labyrinth)
         if (cfg.nextFloor) {
-            const nx = Math.floor(mapW / 2), ny = 1;
             ground.putTileAt(T_STAIRS, nx, ny);
             walls.putTileAt(-1, nx, ny);
+            if (ny + 1 < mapH - 1) walls.putTileAt(-1, nx, ny + 1);
             this.nextFloorX = nx;
             this.nextFloorY = ny;
         }
@@ -3475,7 +3577,8 @@ class InteriorScene extends Phaser.Scene {
         bg.setDepth(-1);
 
         // Player
-        this.player = this.physics.add.sprite(sx * TILE + TILE / 2, (sy - 1) * TILE + TILE / 2, 'player');
+        const spawnTy = Math.max(1, sy - 1);
+        this.player = this.physics.add.sprite(sx * TILE + TILE / 2, spawnTy * TILE + TILE / 2, 'player');
         this.player.body.setSize(16, 16);
         this.player.body.setOffset(10, 14);
         this.player.setCollideWorldBounds(true);
@@ -3489,10 +3592,35 @@ class InteriorScene extends Phaser.Scene {
 
         // Eggs
         this.eggGroup = this.physics.add.staticGroup();
+        const occupiedTiles = new Set();
+        const tileKey = (tx, ty) => `${tx},${ty}`;
+        const isOpenTile = (tx, ty) => tx > 0 && ty > 0 && tx < mapW - 1 && ty < mapH - 1 && !walls.getTileAt(tx, ty);
+        const findOpenTile = () => {
+            for (let tries = 0; tries < 600; tries++) {
+                const tx = Phaser.Math.Between(2, mapW - 3);
+                const ty = Phaser.Math.Between(2, mapH - 3);
+                const k = tileKey(tx, ty);
+                if (isOpenTile(tx, ty) && !occupiedTiles.has(k)) return { tx, ty };
+            }
+            for (let ty = 1; ty < mapH - 1; ty++) {
+                for (let tx = 1; tx < mapW - 1; tx++) {
+                    const k = tileKey(tx, ty);
+                    if (isOpenTile(tx, ty) && !occupiedTiles.has(k)) return { tx, ty };
+                }
+            }
+            return null;
+        };
+        occupiedTiles.add(tileKey(sx, sy));
+        occupiedTiles.add(tileKey(sx, spawnTy));
+        if (cfg.nextFloor) occupiedTiles.add(tileKey(nx, ny));
+
         const eggCount = cfg.eggs || 0;
         for (let i = 0; i < eggCount; i++) {
-            const ex = Phaser.Math.Between(2, mapW - 3) * TILE + TILE / 2;
-            const ey = Phaser.Math.Between(2, mapH - 3) * TILE + TILE / 2;
+            const tile = findOpenTile();
+            if (!tile) continue;
+            occupiedTiles.add(tileKey(tile.tx, tile.ty));
+            const ex = tile.tx * TILE + TILE / 2;
+            const ey = tile.ty * TILE + TILE / 2;
             const ci = i % EGG_COLORS.length;
             const isGolden = i === 0 && eggCount > 3;
             const egg = this.eggGroup.create(ex, ey, isGolden ? 'goldenegg' : 'egg' + ci);
@@ -3507,8 +3635,10 @@ class InteriorScene extends Phaser.Scene {
         if (cfg.findItem) {
             const itemDef = ITEM_DEFS[cfg.findItem];
             if (itemDef) {
-                const ix = Phaser.Math.Between(3, mapW - 4) * TILE + TILE / 2;
-                const iy = Phaser.Math.Between(3, mapH - 4) * TILE + TILE / 2;
+                const tile = findOpenTile();
+                const ix = tile ? (tile.tx * TILE + TILE / 2) : (sx * TILE + TILE / 2);
+                const iy = tile ? (tile.ty * TILE + TILE / 2) : ((sy - 2) * TILE + TILE / 2);
+                if (tile) occupiedTiles.add(tileKey(tile.tx, tile.ty));
                 this.specialItem = this.physics.add.staticImage(ix, iy, 'goldenegg');
                 this.specialItem.setTint(0xFF00FF);
                 this.specialItem.setDepth(6);
@@ -3543,6 +3673,7 @@ class InteriorScene extends Phaser.Scene {
                     ey = Phaser.Math.Between(2, mapH - 3);
                     attempts++;
                 } while (attempts < 200 && walls.getTileAt(ex, ey));
+                if (walls.getTileAt(ex, ey)) continue;
                 const bx = ex * TILE + TILE / 2, by = ey * TILE + TILE / 2;
                 const enemy = this.enemyGroup.create(bx, by, 'cursed_rabbit');
                 enemy.setCollideWorldBounds(true);
@@ -3554,8 +3685,9 @@ class InteriorScene extends Phaser.Scene {
             }
             // Boss on final labyrinth floor
             if (cfg.hasBoss) {
-                const bossX = Math.floor(mapW / 2) * TILE + TILE / 2;
-                const bossY = 3 * TILE + TILE / 2;
+                const bossTile = findOpenTile() || { tx: sx, ty: 3 };
+                const bossX = bossTile.tx * TILE + TILE / 2;
+                const bossY = bossTile.ty * TILE + TILE / 2;
                 const boss = this.enemyGroup.create(bossX, bossY, 'boss_bunny');
                 boss.setCollideWorldBounds(true);
                 boss.setData('speed', 90);
@@ -3689,7 +3821,7 @@ class InteriorScene extends Phaser.Scene {
         });
     }
 
-    generateMaze(ground, walls, w, h, cfg) {
+    generateMaze(ground, walls, w, h, cfg, exitX, exitY, nextX, nextY) {
         // Fill everything with walls first
         for (let y = 0; y < h; y++) {
             for (let x = 0; x < w; x++) {
@@ -3713,9 +3845,26 @@ class InteriorScene extends Phaser.Scene {
             }
         };
         carve(1, 1);
-        // Ensure exit and entrance are clear
-        walls.putTileAt(-1, Math.floor(w / 2), h - 2);
-        walls.putTileAt(-1, Math.floor(w / 2), 1);
+        const carvePath = (x0, y0, x1, y1) => {
+            let x = x0, y = y0;
+            while (x !== x1) {
+                x += x < x1 ? 1 : -1;
+                walls.putTileAt(-1, x, y);
+            }
+            while (y !== y1) {
+                y += y < y1 ? 1 : -1;
+                walls.putTileAt(-1, x, y);
+            }
+        };
+        // Ensure stairs and routes are always reachable.
+        if (typeof exitX === 'number' && typeof exitY === 'number') {
+            walls.putTileAt(-1, exitX, exitY);
+            carvePath(1, 1, exitX, exitY);
+        }
+        if (typeof nextX === 'number' && typeof nextY === 'number') {
+            walls.putTileAt(-1, nextX, nextY);
+            carvePath(1, 1, nextX, nextY);
+        }
     }
 
     update() {

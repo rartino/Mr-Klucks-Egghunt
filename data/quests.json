@@ -253,10 +253,10 @@
     "desc": "Find the hidden pyramid entrance in the far eastern desert",
     "type": "explore_area",
     "target": {
-      "tx": 138,
-      "ty": 80,
+      "tx": 62,
+      "ty": 40,
       "radius": 8,
-      "mapId": "map1"
+      "mapId": "map4"
     },
     "reward": {
       "type": "flag",

@@ -6,6 +6,8 @@
   "met_king": false,
   "princess_gave_key": false,
   "found_hermit_cave": false,
+  "hermit_locked_in_cave": false,
+  "entered_hermit_cave": false,
   "met_hermit": false,
   "hermit_quest_done": false,
   "mountain_pass_bought": false,
