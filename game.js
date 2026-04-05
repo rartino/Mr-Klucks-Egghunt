@@ -622,6 +622,7 @@ const V1_BUILDINGS = [
     { x:  3, y:  3, w: 5, h: 4                   },
     { x: -3, y: -9, w: 3, h: 3                   },
     { x:  5, y: -1, w: 3, h: 3                   },
+    { x:  7, y:  2, w: 4, h: 3                   },  // Hospital
 ];
 const V2_BUILDINGS = [
     { x: -4, y: -4, w: 4, h: 3, basement: true  },
@@ -1521,6 +1522,19 @@ const NPC_DEFS = [
                        "Unite the factions first. Then return."] },
         ],
     },
+    // ==================== HOSPITAL ====================
+    {
+        id: 'nurse', name: 'Nurse Henwing',
+        body: 0xEEEEEE, hat: 0xFF6666, hatType: 'cap',
+        tx: V1_X + 9, ty: V1_Y + 3,
+        dialogues: [
+            { cond: null,
+              lines: ["Welcome to Cluckshire Hospital!",
+                       "If those bunnies knock you out, don't worry.",
+                       "We'll patch you up and send you on your way!",
+                       "Though... you will lose any eggs you were carrying."] },
+        ],
+    },
 ];
 
 
@@ -1957,7 +1971,7 @@ class BootScene extends Phaser.Scene {
         this.add.text(W/2, 320, [
             'WASD/Arrows: Move   |   E: Talk to NPCs',
             'SPACE: Crow Stun    |   SHIFT: Dash',
-            'I: Inventory  |  Q: Quest Log  |  F5: Save',
+            'I: Inventory  |  Q: Quest Log  |  ESC: Menu',
         ].join('\n'), {
             fontSize: '12px', fontFamily: 'Arial', fill: '#88DDAA', align: 'center', lineSpacing: 3,
         }).setOrigin(0.5);
@@ -2233,6 +2247,7 @@ class GameScene extends Phaser.Scene {
         this.useItemKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.U);
         this.saveKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F5);
         this.questLogKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
         this.setupTouchControls();
 
@@ -2274,6 +2289,66 @@ class GameScene extends Phaser.Scene {
 
         // Quest panel
         this.questText = this.add.text(8, 44, '', { fontSize: '11px', fill: '#AADDFF', lineSpacing: 2 }).setScrollFactor(0).setDepth(101);
+
+        // Menu button (top-right)
+        this.menuOpen = false;
+        this.menuBtn = this.add.text(W - 36, 8, '\u2630', {
+            fontSize: '22px', fill: '#FFFFFF', backgroundColor: '#00000066', padding: { x: 6, y: 2 },
+        }).setScrollFactor(0).setDepth(102).setInteractive({ useHandCursor: true });
+        this.menuBtn.on('pointerdown', () => this.toggleMenu());
+        this.menuOverlay = null;
+        this.menuItems = [];
+    }
+
+    toggleMenu() {
+        if (this.menuOpen) {
+            this.closeMenu();
+            return;
+        }
+        this.menuOpen = true;
+        this.paused = true;
+        this.player.setVelocity(0, 0);
+
+        const W = this.scale.width, H = this.scale.height;
+        const panelW = 200, panelH = 210;
+        const px = W - panelW - 8, py = 38;
+
+        this.menuOverlay = this.add.graphics().setScrollFactor(0).setDepth(160);
+        this.menuOverlay.fillStyle(0x111122, 0.94);
+        this.menuOverlay.fillRoundedRect(px, py, panelW, panelH, 10);
+        this.menuOverlay.lineStyle(2, 0x4466AA, 0.8);
+        this.menuOverlay.strokeRoundedRect(px, py, panelW, panelH, 10);
+
+        const items = [
+            { label: 'Save Game', action: () => { this.saveGame(); this.closeMenu(); } },
+            { label: 'Load Game', action: () => {
+                const save = localStorage.getItem('mrkluckSave');
+                if (save) { this.scene.start('GameScene', JSON.parse(save)); }
+                else { this.showFloatingText(this.player.x, this.player.y - 20, 'No save found!', '#FF6666'); this.closeMenu(); }
+            }},
+            { label: 'Quest Log (Q)', action: () => { this.closeMenu(); this.toggleQuestLog(); } },
+            { label: 'Inventory (I)', action: () => { this.closeMenu(); this.toggleInventory(); } },
+            { label: 'Quit to Title', action: () => { this.scene.start('BootScene'); } },
+        ];
+
+        this.menuItems = items.map((item, i) => {
+            const btn = this.add.text(px + panelW / 2, py + 25 + i * 36, item.label, {
+                fontSize: '16px', fill: '#EEEEEE', fontFamily: 'Arial',
+                backgroundColor: '#334466', padding: { x: 14, y: 6 },
+            }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(161).setInteractive({ useHandCursor: true });
+            btn.on('pointerover', () => btn.setStyle({ fill: '#FFD700' }));
+            btn.on('pointerout', () => btn.setStyle({ fill: '#EEEEEE' }));
+            btn.on('pointerdown', item.action);
+            return btn;
+        });
+    }
+
+    closeMenu() {
+        this.menuOpen = false;
+        this.paused = false;
+        if (this.menuOverlay) { this.menuOverlay.destroy(); this.menuOverlay = null; }
+        this.menuItems.forEach(t => t.destroy());
+        this.menuItems = [];
     }
 
     createHeartDisplay() {
@@ -2281,7 +2356,7 @@ class GameScene extends Phaser.Scene {
         this.heartImages = [];
         const W = this.scale.width;
         for (let i = 0; i < this.lives; i++) {
-            const h = this.add.image(W - 14 - i * 22, 20, 'heart').setScrollFactor(0).setDepth(101).setScale(0.6);
+            const h = this.add.image(W - 50 - i * 22, 20, 'heart').setScrollFactor(0).setDepth(101).setScale(0.6);
             this.heartImages.push(h);
         }
     }
@@ -2360,6 +2435,13 @@ class GameScene extends Phaser.Scene {
                 this.advanceDialogue();
             }
             return;
+        }
+
+        // ESC toggles menu (works even when paused)
+        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            if (this.questLogOpen) { this.toggleQuestLog(); }
+            else if (this.inventoryOpen) { this.toggleInventory(); }
+            else { this.toggleMenu(); }
         }
 
         if (this.paused) return;
@@ -3322,6 +3404,7 @@ class GameScene extends Phaser.Scene {
         this.player.setVelocity(0, 0);
         this.bunnyGroup.getChildren().forEach(b => b.setVelocity(0, 0));
 
+        // Record high score
         const stored = localStorage.getItem('mrkluckLeaderboard');
         let lb = stored ? JSON.parse(stored) : [];
         lb.push({ name: 'MRK', score: this.score, level: this.totalEggsCollected + ' eggs' });
@@ -3329,24 +3412,44 @@ class GameScene extends Phaser.Scene {
         lb = lb.slice(0, 5);
         localStorage.setItem('mrkluckLeaderboard', JSON.stringify(lb));
 
+        const lostEggs = this.score;
+
         const W = this.scale.width, H = this.scale.height;
         const ov = this.add.graphics().setScrollFactor(0).setDepth(200);
         ov.fillStyle(0x000000, 0.75); ov.fillRect(0, 0, W, H);
 
-        this.add.text(W/2, H/2-90, 'GAME OVER', {
-            fontSize: '44px', fontFamily: 'Georgia, serif', fill: '#FF3333', stroke: '#000', strokeThickness: 6,
+        this.add.text(W/2, H/2-90, 'YOU ARE UNCONSCIOUS', {
+            fontSize: '32px', fontFamily: 'Georgia, serif', fill: '#FF6644', stroke: '#000', strokeThickness: 5,
         }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
-        this.add.text(W/2, H/2-30, 'The bunnies caught you!', { fontSize: '18px', fill: '#FFFFCC' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
-        this.add.text(W/2, H/2+10, `Final Score: ${this.score}`, { fontSize: '24px', fill: '#FFD700' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
-        this.add.text(W/2, H/2+50, `Eggs Collected: ${this.totalEggsCollected}`, { fontSize: '18px', fill: '#FFF' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+        this.add.text(W/2, H/2-40, 'The bunnies got you...', { fontSize: '18px', fill: '#FFFFCC' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+        this.add.text(W/2, H/2, 'A kind villager carries you to the hospital.', { fontSize: '14px', fill: '#AADDAA' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+        if (lostEggs > 0) {
+            this.add.text(W/2, H/2+30, `Your ${lostEggs} eggs were scattered and lost...`, { fontSize: '14px', fill: '#FF8888' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+        }
 
-        const tap = this.add.text(W/2, H/2+110, 'Tap to return to menu', { fontSize: '16px', fill: '#AAA' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+        const tap = this.add.text(W/2, H/2+80, 'Tap to wake up', { fontSize: '16px', fill: '#AAA' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
         this.tweens.add({ targets: tap, alpha: 0, yoyo: true, repeat: -1, duration: 700 });
 
-        this.time.delayedCall(1000, () => {
-            const go = () => this.scene.start('BootScene');
-            this.input.keyboard.once('keydown', go);
-            this.input.once('pointerdown', go);
+        this.time.delayedCall(1500, () => {
+            const respawn = () => {
+                this.scene.start('GameScene', {
+                    score: 0,
+                    lives: 3,
+                    totalEggsCollected: this.totalEggsCollected,
+                    goldenEggsCollected: this.goldenEggsCollected,
+                    bossesDefeated: this.bossesDefeated,
+                    storyFlags: this.storyFlags,
+                    inventory: this.inventory,
+                    activeQuests: this.activeQuests,
+                    completedQuests: this.completedQuests,
+                    currentMapId: 'map1',
+                    defeatedEnemies: this.defeatedEnemies,
+                    spawnTx: V1_X + 9,
+                    spawnTy: V1_Y + 5,
+                });
+            };
+            this.input.keyboard.once('keydown', respawn);
+            this.input.once('pointerdown', respawn);
         });
     }
 
@@ -3581,7 +3684,7 @@ class GameScene extends Phaser.Scene {
         const pauseBtn = this.add.text(W / 2 - 55, 24, '|| Pause', {
             fontSize: '11px', fill: '#FFF', backgroundColor: '#222', padding: { x: 3, y: 1 },
         }).setScrollFactor(0).setDepth(101).setInteractive();
-        pauseBtn.on('pointerdown', () => this.togglePause());
+        pauseBtn.on('pointerdown', () => this.toggleMenu());
         this.actionBtnZones.push({ x: W / 2 - 55 + 25, y: 24 + 8, r: 35 });
 
         // Drag-to-move: finger down anywhere (except action buttons) sets anchor
