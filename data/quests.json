@@ -31,12 +31,19 @@
   },
   "ch3_find_hermit": {
     "id": "ch3_find_hermit",
-    "desc": "Find the Hermit's cave",
-    "type": "explore_area",
-    "target": { "tx": 92, "ty": 8, "radius": 3 },
-    "requireItem": "hermit_key",
-    "reward": { "type": "flag", "flag": "found_hermit_cave" },
-    "nextQuest": "ch3_hermit_task"
+    "desc": "Use the Hermit's Key at the cave door",
+    "type": "use_item",
+    "target": {
+      "item": "hermit_key",
+      "location": { "tx": 91, "ty": 8, "radius": 2 }
+    },
+    "reward": {
+      "type": "multi",
+      "effects": [
+        { "type": "flag", "flag": "found_hermit_cave" },
+        { "type": "removeItem", "item": "hermit_key" }
+      ]
+    }
   },
   "ch3_hermit_task": {
     "id": "ch3_hermit_task",

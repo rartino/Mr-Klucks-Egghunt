@@ -398,8 +398,8 @@
           "flag": "met_hermit"
         },
         "lines": [
-          "The Wildlands await you, rooster. Buy a Mountain Pass first.",
-          "The merchant in the village sells them. Head north after that."
+          "Good. You made it into the cave alive.",
+          "Now collect 10 eggs and return to me. You will need supplies for what comes next."
         ]
       },
       {
@@ -409,7 +409,8 @@
         "lines": [
           "The Princess sent you! I have been waiting.",
           "We cannot talk here. Meet me inside the cave."
-        ]
+        ],
+        "giveQuest": "ch3_find_hermit"
       },
       {
         "cond": null,
@@ -456,7 +457,8 @@
       },
       {
         "cond": {
-          "flag": "found_hermit_cave"
+          "flag": "found_hermit_cave",
+          "notFlag": "met_hermit"
         },
         "lines": [
           "Ah, you made it inside! Good.",
@@ -468,7 +470,17 @@
         "action": {
           "type": "setFlag",
           "flag": "met_hermit"
-        }
+        },
+        "giveQuest": "ch3_hermit_task"
+      },
+      {
+        "cond": {
+          "flag": "met_hermit"
+        },
+        "lines": [
+          "Collect 10 eggs, then return to me.",
+          "Once you prove you can survive out there, I will tell you where to go next."
+        ]
       },
       {
         "cond": null,

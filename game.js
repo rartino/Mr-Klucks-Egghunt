@@ -505,7 +505,7 @@ function generateWorld(mapId) {
         // Hermit cave
         placeBuildings(HERMIT_X, HERMIT_Y, [
             { x: -2, y: -1, w: 4, h: 3, interior: 'hermit_cave',
-              requires: { item: 'hermit_key' }, failMessage: 'The cave is sealed. You need a key.' },
+              requires: { flag: 'found_hermit_cave' }, failMessage: 'The cave is sealed. You need a key.' },
         ]);
 
         // Castle plaza
@@ -1297,10 +1297,14 @@ class GameScene extends Phaser.Scene {
         this.totalEggsCollected = (data && data.totalEggsCollected) || 0;
         this.goldenEggsCollected = (data && data.goldenEggsCollected) || 0;
         this.bossesDefeated = (data && data.bossesDefeated) || {};
-        this.storyFlags = (data && data.storyFlags) || JSON.parse(JSON.stringify(STORY_FLAGS_DEFAULT));
+        const defaultFlags = JSON.parse(JSON.stringify(STORY_FLAGS_DEFAULT));
+        this.storyFlags = { ...defaultFlags, ...((data && data.storyFlags) || {}) };
         this.inventory = (data && data.inventory) || [];
-        this.activeQuests = (data && data.activeQuests) || [];
         this.completedQuests = (data && data.completedQuests) || {};
+        const savedActiveQuests = (data && data.activeQuests) || [];
+        this.activeQuests = savedActiveQuests
+            .map(q => (q && q.id && QUEST_DEFS[q.id]) ? { ...QUEST_DEFS[q.id] } : q)
+            .filter(q => q && !this.completedQuests[q.id]);
         this.currentMapId = (data && data.currentMapId) || 'map1';
         this.defeatedEnemies = (data && data.defeatedEnemies) || 0;
 
@@ -2291,6 +2295,21 @@ class GameScene extends Phaser.Scene {
             return true;
         });
 
+        // Fallback for legacy saves: allow Hermit's Key to unlock cave even if quest state is stale.
+        if (!used && item.itemId === 'hermit_key' && !this.storyFlags.found_hermit_cave) {
+            const hermitDoorTx = HERMIT_X - 1;
+            const hermitDoorTy = HERMIT_Y;
+            const dx = ptx - hermitDoorTx;
+            const dy = pty - hermitDoorTy;
+            if (Math.sqrt(dx * dx + dy * dy) <= 2) {
+                this.storyFlags.found_hermit_cave = true;
+                this.removeItem('hermit_key', 1);
+                this.completedQuests.ch3_find_hermit = true;
+                this.activeQuests = this.activeQuests.filter(q => q.id !== 'ch3_find_hermit');
+                used = true;
+            }
+        }
+
         if (used) {
             this.showFloatingText(this.player.x, this.player.y - 20, `Used: ${ITEM_DEFS[item.itemId].name}`, '#88FF88');
             if (this.inventoryOpen) this.refreshInventoryDisplay();
@@ -2852,8 +2871,12 @@ class GameScene extends Phaser.Scene {
                         return;
                     }
                     if (inter.requires.flag && !this.storyFlags[inter.requires.flag]) {
+                        const isHermitCaveLocked = inter.interiorId === 'hermit_cave' && inter.requires.flag === 'found_hermit_cave';
+                        const msg = isHermitCaveLocked && this.hasItem('hermit_key')
+                            ? "The cave is sealed. Use Hermit's Key (U) by the door."
+                            : (inter.failMessage || 'Blocked!');
                         this.showFloatingText(this.player.x, this.player.y - 20,
-                            inter.failMessage || 'Blocked!', '#FFAA66');
+                            msg, '#FFAA66');
                         this.player.y += TILE;
                         this.basementCooldown = true;
                         this.time.delayedCall(1500, () => { this.basementCooldown = false; });
