@@ -252,15 +252,15 @@ const QUEST_DEFS = {
     ch4_shadow_task: {
         id: 'ch4_shadow_task', desc: 'Defeat 8 bunnies near the forest camp',
         type: 'defeat_n', target: { type: 'any', count: 8 },
-        reward: { type: 'multi', effects: [
-            { type: 'flag', flag: 'shadowcoat_task_done' },
-            { type: 'giveItem', item: 'shadowcoat_badge' },
-        ]},
+        reward: { type: 'flag', flag: 'shadowcoat_task_done' },
     },
     ch4_shadow_alliance: {
         id: 'ch4_shadow_alliance', desc: 'Return to Shadow Vex with proof',
         type: 'talk_to', target: 'shadow_vex',
-        reward: { type: 'flag', flag: 'shadowcoat_alliance' },
+        reward: { type: 'multi', effects: [
+            { type: 'flag', flag: 'shadowcoat_alliance' },
+            { type: 'giveItem', item: 'shadowcoat_badge' },
+        ]},
     },
 
     // --- Chapter 5: Pom-pom Trust ---
