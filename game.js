@@ -632,7 +632,7 @@ const V2_BUILDINGS = [
 // Castle — larger stone buildings near CASTLE_X, CASTLE_Y
 const CASTLE_BUILDINGS = [
     { x: -5, y: -4, w: 10, h: 8, interior: 'castle_throne' },  // Main hall (throne room)
-    { x: -7, y: -2, w: 3, h: 4, interior: 'jail_cells'     },  // Left tower (dungeon)
+    { x: -7, y: -2, w: 3, h: 4, interior: 'jail_cells', requires: { item: 'jail_key' }, failMessage: 'The heavy iron door is locked tight. You hear faint scratching from below...' },
     { x:  5, y: -2, w: 3, h: 4                              },  // Right tower
 ];
 // Shadowcoat camp — small structures
@@ -691,7 +691,10 @@ function generateWorld(mapId) {
                 if (sx >= 0 && sy >= 0 && sx < mW && sy < mH) {
                     ground[sy][sx] = T_STAIRS;
                     walls[sy][sx] = -1;
-                    interiors.push({ stairsTx: sx, stairsTy: sy, interiorId: b.interior });
+                    const entry = { stairsTx: sx, stairsTy: sy, interiorId: b.interior };
+                    if (b.requires) entry.requires = b.requires;
+                    if (b.failMessage) entry.failMessage = b.failMessage;
+                    interiors.push(entry);
                 }
             } else if (b.basement) {
                 const sx = cx + b.x + 1, sy = cy + b.y + 1;
@@ -1464,25 +1467,27 @@ const NPC_DEFS = [
         ],
     },
     {
-        id: 'real_king', name: 'King Reginald (Imprisoned)',
+        id: 'real_king', name: 'Mysterious Prisoner',
         body: 0x9A7B4F, hat: 0xBB9955, hatType: 'hood',
         tx: CASTLE_X - 6, ty: CASTLE_Y - 2,
         dialogues: [
             { cond: { flag: 'freed_real_king' },
-              lines: ["Free at last! That scoundrel Blueberry locked me away!",
+              lines: ["Free at last! I am King Reginald — the REAL one!",
+                       "That scoundrel Blueberry locked me away!",
                        "He was my childhood friend, but jealousy consumed him.",
                        "He stole a witch's spell and took my form.",
                        "Mr. Kluck... you have saved the kingdom. Let us return to the throne.",
                        "There shall be a ceremony in your honor!"],
               action: { type: 'setFlag', flag: 'ceremony_complete' } },
             { cond: { flag: 'got_dispel_potion' },
-              lines: ["*muffled voice from behind bars*",
-                       "Please... is someone there? I am the REAL King Reginald!",
-                       "That impostor locked me down here months ago!",
+              lines: ["*a weak voice from behind the bars*",
+                       "Please... is someone there?",
+                       "I've been trapped down here for so long...",
+                       "That impostor locked me away months ago!",
                        "If you have a key... please, free me!"] },
             { cond: null,
-              lines: ["*silence* The dungeon is dark and empty.",
-                       "...Or is it? You hear faint scratching behind a wall."] },
+              lines: ["*the cell appears empty*",
+                       "...A faint scratching echoes from somewhere in the dark."] },
         ],
     },
     {
@@ -2369,6 +2374,11 @@ class GameScene extends Phaser.Scene {
         this.updateEnvironment();
         this.checkStairs();
         this.checkMapTransitions();
+        // Periodically check explore_area and other passive quests
+        if (!this._lastQuestCheck || time - this._lastQuestCheck > 500) {
+            this._lastQuestCheck = time;
+            this.checkQuests();
+        }
     }
 
     handleInput() {
@@ -3429,7 +3439,28 @@ class GameScene extends Phaser.Scene {
         if (this.worldData.ground[pty][ptx] === T_STAIRS) {
             // Check interiors first, then basements
             const inter = this.worldData.interiors.find(i => i.stairsTx === ptx && i.stairsTy === pty);
-            if (inter) { this.enterInterior(inter); return; }
+            if (inter) {
+                if (inter.requires) {
+                    if (inter.requires.item && !this.hasItem(inter.requires.item)) {
+                        this.showFloatingText(this.player.x, this.player.y - 20,
+                            inter.failMessage || 'Locked!', '#FFAA66');
+                        this.player.y += TILE;
+                        this.basementCooldown = true;
+                        this.time.delayedCall(1500, () => { this.basementCooldown = false; });
+                        return;
+                    }
+                    if (inter.requires.flag && !this.storyFlags[inter.requires.flag]) {
+                        this.showFloatingText(this.player.x, this.player.y - 20,
+                            inter.failMessage || 'Blocked!', '#FFAA66');
+                        this.player.y += TILE;
+                        this.basementCooldown = true;
+                        this.time.delayedCall(1500, () => { this.basementCooldown = false; });
+                        return;
+                    }
+                }
+                this.enterInterior(inter);
+                return;
+            }
             const bsmt = this.worldData.basements.find(b => b.stairsTx === ptx && b.stairsTy === pty);
             if (bsmt) this.enterBasement(bsmt);
         }
