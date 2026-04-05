@@ -1285,6 +1285,7 @@ class BootScene extends Phaser.Scene {
         const stored = localStorage.getItem('mrkluckLeaderboard');
         const lb = stored ? JSON.parse(stored) : [];
         let lbY = 365;
+        this.add.text(W/2, lbY - 18, `v${APP_VERSION}`, { fontSize: '12px', fill: '#888' }).setOrigin(0.5);
         this.add.text(W/2, lbY, '--- High Scores ---', { fontSize: '14px', fill: '#FFD700' }).setOrigin(0.5);
         if (lb.length === 0) {
             this.add.text(W/2, lbY+20, '(no scores yet)', { fontSize: '13px', fill: '#FFFFCC' }).setOrigin(0.5);
@@ -1295,8 +1296,6 @@ class BootScene extends Phaser.Scene {
                 }).setOrigin(0.5);
             });
         }
-
-        this.add.text(W/2, H-90, `v${APP_VERSION}`, { fontSize: '12px', fill: '#888' }).setOrigin(0.5);
 
         // Check for save data (fall back to old save key for backwards compat)
         const hasAutosave = !!localStorage.getItem('mrkluckAutosave') || !!localStorage.getItem('mrkluckSave');
@@ -1416,6 +1415,8 @@ class GameScene extends Phaser.Scene {
         this.crowReady = true;
         this.dashReady = true;
         this.isDashing = false;
+        this.dashEndAt = 0;
+        this.dashCooldownEndAt = 0;
         this.paused = false;
         this.playerDead = false;
 
@@ -1720,7 +1721,7 @@ class GameScene extends Phaser.Scene {
         this.player.setVelocity(0, 0);
 
         const W = this.scale.width, H = this.scale.height;
-        const panelW = 200, panelH = 210;
+        const panelW = 200, panelH = 228;
         const px = W - panelW - 8, py = 38;
 
         this.menuOverlay = this.add.graphics().setScrollFactor(0).setDepth(160);
@@ -1752,6 +1753,10 @@ class GameScene extends Phaser.Scene {
             return btn;
         });
 
+        this.menuVersionText = this.add.text(px + panelW / 2, py + panelH - 14, `v${APP_VERSION}`, {
+            fontSize: '11px', fill: '#888', fontFamily: 'Arial',
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(161);
+
         this.menuCloseBtn = this.add.text(px + panelW - 14, py + 10, 'X', {
             fontSize: '16px', fontFamily: 'Arial', fill: '#FFAAAA',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(162).setInteractive({ useHandCursor: true });
@@ -1768,6 +1773,7 @@ class GameScene extends Phaser.Scene {
         if (this.menuOverlay) { this.menuOverlay.destroy(); this.menuOverlay = null; }
         this.menuItems.forEach(t => t.destroy());
         this.menuItems = [];
+        if (this.menuVersionText) { this.menuVersionText.destroy(); this.menuVersionText = null; }
         if (this.menuCloseBtn) { this.menuCloseBtn.destroy(); this.menuCloseBtn = null; }
     }
 
@@ -3544,6 +3550,9 @@ class BasementScene extends Phaser.Scene {
     }
 
     update() {
+        const nowMs = Date.now();
+        if (this.isDashing && nowMs >= this.dashEndAt) this.isDashing = false;
+        if (!this.dashReady && nowMs >= this.dashCooldownEndAt) this.dashReady = true;
         if (this.isDashing) {
             if (Phaser.Input.Keyboard.JustDown(this.dashKey)) this.useBasementDash();
             return;
@@ -3578,6 +3587,8 @@ class BasementScene extends Phaser.Scene {
         const mag = Math.sqrt(vx * vx + vy * vy);
         this.isDashing = true;
         this.dashReady = false;
+        this.dashEndAt = Date.now() + DASH_DURATION;
+        this.dashCooldownEndAt = Date.now() + DASH_COOLDOWN;
         this.player.setVelocity((vx / mag) * DASH_SPEED, (vy / mag) * DASH_SPEED);
         this.time.delayedCall(DASH_DURATION, () => { this.isDashing = false; });
         this.time.delayedCall(DASH_COOLDOWN, () => { this.dashReady = true; });
@@ -3933,6 +3944,8 @@ class InteriorScene extends Phaser.Scene {
         this.dashKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.dashReady = true;
         this.isDashing = false;
+        this.dashEndAt = 0;
+        this.dashCooldownEndAt = 0;
 
         // Touch controls (movement + unified gestures/buttons)
         this.touchDir = { x: 0, y: 0 };
@@ -4133,6 +4146,9 @@ class InteriorScene extends Phaser.Scene {
             return;
         }
 
+        const nowMs = Date.now();
+        if (this.isDashing && nowMs >= this.dashEndAt) this.isDashing = false;
+        if (!this.dashReady && nowMs >= this.dashCooldownEndAt) this.dashReady = true;
         if (this.isDashing) return;
 
         const left  = this.cursors.left.isDown  || this.wasd.left.isDown  || this.touchDir.x < -0.3;
@@ -4317,6 +4333,8 @@ class InteriorScene extends Phaser.Scene {
         const mag = Math.sqrt(vx * vx + vy * vy);
         this.isDashing = true;
         this.dashReady = false;
+        this.dashEndAt = Date.now() + DASH_DURATION;
+        this.dashCooldownEndAt = Date.now() + DASH_COOLDOWN;
         this.player.setVelocity((vx / mag) * DASH_SPEED, (vy / mag) * DASH_SPEED);
         this.time.delayedCall(DASH_DURATION, () => { this.isDashing = false; });
         this.time.delayedCall(DASH_COOLDOWN, () => { this.dashReady = true; });
