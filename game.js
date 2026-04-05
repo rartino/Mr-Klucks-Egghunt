@@ -291,19 +291,20 @@ const QUEST_DEFS = {
 
     // --- Chapter 6: The Labyrinth ---
     ch6_enter_pyramid: {
-        id: 'ch6_enter_pyramid', desc: 'Enter the desert pyramid',
-        type: 'explore_area', target: { tx: 130, ty: 75, radius: 5 },
+        id: 'ch6_enter_pyramid', desc: 'Find the desert pyramid and enter the labyrinth below',
+        type: 'explore_area', target: { tx: 150, ty: 80, radius: 8 },
         reward: { type: 'flag', flag: 'entered_pyramid' },
+        nextQuest: 'ch6_find_chocolate',
     },
     ch6_find_chocolate: {
-        id: 'ch6_find_chocolate', desc: 'Find the cursed chocolate in the labyrinth',
+        id: 'ch6_find_chocolate', desc: 'Find the cursed chocolate deep in the labyrinth',
         type: 'fetch_item', target: 'cursed_chocolate',
         reward: { type: 'flag', flag: 'found_cursed_chocolate' },
+        nextQuest: 'ch6_clear_labyrinth',
     },
     ch6_clear_labyrinth: {
-        id: 'ch6_clear_labyrinth', desc: 'Defeat the Cursed Rabbit King',
-        type: 'boss', target: 'labyrinth',
-        reward: { type: 'flag', flag: 'labyrinth_cleared' },
+        id: 'ch6_clear_labyrinth', desc: 'Defeat the Cursed Rabbit King on Labyrinth Floor 3',
+        type: 'flag_check', target: 'labyrinth_cleared',
     },
 
     // --- Chapter 7: The Fairy Blessing ---
@@ -1102,7 +1103,8 @@ const NPC_DEFS = [
                        "Fine. The Shadowcoats will share what we know.",
                        "The bunnies are being fed cursed chocolate from somewhere east.",
                        "We'll help you investigate. Take this badge — our people will recognize it.",
-                       "My scouts say the pyramid in the east hides something big.",
+                       "My scouts say a pyramid in the far east desert hides something big.",
+                       "Look for stairs inside the pyramid — a labyrinth lies beneath.",
                        "You'll need a lantern. Take this one."],
               action: { type: 'setFlag', flag: 'shadowcoat_alliance' },
               giveItem: 'lantern',
@@ -3055,6 +3057,12 @@ class GameScene extends Phaser.Scene {
                 if (Math.sqrt(dx * dx + dy * dy) <= (q.target.radius || 3)) {
                     if (!q.requireItem || this.hasItem(q.requireItem)) done = true;
                 }
+            }
+            if (q.type === 'fetch_item' && q.target) {
+                if (this.hasItem(q.target)) done = true;
+            }
+            if (q.type === 'flag_check' && q.target) {
+                if (this.storyFlags[q.target]) done = true;
             }
             if (q.type === 'collect_items' && q.target) {
                 if (this.getItemCount(q.target.item) >= q.target.count) done = true;
