@@ -47,8 +47,9 @@
 
     <script>
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-            .then(function() {
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+            .then(function(reg) {
+                reg.update();
                 console.log('Service Worker Registered');
             })
             .catch(function(error) {
