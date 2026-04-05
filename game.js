@@ -1995,40 +1995,59 @@ class BootScene extends Phaser.Scene {
             });
         }
 
-        this.add.text(W/2, H-65, `v${APP_VERSION}`, { fontSize: '12px', fill: '#888' }).setOrigin(0.5);
+        this.add.text(W/2, H-90, `v${APP_VERSION}`, { fontSize: '12px', fill: '#888' }).setOrigin(0.5);
 
-        // Check for save data
-        const hasSave = !!localStorage.getItem('mrkluckSave');
+        // Check for save data (fall back to old save key for backwards compat)
+        const hasAutosave = !!localStorage.getItem('mrkluckAutosave') || !!localStorage.getItem('mrkluckSave');
+        const autosaveKey = localStorage.getItem('mrkluckAutosave') ? 'mrkluckAutosave' : 'mrkluckSave';
+        const hasManualSave = !!localStorage.getItem('mrkluckSave');
 
-        const tap = this.add.text(W/2, H-40, 'Tap or Press SPACE to Play', {
-            fontSize: '18px', fontFamily: 'Arial', fill: '#FFD700',
-        }).setOrigin(0.5);
-        this.tweens.add({ targets: tap, alpha: 0, yoyo: true, repeat: -1, duration: 700 });
+        // Boot menu buttons
+        const btnStyle = { fontSize: '16px', fontFamily: 'Arial', fill: '#EEEEEE', backgroundColor: '#00000088', padding: { x: 14, y: 6 } };
+        const btnY = H - 42;
+        const btnZones = [];
 
-        if (hasSave) {
-            const contBtn = this.add.text(W/2, H-90, '[ Continue Saved Game ]', {
-                fontSize: '16px', fontFamily: 'Arial', fill: '#88FF88',
-                backgroundColor: '#00000088', padding: { x: 12, y: 6 },
-            }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        // New Game button
+        const newBtn = this.add.text(W/2, btnY, '[ New Game ]', { ...btnStyle, fill: '#FFD700' })
+            .setOrigin(0.5).setInteractive({ useHandCursor: true });
+        newBtn.on('pointerdown', () => { this.game.loop.targetFps = 60; this.scene.start('GameScene'); });
+        newBtn.on('pointerover', () => newBtn.setStyle({ fill: '#FFFFFF' }));
+        newBtn.on('pointerout', () => newBtn.setStyle({ fill: '#FFD700' }));
+        btnZones.push(newBtn);
+
+        if (hasAutosave) {
+            // Shift New Game left to make room
+            newBtn.setX(W/2 - 100);
+            const contBtn = this.add.text(W/2 + 100, btnY, '[ Continue ]', { ...btnStyle, fill: '#88FF88' })
+                .setOrigin(0.5).setInteractive({ useHandCursor: true });
             contBtn.on('pointerdown', () => {
                 this.game.loop.targetFps = 60;
-                const save = JSON.parse(localStorage.getItem('mrkluckSave'));
-                this.scene.start('GameScene', save);
+                this.scene.start('GameScene', JSON.parse(localStorage.getItem(autosaveKey)));
             });
+            contBtn.on('pointerover', () => contBtn.setStyle({ fill: '#FFFFFF' }));
+            contBtn.on('pointerout', () => contBtn.setStyle({ fill: '#88FF88' }));
+            btnZones.push(contBtn);
+        }
+
+        if (hasManualSave) {
+            const loadBtn = this.add.text(W/2, btnY - 36, '[ Load Save ]', { ...btnStyle, fill: '#AADDFF' })
+                .setOrigin(0.5).setInteractive({ useHandCursor: true });
+            loadBtn.on('pointerdown', () => {
+                this.game.loop.targetFps = 60;
+                this.scene.start('GameScene', JSON.parse(localStorage.getItem('mrkluckSave')));
+            });
+            loadBtn.on('pointerover', () => loadBtn.setStyle({ fill: '#FFFFFF' }));
+            loadBtn.on('pointerout', () => loadBtn.setStyle({ fill: '#AADDFF' }));
+            btnZones.push(loadBtn);
         }
 
         // Throttle CPU — boot screen is mostly static
         this.game.loop.targetFps = 15;
 
-        const start = () => {
+        // SPACE starts new game
+        this.input.keyboard.once('keydown-SPACE', () => {
             this.game.loop.targetFps = 60;
             this.scene.start('GameScene');
-        };
-        this.input.keyboard.once('keydown-SPACE', start);
-        this.input.once('pointerdown', (p) => {
-            // Don't start new game if clicking Continue button
-            if (hasSave && p.y > H - 110 && p.y < H - 70) return;
-            start();
         });
     }
 }
@@ -2292,7 +2311,7 @@ class GameScene extends Phaser.Scene {
         this.createHeartDisplay();
 
         // Quest panel
-        this.questText = this.add.text(8, 44, '', { fontSize: '11px', fill: '#AADDFF', lineSpacing: 2 }).setScrollFactor(0).setDepth(101);
+        this.questText = this.add.text(8, 44, '', { fontSize: '11px', fill: '#000000', lineSpacing: 2 }).setScrollFactor(0).setDepth(101);
 
         // Menu button (top-right)
         this.menuOpen = false;
@@ -2464,6 +2483,11 @@ class GameScene extends Phaser.Scene {
         if (!this._lastQuestCheck || time - this._lastQuestCheck > 500) {
             this._lastQuestCheck = time;
             this.checkQuests();
+        }
+        // Auto-save every 30 seconds
+        if (!this._lastAutoSave || time - this._lastAutoSave > 30000) {
+            this._lastAutoSave = time;
+            this.autoSave();
         }
     }
 
@@ -3401,8 +3425,8 @@ class GameScene extends Phaser.Scene {
     //  GAME OVER / PAUSE
     // ------------------------------------------------------------------
 
-    saveGame() {
-        const save = {
+    _buildSaveData() {
+        return {
             score: this.score,
             lives: this.lives,
             totalEggsCollected: this.totalEggsCollected,
@@ -3417,8 +3441,15 @@ class GameScene extends Phaser.Scene {
             spawnTx: Math.floor(this.player.x / TILE),
             spawnTy: Math.floor(this.player.y / TILE),
         };
-        localStorage.setItem('mrkluckSave', JSON.stringify(save));
+    }
+
+    saveGame() {
+        localStorage.setItem('mrkluckSave', JSON.stringify(this._buildSaveData()));
         this.showFloatingText(this.player.x, this.player.y - 30, 'Game Saved!', '#88FF88');
+    }
+
+    autoSave() {
+        localStorage.setItem('mrkluckAutosave', JSON.stringify(this._buildSaveData()));
     }
 
     gameOver() {
@@ -3434,7 +3465,7 @@ class GameScene extends Phaser.Scene {
         lb = lb.slice(0, 5);
         localStorage.setItem('mrkluckLeaderboard', JSON.stringify(lb));
 
-        const lostEggs = this.score;
+        const lostEggs = this.totalEggsCollected;
 
         const W = this.scale.width, H = this.scale.height;
         const ov = this.add.graphics().setScrollFactor(0).setDepth(200);
@@ -3446,7 +3477,7 @@ class GameScene extends Phaser.Scene {
         this.add.text(W/2, H/2-40, 'The bunnies got you...', { fontSize: '18px', fill: '#FFFFCC' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
         this.add.text(W/2, H/2, 'A kind villager carries you to the hospital.', { fontSize: '14px', fill: '#AADDAA' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
         if (lostEggs > 0) {
-            this.add.text(W/2, H/2+30, `Your ${lostEggs} eggs were scattered and lost...`, { fontSize: '14px', fill: '#FF8888' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+            this.add.text(W/2, H/2+30, `All ${lostEggs} of your eggs were scattered and lost!`, { fontSize: '14px', fill: '#FF8888' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
         }
 
         const tap = this.add.text(W/2, H/2+80, 'Tap to wake up', { fontSize: '16px', fill: '#AAA' }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
@@ -3454,15 +3485,21 @@ class GameScene extends Phaser.Scene {
 
         this.time.delayedCall(1500, () => {
             const respawn = () => {
+                // Reset egg progress on quests
+                const resetQuests = this.activeQuests.map(q => {
+                    const out = { id: q.id, desc: q.desc, type: q.type, target: q.target, reward: q.reward, progress: q.progress };
+                    if (q.type === 'eggs' || q.type === 'golden' || q.type === 'pay_eggs') out.progress = 0;
+                    return out;
+                });
                 this.scene.start('GameScene', {
                     score: 0,
                     lives: 3,
-                    totalEggsCollected: this.totalEggsCollected,
-                    goldenEggsCollected: this.goldenEggsCollected,
+                    totalEggsCollected: 0,
+                    goldenEggsCollected: 0,
                     bossesDefeated: this.bossesDefeated,
                     storyFlags: this.storyFlags,
                     inventory: this.inventory,
-                    activeQuests: this.activeQuests,
+                    activeQuests: resetQuests,
                     completedQuests: this.completedQuests,
                     currentMapId: 'map1',
                     defeatedEnemies: this.defeatedEnemies,
@@ -3592,6 +3629,7 @@ class GameScene extends Phaser.Scene {
     }
 
     enterBasement(bsmt) {
+        this.autoSave();
         this.scene.pause();
         this.scene.launch('BasementScene', {
             parentScene: this,
@@ -3604,6 +3642,7 @@ class GameScene extends Phaser.Scene {
     }
 
     enterInterior(inter) {
+        this.autoSave();
         this.scene.pause();
         this.scene.launch('InteriorScene', {
             parentScene: this,
@@ -3651,7 +3690,7 @@ class GameScene extends Phaser.Scene {
                     }
                 }
                 // Auto-save before transition
-                this.saveGame();
+                this.autoSave();
                 // Transition!
                 this.scene.start('GameScene', {
                     score: this.score,
@@ -3696,11 +3735,12 @@ class GameScene extends Phaser.Scene {
             zone.on('pointerdown', cb);
             this.actionBtnZones.push({ x: bx, y: by, r: 30 });
         };
-        makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => this.useCrowPower());
-        makeBtnCircle('DASH', W - 55, H - 55, 0x884400, () => this.useDash());
-        makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => { if (this.nearestNPC && !this.dialogueActive) this.showDialogue(this.nearestNPC); });
-        makeBtnCircle('BAG', W - 110, H - 105, 0x446622, () => this.toggleInventory());
-        makeBtnCircle('USE', W - 165, H - 55, 0x664422, () => this.useSelectedItem());
+        const modalBlocked = () => this.dialogueActive || this.inventoryOpen || this.questLogOpen || this.menuOpen || this.paused || this.playerDead;
+        makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => { if (!modalBlocked()) this.useCrowPower(); });
+        makeBtnCircle('DASH', W - 55, H - 55, 0x884400, () => { if (!modalBlocked()) this.useDash(); });
+        makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => { if (!modalBlocked() && this.nearestNPC) this.showDialogue(this.nearestNPC); });
+        makeBtnCircle('BAG', W - 110, H - 105, 0x446622, () => { if (!modalBlocked()) this.toggleInventory(); });
+        makeBtnCircle('USE', W - 165, H - 55, 0x664422, () => { if (!modalBlocked()) this.useSelectedItem(); });
 
         // Pause button
         const pauseBtn = this.add.text(W / 2 - 55, 24, '|| Pause', {
