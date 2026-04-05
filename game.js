@@ -1514,6 +1514,7 @@ class GameScene extends Phaser.Scene {
         // Spawn NPCs
         this.npcs = [];
         NPC_DEFS.filter(d => !d.mapId || d.mapId === this.currentMapId).forEach(d => {
+            if (d.spawnCond && !this.checkCondition(d.spawnCond)) return;
             if (d.tx < 0 || d.ty < 0 || d.tx >= this.mapWidth || d.ty >= this.mapHeight) return;
             const npc = this.add.image(d.tx * TILE + TILE/2, d.ty * TILE + TILE/2, 'npc_' + d.id);
             npc.setDepth(8);
@@ -3240,7 +3241,11 @@ class BasementScene extends Phaser.Scene {
             zone.on('pointerdown', cb);
             this.actionBtnZones.push({ x: bx, y: by, r: 30 });
         };
-        makeBtnCircle('EXIT', W - 55, H - 55, 0x553322, () => this.exitBasement());
+        makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => {});
+        makeBtnCircle('DASH', W - 55, H - 55, 0x884400, () => {});
+        makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => {});
+        makeBtnCircle('BAG', W - 110, H - 105, 0x446622, () => {});
+        makeBtnCircle('USE', W - 165, H - 55, 0x664422, () => {});
 
         this.input.on('pointerdown', p => {
             for (const z of this.actionBtnZones) {
@@ -3611,9 +3616,12 @@ class InteriorScene extends Phaser.Scene {
         makeBtnCircle('CROW', W - 55, H - 105, 0x882200, () => {
             if (!modalBlocked() && this.crowReady) this.interiorCrowStun();
         });
+        makeBtnCircle('DASH', W - 55, H - 55, 0x884400, () => {});
         makeBtnCircle('TALK', W - 110, H - 55, 0x224488, () => {
             if (!modalBlocked() && this.nearestNPC) this.showInteriorDialogue(this.nearestNPC);
         });
+        makeBtnCircle('BAG', W - 110, H - 105, 0x446622, () => {});
+        makeBtnCircle('USE', W - 165, H - 55, 0x664422, () => {});
 
         this.input.on('pointerdown', p => {
             for (const z of this.actionBtnZones) {

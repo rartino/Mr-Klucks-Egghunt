@@ -371,6 +371,9 @@
     "id": "hermit_outside",
     "name": "Hermit Grizzle",
     "mapId": "map1",
+    "spawnCond": {
+      "notFlag": "found_hermit_cave"
+    },
     "body": 8943462,
     "hat": 6706500,
     "hatType": "hood",
@@ -441,9 +444,6 @@
     "body": 8943462,
     "hat": 6706500,
     "hatType": "hood",
-    "mapId": "map1",
-    "tx": 92,
-    "ty": 8,
     "dialogues": [
       {
         "cond": {
