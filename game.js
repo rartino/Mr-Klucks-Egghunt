@@ -4069,6 +4069,9 @@ class InteriorScene extends Phaser.Scene {
         this.dialogueActive = false;
         this.dialogueTapArmed = false;
         this.dialogueNPCDef = null;
+        this.typewriterTimer = null;
+        this.typewriterDone = false;
+        this.currentFullText = '';
         this.createSimpleDialogueUI();
     }
 
@@ -4086,6 +4089,9 @@ class InteriorScene extends Phaser.Scene {
         this.dlgText = this.add.text(boxX + 14, boxY + 32, '', {
             fontSize: '13px', fontFamily: 'Arial', fill: '#EEEEEE', wordWrap: { width: boxW - 28 }, lineSpacing: 4,
         }).setScrollFactor(0).setDepth(201).setVisible(false);
+        this.dlgPrompt = this.add.text(boxX + boxW - 12, boxY + boxH - 10, 'Tap/E', {
+            fontSize: '10px', fill: '#AAAAAA',
+        }).setOrigin(1, 1).setScrollFactor(0).setDepth(201).setVisible(false);
 
         this.input.on('pointerup', () => {
             if (this.dialogueActive && this.dialogueTapArmed) this.advanceInteriorDialogue();
@@ -4237,7 +4243,34 @@ class InteriorScene extends Phaser.Scene {
 
         this.dlgBox.setVisible(true);
         this.dlgName.setText(def.name).setVisible(true);
-        this.dlgText.setText(this.dialogueQueue[0]).setVisible(true);
+        this.dlgText.setText('').setVisible(true);
+        this.dlgPrompt.setVisible(true);
+        this.showNextInteriorDialogueLine();
+    }
+
+    showNextInteriorDialogueLine() {
+        const text = this.dialogueQueue[this.dialogueLineIdx];
+        this.currentFullText = text;
+        this.typewriterDone = false;
+        this.dlgText.setText('');
+        this.startInteriorTypewriter(text);
+    }
+
+    startInteriorTypewriter(text) {
+        let i = 0;
+        if (this.typewriterTimer) this.typewriterTimer.remove();
+        this.typewriterTimer = this.time.addEvent({
+            delay: DIALOGUE_CHAR_DELAY,
+            callback: () => {
+                i++;
+                this.dlgText.setText(text.substring(0, i));
+                if (i >= text.length) {
+                    this.typewriterTimer.remove();
+                    this.typewriterDone = true;
+                }
+            },
+            loop: true,
+        });
     }
 
     checkSimpleCondition(cond) {
@@ -4251,15 +4284,23 @@ class InteriorScene extends Phaser.Scene {
     }
 
     advanceInteriorDialogue() {
+        if (!this.typewriterDone) {
+            if (this.typewriterTimer) this.typewriterTimer.remove();
+            this.dlgText.setText(this.currentFullText);
+            this.typewriterDone = true;
+            return;
+        }
         this.dialogueLineIdx++;
         if (this.dialogueLineIdx < this.dialogueQueue.length) {
-            this.dlgText.setText(this.dialogueQueue[this.dialogueLineIdx]);
+            this.showNextInteriorDialogueLine();
         } else {
             this.dialogueActive = false;
             this.dialogueTapArmed = false;
             this.dlgBox.setVisible(false);
             this.dlgName.setVisible(false);
             this.dlgText.setVisible(false);
+            this.dlgPrompt.setVisible(false);
+            if (this.typewriterTimer) this.typewriterTimer.remove();
 
             // Execute actions
             const entry = this.dialogueEntry;

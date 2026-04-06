@@ -409,6 +409,29 @@
     "dialogues": [
       {
         "cond": {
+          "questActive": "ch6_report_hermit"
+        },
+        "lines": [
+          "You found the cursed chocolate. Then the worst rumors were true.",
+          "Now you must take the perilous road ahead.",
+          "Cross the mountain pass, then push through the great swamp beyond.",
+          "Find the rumored Pom-pom village and ask for their help."
+        ]
+      },
+      {
+        "cond": {
+          "flag": "found_cursed_chocolate",
+          "notFlag": "mountain_pass_bought"
+        },
+        "lines": [
+          "The cursed chocolate confirms our enemy is real.",
+          "Your next step is dangerous: mountain pass first, then the great swamp.",
+          "Somewhere beyond it lies the rumored Pom-pom village.",
+          "Win their trust. We will need allies."
+        ]
+      },
+      {
+        "cond": {
           "flag": "fairy_blessing"
         },
         "lines": [

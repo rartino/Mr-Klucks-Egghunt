@@ -201,6 +201,13 @@
       "type": "flag",
       "flag": "met_pompoms"
     },
+    "nextQuest": "ch5_talk_elder_fluff"
+  },
+  "ch5_talk_elder_fluff": {
+    "id": "ch5_talk_elder_fluff",
+    "desc": "Talk to Elder Fluff",
+    "type": "talk_to",
+    "target": "pompom_elder",
     "nextQuest": "ch5_gift_1"
   },
   "ch5_gift_1": {
@@ -212,6 +219,13 @@
       "type": "flag",
       "flag": "pompom_gift_1"
     },
+    "nextQuest": "ch5_talk_elder_fluff_after_gift_1"
+  },
+  "ch5_talk_elder_fluff_after_gift_1": {
+    "id": "ch5_talk_elder_fluff_after_gift_1",
+    "desc": "Talk to Elder Fluff",
+    "type": "talk_to",
+    "target": "pompom_elder",
     "nextQuest": "ch5_gift_2"
   },
   "ch5_gift_2": {
@@ -227,6 +241,13 @@
       "type": "flag",
       "flag": "pompom_gift_2"
     },
+    "nextQuest": "ch5_talk_elder_fluff_after_gift_2"
+  },
+  "ch5_talk_elder_fluff_after_gift_2": {
+    "id": "ch5_talk_elder_fluff_after_gift_2",
+    "desc": "Talk to Elder Fluff",
+    "type": "talk_to",
+    "target": "pompom_elder",
     "nextQuest": "ch5_gift_3"
   },
   "ch5_gift_3": {
@@ -253,7 +274,8 @@
           "item": "pompom_charm"
         }
       ]
-    }
+    },
+    "nextQuest": "ch7_find_fairy"
   },
   "ch6_enter_pyramid": {
     "id": "ch6_enter_pyramid",
